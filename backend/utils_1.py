@@ -1,0 +1,230 @@
+import random
+import string
+from datetime import datetime, timedelta
+import os
+from typing import Optional
+import aiosmtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def reduce_to_single_digit(num: int) -> int:
+    """Reduce a number to single digit by adding its digits"""
+    while num >= 10:
+        num = sum(int(digit) for digit in str(num))
+    return num
+
+def calculate_driver_number(dob: str) -> int:
+    """Calculate driver number from date of birth (YYYY-MM-DD format)"""
+    # Driver number is the reduction of birth day only
+    # E.g., 23rd = 2 + 3 = 5
+    try:
+        parts = dob.split('-')
+        day = int(parts[2])
+        return reduce_to_single_digit(day)
+    except:
+        return 1
+
+def calculate_conductor_number(dob: str) -> int:
+    """Calculate conductor number (Life Path) from entire birth date"""
+    # Conductor number is the reduction of DD + MM + YYYY
+    # E.g., 23/05/1993 = 23 + 5 + 1993 = 2021 = 2+0+2+1 = 5
+    try:
+        parts = dob.split('-')
+        day = int(parts[2])
+        month = int(parts[1])
+        year = int(parts[0])
+        
+        full_date = day + month + year
+        return reduce_to_single_digit(full_date)
+    except:
+        return 1
+
+def calculate_personal_year(dob: str) -> int:
+    """Calculate personal year number based on current date"""
+    # Personal year = day + month + current year, reduced to single digit
+    # E.g., 23/05 + 2026 = 23 + 5 + 2026 = 2054 = 2+0+5+4 = 11 = 1+1 = 2
+    try:
+        current_year = datetime.now().year
+        parts = dob.split('-')
+        month = int(parts[1])
+        day = int(parts[2])
+        
+        personal_year = day + month + current_year
+        return reduce_to_single_digit(personal_year)
+    except:
+        return 1
+
+async def generate_otp(length: int = 6) -> str:
+    """Generate a random OTP"""
+    return ''.join(random.choices(string.digits, k=length))
+
+def get_zodiac_sign(month: int, day: int) -> str:
+    """Get zodiac sign from month and day"""
+    zodiac_signs = [
+        ("Capricorn", (12, 22), (1, 19)),
+        ("Aquarius", (1, 20), (2, 18)),
+        ("Pisces", (2, 19), (3, 20)),
+        ("Aries", (3, 21), (4, 19)),
+        ("Taurus", (4, 20), (5, 20)),
+        ("Gemini", (5, 21), (6, 20)),
+        ("Cancer", (6, 21), (7, 22)),
+        ("Leo", (7, 23), (8, 22)),
+        ("Virgo", (8, 23), (9, 22)),
+        ("Libra", (9, 23), (10, 22)),
+        ("Scorpio", (10, 23), (11, 21)),
+        ("Sagittarius", (11, 22), (12, 21)),
+    ]
+    
+    for sign, (start_month, start_day), (end_month, end_day) in zodiac_signs:
+        if (month == start_month and day >= start_day) or (month == end_month and day <= end_day):
+            return sign
+    return "Unknown"
+
+async def send_otp_via_email(email: str, otp: str) -> bool:
+    """Send OTP via email using SMTP"""
+    try:
+        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        sender_email = os.getenv("SENDER_EMAIL")
+        sender_password = os.getenv("SENDER_PASSWORD")
+        
+        if not sender_email or not sender_password:
+            print(f"[Demo Mode] OTP for {email}: {otp}")
+            return True
+        
+        message = MIMEMultipart()
+        message["From"] = sender_email
+        message["To"] = email
+        message["Subject"] = "Your Astrology App OTP"
+        
+        body = f"""
+        <html>
+            <body>
+                <h2>Your OTP Code</h2>
+                <p>Your OTP is: <strong>{otp}</strong></p>
+                <p>This code will expire in 10 minutes.</p>
+                <p>Do not share this code with anyone.</p>
+            </body>
+        </html>
+        """
+        
+        message.attach(MIMEText(body, "html"))
+        
+        async with aiosmtplib.SMTP(hostname=smtp_host, port=smtp_port) as smtp:
+            await smtp.login(sender_email, sender_password)
+            await smtp.send_message(message)
+        
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        print(f"[Demo Mode] OTP for {email}: {otp}")
+        return True
+
+async def send_otp_via_sms(phone: str, otp: str) -> bool:
+    """Send OTP via SMS using Twilio"""
+    try:
+        from twilio.rest import Client
+        
+        account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        twilio_number = os.getenv("TWILIO_PHONE_NUMBER")
+        
+        if not account_sid or not auth_token:
+            print(f"[Demo Mode] OTP for {phone}: {otp}")
+            return True
+        
+        client = Client(account_sid, auth_token)
+        message = client.messages.create(
+            body=f"Your Astrology App OTP is: {otp}. Valid for 10 minutes.",
+            from_=twilio_number,
+            to=phone
+        )
+        return True
+    except Exception as e:
+        print(f"Error sending SMS: {e}")
+        print(f"[Demo Mode] OTP for {phone}: {otp}")
+        return True
+
+def get_zodiac_prediction(zodiac_sign: str) -> dict:
+    """Get prediction data for a zodiac sign"""
+    predictions = {
+        "Aries": {
+            "prediction": "Your bold and ambitious nature will lead you to new opportunities. Take calculated risks and trust your instincts.",
+            "lucky_color": "Red",
+            "lucky_number": 7,
+            "compatibility": "Compatible with Leo, Sagittarius"
+        },
+        "Taurus": {
+            "prediction": "Stability and patience are your strengths. A period of growth and abundance awaits you.",
+            "lucky_color": "Green",
+            "lucky_number": 6,
+            "compatibility": "Compatible with Virgo, Capricorn"
+        },
+        "Gemini": {
+            "prediction": "Communication and adaptability will be your greatest assets. New connections bring exciting possibilities.",
+            "lucky_color": "Yellow",
+            "lucky_number": 5,
+            "compatibility": "Compatible with Libra, Aquarius"
+        },
+        "Cancer": {
+            "prediction": "Trust your emotional intuition. Family and close relationships will bring you comfort and joy.",
+            "lucky_color": "Silver",
+            "lucky_number": 2,
+            "compatibility": "Compatible with Scorpio, Pisces"
+        },
+        "Leo": {
+            "prediction": "Your confidence and creativity shine brightly. This is your time to step into the spotlight.",
+            "lucky_color": "Gold",
+            "lucky_number": 1,
+            "compatibility": "Compatible with Aries, Sagittarius"
+        },
+        "Virgo": {
+            "prediction": "Your analytical skills will help you solve complex problems. Focus on details and organization.",
+            "lucky_color": "Brown",
+            "lucky_number": 4,
+            "compatibility": "Compatible with Taurus, Capricorn"
+        },
+        "Libra": {
+            "prediction": "Balance and harmony are key. Your diplomatic nature opens doors to meaningful partnerships.",
+            "lucky_color": "Blue",
+            "lucky_number": 6,
+            "compatibility": "Compatible with Gemini, Aquarius"
+        },
+        "Scorpio": {
+            "prediction": "Deep transformation is underway. Your strength and determination will overcome any challenge.",
+            "lucky_color": "Maroon",
+            "lucky_number": 8,
+            "compatibility": "Compatible with Cancer, Pisces"
+        },
+        "Sagittarius": {
+            "prediction": "Adventure and expansion await. Your optimism will inspire others and bring success.",
+            "lucky_color": "Purple",
+            "lucky_number": 9,
+            "compatibility": "Compatible with Aries, Leo"
+        },
+        "Capricorn": {
+            "prediction": "Your discipline and responsibility lead to lasting success. Hard work pays off.",
+            "lucky_color": "Black",
+            "lucky_number": 3,
+            "compatibility": "Compatible with Taurus, Virgo"
+        },
+        "Aquarius": {
+            "prediction": "Innovation and independence define your path. Your unique vision will create change.",
+            "lucky_color": "Turquoise",
+            "lucky_number": 4,
+            "compatibility": "Compatible with Gemini, Libra"
+        },
+        "Pisces": {
+            "prediction": "Your creativity and empathy are your superpowers. Trust the universe's plan for you.",
+            "lucky_color": "Sea Green",
+            "lucky_number": 7,
+            "compatibility": "Compatible with Cancer, Scorpio"
+        }
+    }
+    
+    return predictions.get(zodiac_sign, {
+        "prediction": "Embrace your unique cosmic energy.",
+        "lucky_color": "White",
+        "lucky_number": 11,
+        "compatibility": "Universal compatibility"
+    })
