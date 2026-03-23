@@ -1,4 +1,5 @@
 import random
+import smtplib
 import string
 from datetime import datetime, timedelta
 import os
@@ -180,46 +181,42 @@ def get_zodiac_sign(month: int, day: int) -> str:
             return sign
     return "Unknown"
 
-async def send_otp_via_email(email: str, otp: str) -> bool:
-    """Send OTP via email using SMTP"""
+def send_otp_via_email(email: str, otp: str) -> bool:
     try:
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         sender_email = os.getenv("SENDER_EMAIL")
         sender_password = os.getenv("SENDER_PASSWORD")
-        
+
         if not sender_email or not sender_password:
             print(f"[Demo Mode] OTP for {email}: {otp}")
             return True
-        
-        message = MIMEMultipart()
-        message["From"] = sender_email
-        message["To"] = email
-        message["Subject"] = "Your Astrology App OTP"
-        
+
+        msg = MIMEMultipart()
+        msg["From"] = sender_email
+        msg["To"] = email
+        msg["Subject"] = "Your Astrology App OTP"
+
         body = f"""
-        <html>
-            <body>
-                <h2>Your OTP Code</h2>
-                <p>Your OTP is: <strong>{otp}</strong></p>
-                <p>This code will expire in 10 minutes.</p>
-                <p>Do not share this code with anyone.</p>
-            </body>
-        </html>
+        Your OTP is: {otp}
+        It will expire in 10 minutes.
         """
-        
-        message.attach(MIMEText(body, "html"))
-        
-        async with aiosmtplib.SMTP(hostname=smtp_host, port=smtp_port) as smtp:
-            await smtp.login(sender_email, sender_password)
-            await smtp.send_message(message)
-        
-        return True
-    except Exception as e:
-        print(f"Error sending email: {e}")
-        print(f"[Demo Mode] OTP for {email}: {otp}")
+
+        msg.attach(MIMEText(body, "plain"))
+
+        server = smtplib.SMTP(smtp_host, smtp_port)
+        server.starttls()   # 🔥 VERY IMPORTANT
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+
+        print(f"OTP sent to email: {email}")
         return True
 
+    except Exception as e:
+        print(f"Email Error: {e}")
+        print(f"[Fallback OTP] {otp}")
+        return False
 async def send_otp_via_sms(phone: str, otp: str) -> bool:
     """Send OTP via SMS using Twilio"""
     try:
