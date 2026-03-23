@@ -409,17 +409,9 @@ export default function PredictionPage() {
       </div>
 
       <Dialog open={openKnowMore} onOpenChange={setOpenKnowMore}>
-        <DialogContent className="w-[96vw] max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-0 rounded-2xl shadow-2xl">
+        <DialogContent className="w-[96vw] max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-0 rounded-2xl shadow-2xl [&>button]:top-4 [&>button]:right-4 [&>button]:text-white [&>button]:opacity-80 [&>button:hover]:opacity-100 [&>button]:bg-white/20 [&>button]:rounded-full [&>button]:border-0">
           {/* Header */}
-          <div className="relative bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 px-7 py-6 pr-16 rounded-t-2xl">
-            <button
-              type="button"
-              onClick={() => setOpenKnowMore(false)}
-              className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition"
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
+          <div className="relative bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 px-7 py-6 rounded-t-2xl">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-white/80" />
