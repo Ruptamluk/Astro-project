@@ -31,13 +31,14 @@ interface Prediction {
   personal_year: number
   analysis: string
   lucky_color: string
-  lucky_number: number
+  lucky_number: number | string
   dob: string
 
   strength_number?: number
   strength_prediction?: string
   strength_remedy?: string
 
+  gochor_number?: number
   gochor_prediction?: string
   gochor_remedy?: string
 
@@ -49,6 +50,9 @@ interface Prediction {
 }
 
 type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha'
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
 const colorMap: Record<string, string> = {
   Red: 'red',
@@ -64,12 +68,21 @@ const colorMap: Record<string, string> = {
   Gray: 'gray',
   Grey: 'gray',
   Gold: 'gold',
+  Golden: 'gold',
   Silver: 'silver',
   Maroon: 'maroon',
+  Meroon: 'maroon',
   Turquoise: 'turquoise',
   'Sea Green': 'seagreen',
   'Sky Blue': 'skyblue',
   Violet: 'violet',
+  'Pale Green': '#98fb98',
+  'Light Blue': '#add8e6',
+  'Light Green': '#90ee90',
+  Navy: 'navy',
+  'Navy Blue': 'navy',
+  cream: '#fffdd0',
+  creem: '#fffdd0',
 }
 
 function reduceToSingleDigit(num: number): number {
@@ -101,18 +114,75 @@ export default function PredictionPage() {
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId')
-    if (!userId) {
-      router.push('/')
-      return
+    let isMounted = true
+
+    const loadPrediction = async () => {
+      try {
+        const userId = localStorage.getItem('userId')
+
+        if (!userId) {
+          router.push('/')
+          return
+        }
+
+        const storedPrediction = localStorage.getItem('prediction')
+
+        if (storedPrediction) {
+          try {
+            const parsed = JSON.parse(storedPrediction)
+            if (isMounted) {
+              setPrediction(parsed)
+            }
+          } catch (err) {
+            console.error('Invalid localStorage prediction JSON:', err)
+            localStorage.removeItem('prediction')
+          }
+        }
+
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 8000)
+
+        try {
+          const res = await fetch(
+            `${API_BASE_URL}/api/predictions/get-prediction/${userId}`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              signal: controller.signal,
+            }
+          )
+
+          clearTimeout(timeout)
+
+          if (res.ok) {
+            const latest = await res.json()
+            if (isMounted) {
+              setPrediction(latest)
+            }
+            localStorage.setItem('prediction', JSON.stringify(latest))
+          } else {
+            console.error('Prediction fetch failed with status:', res.status)
+          }
+        } catch (fetchErr) {
+          clearTimeout(timeout)
+          console.error('Prediction fetch error:', fetchErr)
+        }
+      } catch (error) {
+        console.error('Failed to load prediction:', error)
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
     }
 
-    const storedPrediction = localStorage.getItem('prediction')
-    if (storedPrediction) {
-      setPrediction(JSON.parse(storedPrediction))
-    }
+    loadPrediction()
 
-    setLoading(false)
+    return () => {
+      isMounted = false
+    }
   }, [router])
 
   const handleLogout = () => {
@@ -136,8 +206,11 @@ export default function PredictionPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.18),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.12),_transparent_24%),linear-gradient(to_bottom_right,_#fcf7ff,_#f5f3ff,_#eef2ff)] p-4">
         <Card className="border-violet-200/60 bg-white/80 backdrop-blur-sm p-6 max-w-md shadow-xl rounded-3xl">
-          <p className="text-slate-600 mb-4">No details found. Please start over.</p>
-          <Button onClick={handleLogout} className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl">
+          <p className="text-slate-600 mb-4">No details found. Please start again.</p>
+          <Button
+            onClick={() => router.push('/')}
+            className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl"
+          >
             Go Back
           </Button>
         </Card>
@@ -145,11 +218,13 @@ export default function PredictionPage() {
     )
   }
 
-  const luckyColorValue =
-    colorMap[prediction.lucky_color] || prediction.lucky_color.toLowerCase() || '#999999'
-
   const strengthNumber =
     prediction.strength_number ?? getStrengthNumber(prediction.dob, prediction.driver_number)
+
+  const luckyColorsArray = prediction.lucky_color
+    ?.split(',')
+    .map((c: string) => c.trim())
+    .filter(Boolean)
 
   const insightContent = {
     strength: {
@@ -157,44 +232,36 @@ export default function PredictionPage() {
       value: strengthNumber,
       icon: Zap,
       prediction:
-        prediction.strength_prediction ||
-        'No strength number prediction available yet.',
+        prediction.strength_prediction || 'No strength number prediction available yet.',
       remedy:
-        prediction.strength_remedy ||
-        'No remedy available yet.',
+        prediction.strength_remedy || 'No remedy available yet.',
     },
     gochor: {
       title: 'Gochor',
-      value: null,
+      value: prediction.gochor_number ?? null,
       icon: Orbit,
       prediction:
-        prediction.gochor_prediction ||
-        'No gochor prediction available yet.',
+        prediction.gochor_prediction || 'No gochor prediction available yet.',
       remedy:
-        prediction.gochor_remedy ||
-        'No gochor remedy available yet.',
+        prediction.gochor_remedy || 'No gochor remedy available yet.',
     },
     mahadasha: {
       title: 'Mahadasha',
       value: null,
       icon: MoonStar,
       prediction:
-        prediction.mahadasha_prediction ||
-        'No mahadasha prediction available yet.',
+        prediction.mahadasha_prediction || 'No mahadasha prediction available yet.',
       remedy:
-        prediction.mahadasha_remedy ||
-        'No mahadasha remedy available yet.',
+        prediction.mahadasha_remedy || 'No mahadasha remedy available yet.',
     },
     antardasha: {
       title: 'Antardasha',
       value: null,
       icon: Clock3,
       prediction:
-        prediction.antardasha_prediction ||
-        'No antardasha prediction available yet.',
+        prediction.antardasha_prediction || 'No antardasha prediction available yet.',
       remedy:
-        prediction.antardasha_remedy ||
-        'No antardasha remedy available yet.',
+        prediction.antardasha_remedy || 'No antardasha remedy available yet.',
     },
   } as const
 
@@ -214,7 +281,7 @@ export default function PredictionPage() {
       title: 'Gochor',
       subtitle: 'Transit based insight',
       icon: Orbit,
-      value: null,
+      value: prediction.gochor_number ?? null,
     },
     {
       key: 'mahadasha' as InsightKey,
@@ -235,12 +302,6 @@ export default function PredictionPage() {
   return (
     <>
       <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.18),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.12),_transparent_24%),radial-gradient(circle_at_bottom_right,_rgba(236,72,153,0.10),_transparent_22%),linear-gradient(to_bottom_right,_#fcf7ff,_#f5f3ff,_#eef2ff)] p-4 md:p-8">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 right-20 w-80 h-80 bg-violet-300/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 left-10 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 left-1/2 w-72 h-72 bg-pink-200/20 rounded-full blur-3xl -translate-x-1/2" />
-        </div>
-
         <div className="relative z-10 max-w-5xl mx-auto">
           <div className="text-center mb-10 md:mb-14">
             <div className="flex justify-center mb-4">
@@ -265,58 +326,35 @@ export default function PredictionPage() {
             </div>
 
             <div className="p-6 md:p-8">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-5">
-                <div className="rounded-2xl p-5 md:p-6 border border-violet-200 bg-gradient-to-br from-violet-100/70 to-white shadow-sm text-center min-h-[170px] flex flex-col justify-center">
-                  <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                <div className="rounded-3xl bg-white/90 px-6 py-7 shadow-sm text-center min-h-[190px] flex flex-col justify-center">
+                  <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-[0.18em] mb-3">
                     Driver Number
                   </p>
-                  <div className="text-4xl md:text-5xl font-bold text-violet-600 mb-2">
+                  <div className="text-5xl md:text-6xl font-bold text-violet-600 mb-2">
                     {prediction.driver_number}
                   </div>
-                  <p className="text-xs text-slate-500">Core identity</p>
+                  <p className="text-sm text-slate-500">Core identity</p>
                 </div>
 
-                <div className="rounded-2xl p-5 md:p-6 border border-fuchsia-200 bg-gradient-to-br from-fuchsia-100/70 to-white shadow-sm text-center min-h-[170px] flex flex-col justify-center">
-                  <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                <div className="rounded-3xl bg-white/90 px-6 py-7 shadow-sm text-center min-h-[190px] flex flex-col justify-center">
+                  <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-[0.18em] mb-3">
                     Conductor Number
                   </p>
-                  <div className="text-4xl md:text-5xl font-bold text-fuchsia-600 mb-2">
+                  <div className="text-5xl md:text-6xl font-bold text-fuchsia-600 mb-2">
                     {prediction.conductor_number}
                   </div>
-                  <p className="text-xs text-slate-500">Outer expression</p>
+                  <p className="text-sm text-slate-500">Outer expression</p>
                 </div>
 
-                <div className="rounded-2xl p-5 md:p-6 border border-indigo-200 bg-gradient-to-br from-indigo-100/70 to-white shadow-sm text-center min-h-[170px] flex flex-col justify-center">
-                  <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                <div className="rounded-3xl bg-white/90 px-6 py-7 shadow-sm text-center min-h-[190px] flex flex-col justify-center">
+                  <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-[0.18em] mb-3">
                     Personal Year
                   </p>
-                  <div className="text-4xl md:text-5xl font-bold text-indigo-600 mb-2">
+                  <div className="text-5xl md:text-6xl font-bold text-indigo-600 mb-2">
                     {prediction.personal_year}
                   </div>
-                  <p className="text-xs text-slate-500">Yearly influence</p>
-                </div>
-
-                <div className="rounded-2xl p-5 md:p-6 border border-pink-200 bg-gradient-to-br from-pink-100/70 to-white shadow-sm text-center min-h-[170px] flex flex-col justify-center">
-                  <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                    Lucky Number
-                  </p>
-                  <div className="text-4xl md:text-5xl font-bold text-pink-600 mb-2">
-                    {prediction.lucky_number}
-                  </div>
-                  <p className="text-xs text-slate-500">Supportive vibration</p>
-                </div>
-
-                <div className="rounded-2xl p-5 md:p-6 border border-sky-200 bg-gradient-to-br from-sky-100/70 to-white shadow-sm text-center min-h-[170px] flex flex-col justify-center">
-                  <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                    Lucky Color
-                  </p>
-                  <div
-                    className="w-16 h-16 rounded-2xl mx-auto mb-3 border-4 border-white shadow-md"
-                    style={{ backgroundColor: luckyColorValue }}
-                  />
-                  <div className="text-lg md:text-xl font-bold text-slate-800">
-                    {prediction.lucky_color}
-                  </div>
+                  <p className="text-sm text-slate-500">Yearly influence</p>
                 </div>
               </div>
             </div>
@@ -362,25 +400,44 @@ export default function PredictionPage() {
 
             <div className="p-6 md:p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="rounded-2xl border border-violet-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[220px]">
+                <div className="rounded-2xl border border-violet-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[280px]">
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
                     Lucky Color
                   </p>
-                  <div
-                    className="w-28 h-28 rounded-3xl border-4 border-white shadow-xl mb-4"
-                    style={{ backgroundColor: luckyColorValue }}
-                  />
-                  <p className="text-2xl font-bold text-slate-800">{prediction.lucky_color}</p>
+
+                  <div className="w-full max-w-[280px] min-h-[160px] rounded-3xl bg-gradient-to-br from-violet-100 to-fuchsia-100 border border-violet-200 flex flex-wrap items-center justify-center gap-3 shadow-lg mb-4 px-6 py-6">
+                    {luckyColorsArray?.map((color: string, index: number) => {
+                      const colorValue = colorMap[color] || colorMap[color.toLowerCase()] || color.toLowerCase() || '#999999'
+
+                      return (
+                        <div key={index} className="flex flex-col items-center gap-1 max-w-[70px]">
+                          <div
+                            className="w-10 h-10 rounded-full border-2 border-white shadow"
+                            style={{ backgroundColor: colorValue }}
+                          />
+                          <span className="text-[10px] text-slate-600 text-center leading-4 break-words">
+                            {color}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <p className="text-slate-600 text-center">Your auspicious colors</p>
                 </div>
 
-                <div className="rounded-2xl border border-violet-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[220px]">
+                <div className="rounded-2xl border border-violet-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[280px]">
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
                     Lucky Number
                   </p>
-                  <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-violet-100 to-fuchsia-100 border border-violet-200 flex items-center justify-center shadow-lg mb-4">
-                    <p className="text-5xl font-bold text-violet-700">{prediction.lucky_number}</p>
+
+                  <div className="w-full max-w-[260px] min-h-[140px] rounded-3xl bg-gradient-to-br from-violet-100 to-fuchsia-100 border border-violet-200 flex items-center justify-center shadow-lg mb-4 px-6 py-6">
+                    <p className="text-3xl md:text-4xl font-bold text-violet-700 text-center leading-tight break-words whitespace-normal">
+                      {prediction.lucky_number?.toString()}
+                    </p>
                   </div>
-                  <p className="text-slate-600">Your fortunate number vibration</p>
+
+                  <p className="text-slate-600 text-center">Your fortunate number vibration</p>
                 </div>
               </div>
             </div>
@@ -409,9 +466,17 @@ export default function PredictionPage() {
       </div>
 
       <Dialog open={openKnowMore} onOpenChange={setOpenKnowMore}>
-        <DialogContent className="w-[96vw] max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-0 rounded-2xl shadow-2xl [&>button]:top-4 [&>button]:right-4 [&>button]:text-white [&>button]:opacity-80 [&>button:hover]:opacity-100 [&>button]:bg-white/20 [&>button]:rounded-full [&>button]:border-0">
-          {/* Header */}
+        <DialogContent className="w-[96vw] max-w-6xl max-h-[90vh] overflow-y-auto p-0 border-0 rounded-2xl shadow-2xl [&>button]:hidden">
           <div className="relative bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 px-7 py-6 rounded-t-2xl">
+            <button
+              type="button"
+              onClick={() => setOpenKnowMore(false)}
+              className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition"
+              aria-label="Close modal"
+            >
+              <X className="h-5 w-5 text-white" />
+            </button>
+
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-white/80" />
@@ -424,8 +489,7 @@ export default function PredictionPage() {
           </div>
 
           <div className="bg-[#f8f7ff] p-6">
-            {/* Tab Cards */}
-            <div className="grid grid-cols-4 gap-2 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
               {insightCards.map((item) => {
                 const Icon = item.icon
                 const isActive = activeInsight === item.key
@@ -434,62 +498,66 @@ export default function PredictionPage() {
                   <button
                     key={item.key}
                     onClick={() => setActiveInsight(item.key)}
-                    className={`rounded-xl border p-3 text-left transition-all duration-200 flex flex-col gap-1.5 w-full min-w-0 overflow-hidden ${
+                    className={`rounded-xl border p-4 text-left transition-all duration-200 flex flex-col gap-2 min-h-[165px] w-full ${
                       isActive
                         ? 'border-violet-400 bg-white shadow-md ring-1 ring-violet-300'
                         : 'border-slate-200 bg-white hover:border-violet-200 hover:shadow-sm'
                     }`}
                   >
-                    <div className={`w-6 h-6 shrink-0 rounded-md flex items-center justify-center ${isActive ? 'bg-violet-100' : 'bg-slate-100'}`}>
-                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-violet-600' : 'text-slate-500'}`} />
+                    <div className={`w-8 h-8 shrink-0 rounded-md flex items-center justify-center ${isActive ? 'bg-violet-100' : 'bg-slate-100'}`}>
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-violet-600' : 'text-slate-500'}`} />
                     </div>
-                    <span className={`text-xs font-semibold leading-tight w-full ${isActive ? 'text-violet-700' : 'text-slate-600'}`}>
+
+                    <span className={`text-sm font-semibold leading-5 break-words ${isActive ? 'text-violet-700' : 'text-slate-700'}`}>
                       {item.title}
                     </span>
+
                     {item.value !== null && (
-                      <div className={`text-2xl font-bold ${isActive ? 'text-violet-600' : 'text-slate-400'}`}>{item.value}</div>
+                      <div className={`text-3xl font-bold ${isActive ? 'text-violet-600' : 'text-slate-500'}`}>
+                        {item.value}
+                      </div>
                     )}
-                    <p className="text-[11px] text-slate-400 leading-snug">{item.subtitle}</p>
+
+                    <p className="text-xs text-slate-500 leading-5 break-words">
+                      {item.subtitle}
+                    </p>
                   </button>
                 )
               })}
             </div>
 
-            {/* Insight Content */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              {/* Section header */}
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3 bg-gradient-to-r from-violet-50 to-fuchsia-50">
+              <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3 bg-gradient-to-r from-violet-50 to-fuchsia-50">
                 <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
                   <CurrentInsightIcon className="w-5 h-5 text-violet-600" />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-bold text-slate-800">{currentInsight.title}</h3>
-                  {activeInsight === 'strength' && (
+                  {(activeInsight === 'strength' || activeInsight === 'gochor') && currentInsight.value !== null && (
                     <span className="text-xs font-bold text-violet-700 bg-violet-100 px-2.5 py-1 rounded-full border border-violet-200">
-                      {strengthNumber}
+                      {currentInsight.value}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Prediction & Remedy */}
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-5 flex flex-col">
+                <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-5 flex flex-col min-h-[240px]">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-1 h-5 rounded-full bg-violet-500" />
                     <h4 className="font-bold text-slate-800">Prediction</h4>
                   </div>
-                  <p className="text-slate-600 text-sm leading-7 whitespace-pre-line">
+                  <p className="text-slate-600 text-sm leading-7 whitespace-pre-line break-words">
                     {currentInsight.prediction}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/50 p-5 flex flex-col">
+                <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/50 p-5 flex flex-col min-h-[240px]">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-1 h-5 rounded-full bg-fuchsia-500" />
                     <h4 className="font-bold text-slate-800">Remedy</h4>
                   </div>
-                  <p className="text-slate-600 text-sm leading-7 whitespace-pre-line">
+                  <p className="text-slate-600 text-sm leading-7 whitespace-pre-line break-words">
                     {currentInsight.remedy}
                   </p>
                 </div>
