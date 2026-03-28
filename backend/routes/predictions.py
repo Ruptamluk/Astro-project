@@ -34,6 +34,41 @@ LUCKY_COLOR_MAP = {
     for item in lucky_color_raw
 }
 
+with open(os.path.join(BASE_DIR, "data", "gochor.json"), encoding="utf-8") as f:
+    gochor_raw = json.load(f)
+
+def _pick_first(row: dict, keys: list[str], default=""):
+    for key in keys:
+        if key in row and str(row[key]).strip() != "":
+            return row[key]
+    return default
+
+GOCHOR_MAP = {}
+
+for item in gochor_raw:
+    gochor_value = _pick_first(
+        item,
+        ["gochor", "Gochor", "Gochor", "No.", "No", "Number", "number"]
+    )
+
+    prediction_value = _pick_first(
+        item,
+        ["prediction", "Prediction", "analysis", "Analysis"]
+    )
+
+    remedy_value = _pick_first(
+        item,
+        ["remedy", "Remedy", "upay", "Upay"]
+    )
+
+    if str(gochor_value).strip() != "":
+        GOCHOR_MAP[int(str(gochor_value).strip())] = {
+            "prediction": str(prediction_value).strip(),
+            "remedy": str(remedy_value).strip()
+        }
+
+print("GOCHOR_MAP:", GOCHOR_MAP)
+
 router = APIRouter()
 
 
@@ -219,8 +254,17 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
         )
 
         # Placeholder values until you add separate data sources
-        gochor_prediction = ""
-        gochor_remedy = ""
+        gochor_data = GOCHOR_MAP.get(gochor_number, {})
+
+        gochor_prediction = gochor_data.get(
+            "prediction",
+            "No gochor prediction available yet."
+        )
+
+        gochor_remedy = gochor_data.get(
+            "remedy",
+            "No gochor remedy available yet."
+        )
         mahadasha_prediction = ""
         mahadasha_remedy = ""
         antardasha_prediction = ""
