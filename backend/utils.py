@@ -8,6 +8,12 @@ import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+LO_SHU_GRID_LAYOUT = (
+    (4, 9, 2),
+    (3, 5, 7),
+    (8, 1, 6),
+)
+
 def reduce_to_single_digit(num: int) -> int:
     """Reduce a number to single digit by adding its digits"""
     while num >= 10:
@@ -249,6 +255,48 @@ def calculate_strength_number(dob: str, driver_number: int) -> int:
         return reduce_to_single_digit(driver_number + month_digit_sum)
     except:
         return 1
+
+def generate_lo_shu_grid(dob: str) -> dict:
+    """Build a fixed Lo Shu grid using DOB digits plus derived driver/conductor."""
+    try:
+        parts = dob.split('-')
+        day = int(parts[2])
+
+        digit_counts = {number: 0 for number in range(1, 10)}
+        dob_digits = [int(char) for char in dob if char.isdigit() and char != '0']
+
+        for digit in dob_digits:
+            digit_counts[digit] += 1
+
+        driver_number = calculate_driver_number(dob)
+        conductor_number = calculate_conductor_number(dob)
+
+        if day > 9:
+            digit_counts[driver_number] += 1
+
+        digit_counts[conductor_number] += 1
+
+        grid = [
+            [
+                str(number) * digit_counts[number] if digit_counts[number] else ""
+                for number in row
+            ]
+            for row in LO_SHU_GRID_LAYOUT
+        ]
+
+        return {
+            "grid": grid,
+            "driver": driver_number,
+            "conductor": conductor_number,
+            "digit_counts": {str(key): value for key, value in digit_counts.items()},
+        }
+    except:
+        return {
+            "grid": [["", "", ""], ["", "", ""], ["", "", ""]],
+            "driver": 1,
+            "conductor": 1,
+            "digit_counts": {str(key): 0 for key in range(1, 10)},
+        }
 
 def get_zodiac_prediction(zodiac_sign: str) -> dict:
     """Get prediction data for a zodiac sign"""

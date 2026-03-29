@@ -104,20 +104,20 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/10 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/10 p-4 sm:p-6">
       {/* Background cosmic effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 left-20 w-96 h-96 bg-secondary/10 rounded-full blur-3xl" />
+        <div className="absolute top-20 right-20 w-48 h-48 sm:w-72 sm:h-72 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-20 w-64 h-64 sm:w-96 sm:h-96 bg-secondary/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="flex justify-center mb-4">
             <Star className="w-12 h-12 text-primary" fill="currentColor" />
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Celestial Destiny</h1>
-          <p className="text-muted-foreground">Unlock your cosmic predictions</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">Celestial Destiny</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Unlock your cosmic predictions</p>
         </div>
 
         <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
@@ -127,7 +127,7 @@ export default function AuthPage() {
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <TabsContent value="login" className="space-y-6">
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground text-center">
@@ -135,7 +135,7 @@ export default function AuthPage() {
                   </p>
                   {step === 'request' ? (
                     <>
-                      <div className="flex gap-3 mb-4">
+                      <div className="flex flex-col sm:flex-row gap-3 mb-4">
                         <Button
                           type="button"
                           variant={contactMethod === 'email' ? 'default' : 'outline'}
@@ -194,7 +194,7 @@ export default function AuthPage() {
                           placeholder="Enter 6-digit OTP"
                           value={otp}
                           onChange={(e) => setOtp(e.target.value.slice(0, 6))}
-                          className="bg-input text-center text-2xl tracking-widest"
+                          className="bg-input text-center text-xl sm:text-2xl tracking-[0.35em] sm:tracking-widest"
                           maxLength={6}
                         />
                         <Button
@@ -228,7 +228,7 @@ export default function AuthPage() {
                 <div className="space-y-4">
                   {step === 'request' ? (
                     <>
-                      <div className="flex gap-3 mb-4">
+                      <div className="flex flex-col sm:flex-row gap-3 mb-4">
                         <Button
                           type="button"
                           variant={contactMethod === 'email' ? 'default' : 'outline'}
@@ -287,7 +287,7 @@ export default function AuthPage() {
                           placeholder="Enter 6-digit OTP"
                           value={otp}
                           onChange={(e) => setOtp(e.target.value.slice(0, 6))}
-                          className="bg-input text-center text-2xl tracking-widest"
+                          className="bg-input text-center text-xl sm:text-2xl tracking-[0.35em] sm:tracking-widest"
                           maxLength={6}
                         />
                         <Button

@@ -33,6 +33,8 @@ interface Prediction {
   lucky_color: string
   lucky_number: number | string
   dob: string
+  lo_shu_grid?: string[][]
+  lo_shu_digit_counts?: Record<string, number>
 
   strength_number?: number
   strength_prediction?: string
@@ -49,7 +51,7 @@ interface Prediction {
   antardasha_remedy?: string
 }
 
-type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha'
+type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'loShu'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -225,6 +227,15 @@ export default function PredictionPage() {
     ?.split(',')
     .map((c: string) => c.trim())
     .filter(Boolean)
+  const loShuGrid = prediction.lo_shu_grid ?? [
+    ['', '', ''],
+    ['', '', ''],
+    ['', '', ''],
+  ]
+  const loShuDigitCounts = prediction.lo_shu_digit_counts ?? {}
+  const loShuStrengths = Object.entries(loShuDigitCounts)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
 
   const insightContent = {
     strength: {
@@ -263,6 +274,13 @@ export default function PredictionPage() {
       remedy:
         prediction.antardasha_remedy || 'No antardasha remedy available yet.',
     },
+    loShu: {
+      title: 'Lo Shu Grid',
+      value: null,
+      icon: Sparkles,
+      prediction: '',
+      remedy: '',
+    },
   } as const
 
   const currentInsight = insightContent[activeInsight]
@@ -297,6 +315,13 @@ export default function PredictionPage() {
       icon: Clock3,
       value: null,
     },
+    {
+      key: 'loShu' as InsightKey,
+      title: 'Lo Shu Grid',
+      subtitle: 'DOB digit matrix',
+      icon: Sparkles,
+      value: null,
+    },
   ]
 
   return (
@@ -305,11 +330,11 @@ export default function PredictionPage() {
         <div className="relative z-10 max-w-5xl mx-auto">
           <div className="text-center mb-10 md:mb-14">
             <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-sm border border-violet-200/60 shadow-lg flex items-center justify-center">
-                <Sparkles className="w-10 h-10 text-violet-500" fill="currentColor" />
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/60 backdrop-blur-sm border border-violet-200/60 shadow-lg flex items-center justify-center">
+                <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-violet-500" fill="currentColor" />
               </div>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-indigo-700 bg-clip-text text-transparent mb-3">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-indigo-700 bg-clip-text text-transparent mb-3">
               Your Astrology Insights
             </h1>
             <p className="text-slate-600 text-sm md:text-base">
@@ -327,31 +352,31 @@ export default function PredictionPage() {
 
             <div className="p-6 md:p-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-                <div className="rounded-3xl bg-white/90 px-6 py-7 shadow-sm text-center min-h-[190px] flex flex-col justify-center">
+                <div className="rounded-3xl bg-white/90 px-5 md:px-6 py-6 md:py-7 shadow-sm text-center min-h-[170px] md:min-h-[190px] flex flex-col justify-center">
                   <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-[0.18em] mb-3">
                     Driver Number
                   </p>
-                  <div className="text-5xl md:text-6xl font-bold text-violet-600 mb-2">
+                  <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-violet-600 mb-2">
                     {prediction.driver_number}
                   </div>
                   <p className="text-sm text-slate-500">Core identity</p>
                 </div>
 
-                <div className="rounded-3xl bg-white/90 px-6 py-7 shadow-sm text-center min-h-[190px] flex flex-col justify-center">
+                <div className="rounded-3xl bg-white/90 px-5 md:px-6 py-6 md:py-7 shadow-sm text-center min-h-[170px] md:min-h-[190px] flex flex-col justify-center">
                   <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-[0.18em] mb-3">
                     Conductor Number
                   </p>
-                  <div className="text-5xl md:text-6xl font-bold text-fuchsia-600 mb-2">
+                  <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-fuchsia-600 mb-2">
                     {prediction.conductor_number}
                   </div>
                   <p className="text-sm text-slate-500">Outer expression</p>
                 </div>
 
-                <div className="rounded-3xl bg-white/90 px-6 py-7 shadow-sm text-center min-h-[190px] flex flex-col justify-center">
+                <div className="rounded-3xl bg-white/90 px-5 md:px-6 py-6 md:py-7 shadow-sm text-center min-h-[170px] md:min-h-[190px] flex flex-col justify-center sm:col-span-2 md:col-span-1">
                   <p className="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-[0.18em] mb-3">
                     Personal Year
                   </p>
-                  <div className="text-5xl md:text-6xl font-bold text-indigo-600 mb-2">
+                  <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-indigo-600 mb-2">
                     {prediction.personal_year}
                   </div>
                   <p className="text-sm text-slate-500">Yearly influence</p>
@@ -466,8 +491,8 @@ export default function PredictionPage() {
       </div>
 
       <Dialog open={openKnowMore} onOpenChange={setOpenKnowMore}>
-        <DialogContent className="w-[96vw] max-w-6xl max-h-[90vh] overflow-y-auto p-0 border-0 rounded-2xl shadow-2xl [&>button]:hidden">
-          <div className="relative bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 px-7 py-6 rounded-t-2xl">
+        <DialogContent className="w-[96vw] max-w-6xl max-h-[92vh] overflow-y-auto p-0 border-0 rounded-2xl shadow-2xl [&>button]:hidden">
+          <div className="relative bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 px-5 md:px-7 py-5 md:py-6 rounded-t-2xl">
             <button
               type="button"
               onClick={() => setOpenKnowMore(false)}
@@ -478,18 +503,18 @@ export default function PredictionPage() {
             </button>
 
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+              <DialogTitle className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-white/80" />
                 Know More
               </DialogTitle>
               <DialogDescription className="text-violet-100 text-sm mt-1">
-                Explore deeper astrology insights for Strength Number, Gochor, Mahadasha, and Antardasha.
+                Explore deeper astrology insights for Strength Number, Gochor, Mahadasha, Antardasha, and Lo Shu Grid.
               </DialogDescription>
             </DialogHeader>
           </div>
 
-          <div className="bg-[#f8f7ff] p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+          <div className="bg-[#f8f7ff] p-4 md:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
               {insightCards.map((item) => {
                 const Icon = item.icon
                 const isActive = activeInsight === item.key
@@ -498,7 +523,7 @@ export default function PredictionPage() {
                   <button
                     key={item.key}
                     onClick={() => setActiveInsight(item.key)}
-                    className={`rounded-xl border p-4 text-left transition-all duration-200 flex flex-col gap-2 min-h-[165px] w-full ${
+                    className={`rounded-xl border p-4 text-left transition-all duration-200 flex flex-col gap-2 min-h-[150px] md:min-h-[165px] w-full ${
                       isActive
                         ? 'border-violet-400 bg-white shadow-md ring-1 ring-violet-300'
                         : 'border-slate-200 bg-white hover:border-violet-200 hover:shadow-sm'
@@ -527,7 +552,7 @@ export default function PredictionPage() {
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3 bg-gradient-to-r from-violet-50 to-fuchsia-50">
+              <div className="px-4 md:px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3 bg-gradient-to-r from-violet-50 to-fuchsia-50">
                 <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
                   <CurrentInsightIcon className="w-5 h-5 text-violet-600" />
                 </div>
@@ -541,27 +566,70 @@ export default function PredictionPage() {
                 </div>
               </div>
 
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-5 flex flex-col min-h-[240px]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-1 h-5 rounded-full bg-violet-500" />
-                    <h4 className="font-bold text-slate-800">Prediction</h4>
-                  </div>
-                  <p className="text-slate-600 text-sm leading-7 whitespace-pre-line break-words">
-                    {currentInsight.prediction}
-                  </p>
-                </div>
+              {activeInsight === 'loShu' ? (
+                <div className="p-4 md:p-6">
+                  <div className="rounded-[28px] border border-violet-100 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.10),_transparent_30%),linear-gradient(135deg,_rgba(245,243,255,0.9),_rgba(255,255,255,1))] p-4 md:p-6 shadow-inner">
+                    <div className="max-w-[420px] mx-auto">
+                      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                        {loShuGrid.flatMap((row, rowIndex) =>
+                          row.map((cell, colIndex) => (
+                            <div
+                              key={`${rowIndex}-${colIndex}`}
+                              className="relative aspect-square overflow-hidden rounded-[22px] border border-violet-200/80 bg-white shadow-[0_10px_30px_-18px_rgba(124,58,237,0.45)] flex items-center justify-center"
+                            >
+                              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400" />
+                              <span className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-[0.12em] text-violet-700 leading-none">
+                                {cell || ''}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
 
-                <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/50 p-5 flex flex-col min-h-[240px]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-1 h-5 rounded-full bg-fuchsia-500" />
-                    <h4 className="font-bold text-slate-800">Remedy</h4>
+                      <div className="mt-5 rounded-[24px] border border-violet-100 bg-white/85 backdrop-blur-sm p-4 md:p-5 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-500 mb-3">
+                          Number Strength
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {loShuStrengths.map(([digit, count]) => (
+                            <div
+                              key={digit}
+                              className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700"
+                            >
+                              {digit} x {count}
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-sm leading-6 text-slate-500 mt-4">
+                          Repeated numbers appear stronger in the grid. Blank cells show missing vibrations for that DOB.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-slate-600 text-sm leading-7 whitespace-pre-line break-words">
-                    {currentInsight.remedy}
-                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-5 flex flex-col min-h-[240px]">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-5 rounded-full bg-violet-500" />
+                      <h4 className="font-bold text-slate-800">Prediction</h4>
+                    </div>
+                    <p className="text-slate-600 text-sm leading-7 whitespace-pre-line break-words">
+                      {currentInsight.prediction}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/50 p-5 flex flex-col min-h-[240px]">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-5 rounded-full bg-fuchsia-500" />
+                      <h4 className="font-bold text-slate-800">Remedy</h4>
+                    </div>
+                    <p className="text-slate-600 text-sm leading-7 whitespace-pre-line break-words">
+                      {currentInsight.remedy}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end mt-5">

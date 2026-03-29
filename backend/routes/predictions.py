@@ -8,6 +8,7 @@ from utils import (
     calculate_driver_number,
     calculate_conductor_number,
     calculate_personal_year,
+    generate_lo_shu_grid,
 )
 from datetime import datetime
 from bson import ObjectId
@@ -222,6 +223,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
         personal_year = calculate_personal_year(request_data.dob)
         strength_number = calculate_strength_number(request_data.dob, driver_number)
         gochor_number = calculate_gochor(request_data.dob)
+        lo_shu_data = generate_lo_shu_grid(request_data.dob)
 
         lucky_number = get_lucky_numbers(driver_number, conductor_number)
         lucky_color = get_lucky_color(driver_number)
@@ -292,6 +294,8 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
                     "mahadasha_remedy": mahadasha_remedy,
                     "antardasha_prediction": antardasha_prediction,
                     "antardasha_remedy": antardasha_remedy,
+                    "lo_shu_grid": lo_shu_data["grid"],
+                    "lo_shu_digit_counts": lo_shu_data["digit_counts"],
                     "updated_at": datetime.utcnow()
                 }
             }
@@ -315,7 +319,9 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             "mahadasha_prediction": mahadasha_prediction,
             "mahadasha_remedy": mahadasha_remedy,
             "antardasha_prediction": antardasha_prediction,
-            "antardasha_remedy": antardasha_remedy
+            "antardasha_remedy": antardasha_remedy,
+            "lo_shu_grid": lo_shu_data["grid"],
+            "lo_shu_digit_counts": lo_shu_data["digit_counts"]
         }
 
     except HTTPException:
@@ -348,6 +354,8 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
                 detail="User has not submitted DOB yet"
             )
 
+        lo_shu_data = generate_lo_shu_grid(user.get("dob"))
+
         return {
             "dob": user.get("dob"),
             "driver_number": user.get("driver_number"),
@@ -371,7 +379,9 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
             "mahadasha_prediction": user.get("mahadasha_prediction", ""),
             "mahadasha_remedy": user.get("mahadasha_remedy", ""),
             "antardasha_prediction": user.get("antardasha_prediction", ""),
-            "antardasha_remedy": user.get("antardasha_remedy", "")
+            "antardasha_remedy": user.get("antardasha_remedy", ""),
+            "lo_shu_grid": user.get("lo_shu_grid", lo_shu_data["grid"]),
+            "lo_shu_digit_counts": user.get("lo_shu_digit_counts", lo_shu_data["digit_counts"])
         }
 
     except HTTPException:
