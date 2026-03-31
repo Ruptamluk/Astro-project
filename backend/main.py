@@ -29,20 +29,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Astrology API", version="1.0.0", lifespan=lifespan)
 
-# Determine allowed origins for CORS. Render backend needs to know Vercel's domain.
-frontend_env = os.getenv("FRONTEND_URL", "http://localhost:3000")
-origins = [origin.strip() for origin in frontend_env.split(",") if origin.strip()]
-
-# Always allow local development domains
-for local in ["http://localhost:3000", "http://localhost:8000"]:
-    if local not in origins:
-        origins.append(local)
-
-# Enable CORS
+# Enable CORS to allow any Vercel domain branch to access the API without strict matching rules.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False, # Must be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
