@@ -8,6 +8,8 @@ from utils import (
     calculate_driver_number,
     calculate_conductor_number,
     calculate_personal_year,
+    calculate_strength_number,
+    build_dob_chart,
 )
 from datetime import datetime
 from bson import ObjectId
@@ -110,33 +112,6 @@ def get_lucky_color(driver: int):
     return LUCKY_COLOR_MAP.get(str(driver), "")
 
 
-def reduce_to_single_digit(num: int) -> int:
-    value = num
-    while value > 9:
-        value = sum(int(digit) for digit in str(value))
-    return value
-
-
-def calculate_strength_number(dob: str, driver_number: int) -> int:
-    """
-    Strength Number = single digit of:
-    driver number + sum of digits of birth month
-
-    Example:
-    DOB = 1993-12-18
-    driver = 9
-    month = 12 => 1+2 = 3
-    9 + 3 = 12 => 1+2 = 3
-    """
-    try:
-        parts = dob.split("-")
-        month = parts[1] if len(parts) > 1 else "0"
-        month_digit_sum = sum(int(digit) for digit in month if digit.isdigit())
-        return reduce_to_single_digit(driver_number + month_digit_sum)
-    except Exception:
-        return 1
-
-
 def calculate_gochor(dob: str, current_date: datetime | None = None) -> int:
     """
     Running age = current year - birth year
@@ -222,6 +197,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
         personal_year = calculate_personal_year(request_data.dob)
         strength_number = calculate_strength_number(request_data.dob, driver_number)
         gochor_number = calculate_gochor(request_data.dob)
+        dob_chart = build_dob_chart(request_data.dob, driver_number)
 
         lucky_number = get_lucky_numbers(driver_number, conductor_number)
         lucky_color = get_lucky_color(driver_number)
@@ -292,6 +268,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
                     "mahadasha_remedy": mahadasha_remedy,
                     "antardasha_prediction": antardasha_prediction,
                     "antardasha_remedy": antardasha_remedy,
+                    "dob_chart": dob_chart,
                     "updated_at": datetime.utcnow()
                 }
             }
@@ -315,7 +292,8 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             "mahadasha_prediction": mahadasha_prediction,
             "mahadasha_remedy": mahadasha_remedy,
             "antardasha_prediction": antardasha_prediction,
-            "antardasha_remedy": antardasha_remedy
+            "antardasha_remedy": antardasha_remedy,
+            "dob_chart": dob_chart
         }
 
     except HTTPException:
@@ -348,6 +326,8 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
                 detail="User has not submitted DOB yet"
             )
 
+        dob_chart = user.get("dob_chart") or build_dob_chart(user.get("dob"), user.get("driver_number") or 0)
+
         return {
             "dob": user.get("dob"),
             "driver_number": user.get("driver_number"),
@@ -371,7 +351,8 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
             "mahadasha_prediction": user.get("mahadasha_prediction", ""),
             "mahadasha_remedy": user.get("mahadasha_remedy", ""),
             "antardasha_prediction": user.get("antardasha_prediction", ""),
-            "antardasha_remedy": user.get("antardasha_remedy", "")
+            "antardasha_remedy": user.get("antardasha_remedy", ""),
+            "dob_chart": dob_chart
         }
 
     except HTTPException:

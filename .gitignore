@@ -16,6 +16,7 @@ dist/
 .env.test.local
 .env.production.local
 backend/.env
+backend/Venv
 
 # python
 __pycache__/

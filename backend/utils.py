@@ -8,6 +8,17 @@ import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# LO_SHU_GRID_LAYOUT = (
+#     (4, 9, 2),
+#     (3, 5, 7),
+#     (8, 1, 6),
+# )
+DOB_CHART_LAYOUT = [
+    ["3", "1", "9"],
+    ["6", "7", "5"],
+    ["2", "8", "4"],
+]
+
 def reduce_to_single_digit(num: int) -> int:
     """Reduce a number to single digit by adding its digits"""
     while num >= 10:
@@ -250,6 +261,28 @@ def calculate_strength_number(dob: str, driver_number: int) -> int:
     except:
         return 1
 
+def build_dob_chart(dob: str, driver_number: int) -> list[list[str]]:
+    digits = [ch for ch in dob if ch.isdigit() and ch != "0"]
+
+    try:
+        if "/" in dob:
+            day = int(dob.split("/")[0])
+        else:
+            day = int(dob.split("-")[2])
+    except Exception:
+        day = None
+
+    counts = {}
+    for digit in digits:
+        counts[digit] = counts.get(digit, 0) + 1
+
+    if day is not None and day >= 10 and 1 <= driver_number <= 9:
+        counts[str(driver_number)] = counts.get(str(driver_number), 0) + 1
+
+    return [
+        [num * counts.get(num, 0) for num in row]
+        for row in DOB_CHART_LAYOUT
+    ]
 def get_zodiac_prediction(zodiac_sign: str) -> dict:
     """Get prediction data for a zodiac sign"""
     predictions = {
