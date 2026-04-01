@@ -196,7 +196,6 @@ async def send_otp_via_email(email: str, otp: str) -> bool:
     """Send OTP via email using async aiosmtplib (non-blocking)"""
     try:
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
         sender_email = os.getenv("SENDER_EMAIL")
         sender_password = os.getenv("SENDER_PASSWORD")
 
@@ -216,16 +215,29 @@ async def send_otp_via_email(email: str, otp: str) -> bool:
 
         msg.attach(MIMEText(body, "plain"))
 
-        # Use async aiosmtplib instead of blocking smtplib
-        await aiosmtplib.send(
-            msg,
-            hostname=smtp_host,
-            port=smtp_port,
-            start_tls=True,
-            username=sender_email,
-            password=sender_password,
-            timeout=30,
-        )
+        # Try port 465 (direct SSL) first — works on Render Free Tier
+        # Falls back to port 587 (STARTTLS) if 465 fails
+        try:
+            await aiosmtplib.send(
+                msg,
+                hostname=smtp_host,
+                port=465,
+                use_tls=True,
+                username=sender_email,
+                password=sender_password,
+                timeout=30,
+            )
+        except Exception as e1:
+            print(f"Port 465 failed ({e1}), trying port 587...")
+            await aiosmtplib.send(
+                msg,
+                hostname=smtp_host,
+                port=587,
+                start_tls=True,
+                username=sender_email,
+                password=sender_password,
+                timeout=30,
+            )
 
         print(f"OTP sent to email: {email}")
         return True
