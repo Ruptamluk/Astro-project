@@ -86,6 +86,18 @@ const colorMap: Record<string, string> = {
   creem: '#fffdd0',
 }
 
+const numberCharacteristics: Record<number, string> = {
+  1: "Leadership, authority, confidence, independence, Name and Fame",
+  2: "Emotional, intuitive, artistic, nurturing.",
+  3: "Wisdom, expansion, knowledge, spirituality.",
+  4: "Innovative, unconventional, technical genius.",
+  5: "Communication, intelligence, adaptability.",
+  6: "Love, luxury, beauty, harmony.",
+  7: "Spiritual, research-oriented, detached wisdom.",
+  8: "Discipline, justice, hard work.",
+  9: "Courage, action, energy, leadership.",
+}
+
 function reduceToSingleDigit(num: number): number {
   let value = num
   while (value > 9) {
@@ -379,6 +391,49 @@ export default function PredictionPage() {
               </div>
             </div>
           </Card>
+
+          <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
+            <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">
+              <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <Zap className="w-6 h-6 text-violet-600" />
+                Numerology Characteristics
+              </h2>
+            </div>
+            <div className="p-6 md:p-8">
+              <div className="space-y-4">
+                {prediction.driver_number === prediction.conductor_number ? (
+                  <div className="rounded-2xl border border-violet-100 bg-white/80 p-6 shadow-sm flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center">
+                    <span className="font-bold text-xl text-violet-700 min-w-[140px] flex gap-2 items-center">
+                      <Star className="w-5 h-5" /> Number {prediction.driver_number}
+                    </span>
+                    <span className="text-slate-700 text-base leading-relaxed">
+                      {numberCharacteristics[prediction.driver_number] || "Characteristics not found."}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-2xl border border-violet-100 bg-white/80 p-6 shadow-sm flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center">
+                      <span className="font-bold text-xl text-violet-700 min-w-[160px] flex gap-2 items-center">
+                        <Star className="w-5 h-5" /> Driver ({prediction.driver_number})
+                      </span>
+                      <span className="text-slate-700 text-base leading-relaxed">
+                        {numberCharacteristics[prediction.driver_number] || "Characteristics not found."}
+                      </span>
+                    </div>
+                    <div className="rounded-2xl border border-fuchsia-100 bg-white/80 p-6 shadow-sm flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center">
+                      <span className="font-bold text-xl text-fuchsia-600 min-w-[160px] flex gap-2 items-center">
+                        <Sparkles className="w-5 h-5" /> Conductor ({prediction.conductor_number})
+                      </span>
+                      <span className="text-slate-700 text-base leading-relaxed">
+                        {numberCharacteristics[prediction.conductor_number] || "Characteristics not found."}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </Card>
+
 
           <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
             <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">

@@ -9,6 +9,18 @@ import { toast } from 'sonner'
 import { Navbar } from '@/components/Navbar'
 import { AnalysisModal } from '@/components/AnalysisModal'
 
+const numberCharacteristics: Record<number, string> = {
+  1: "Leadership, authority, confidence, independence, Name and Fame",
+  2: "Emotional, intuitive, artistic, nurturing.",
+  3: "Wisdom, expansion, knowledge, spirituality.",
+  4: "Innovative, unconventional, technical genius.",
+  5: "Communication, intelligence, adaptability.",
+  6: "Love, luxury, beauty, harmony.",
+  7: "Spiritual, research-oriented, detached wisdom.",
+  8: "Discipline, justice, hard work.",
+  9: "Courage, action, energy, leadership.",
+}
+
 interface Analysis {
   title: string
   personality: string
@@ -156,6 +168,50 @@ export default function PredictionPage() {
               </div>
             </div>
           </Card>
+
+          {/* Characteristics Card */}
+          <Card className="border-primary/20 bg-gradient-to-br from-card/80 to-card/50 backdrop-blur-sm mb-6 overflow-hidden">
+            <div className="bg-gradient-to-r from-primary/30 via-secondary/30 to-accent/30 px-8 py-6 border-b border-primary/20">
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Zap className="w-6 h-6 text-primary" fill="currentColor" />
+                Numerology Characteristics
+              </h2>
+            </div>
+            <div className="p-8">
+              <div className="space-y-4">
+                {prediction.driver_number === prediction.conductor_number ? (
+                  <div className="bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl p-6 border border-primary/30 flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center">
+                    <span className="font-bold text-xl text-primary min-w-[140px]">
+                      Number {prediction.driver_number}
+                    </span>
+                    <span className="text-foreground/90 text-base leading-relaxed">
+                      {numberCharacteristics[prediction.driver_number] || "Characteristics not found."}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl p-6 border border-primary/30 flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center">
+                      <span className="font-bold text-xl text-primary min-w-[160px]">
+                        Driver ({prediction.driver_number})
+                      </span>
+                      <span className="text-foreground/90 text-base leading-relaxed">
+                        {numberCharacteristics[prediction.driver_number] || "Characteristics not found."}
+                      </span>
+                    </div>
+                    <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-xl p-6 border border-secondary/30 flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center">
+                      <span className="font-bold text-xl text-secondary min-w-[160px]">
+                        Conductor ({prediction.conductor_number})
+                      </span>
+                      <span className="text-foreground/90 text-base leading-relaxed">
+                        {numberCharacteristics[prediction.conductor_number] || "Characteristics not found."}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </Card>
+
 
           {/* Driver-Conductor Analysis Card */}
           <Card className="border-primary/20 bg-gradient-to-br from-card/80 to-card/50 backdrop-blur-sm mb-6 overflow-hidden">
