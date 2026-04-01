@@ -192,7 +192,8 @@ def get_zodiac_sign(month: int, day: int) -> str:
             return sign
     return "Unknown"
 
-def send_otp_via_email(email: str, otp: str) -> bool:
+async def send_otp_via_email(email: str, otp: str) -> bool:
+    """Send OTP via email using async aiosmtplib (non-blocking)"""
     try:
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
@@ -215,18 +216,23 @@ def send_otp_via_email(email: str, otp: str) -> bool:
 
         msg.attach(MIMEText(body, "plain"))
 
-        server = smtplib.SMTP(smtp_host, smtp_port)
-        server.starttls()   # 🔥 VERY IMPORTANT
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-        server.quit()
+        # Use async aiosmtplib instead of blocking smtplib
+        await aiosmtplib.send(
+            msg,
+            hostname=smtp_host,
+            port=smtp_port,
+            start_tls=True,
+            username=sender_email,
+            password=sender_password,
+            timeout=30,
+        )
 
         print(f"OTP sent to email: {email}")
         return True
 
     except Exception as e:
         print(f"Email Error: {e}")
-        print(f"[Fallback OTP] {otp}")
+        print(f"[Fallback OTP for {email}]: {otp}")
         return False
 async def send_otp_via_sms(phone: str, otp: str) -> bool:
     """Send OTP via SMS using Twilio"""

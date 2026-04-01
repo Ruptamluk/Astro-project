@@ -49,7 +49,7 @@ async def register(request_data: RequestOTPRequest, db=Depends(get_db)):
     
     # Send OTP
     if request_data.email:
-        send_otp_via_email(request_data.email, otp)
+        await send_otp_via_email(request_data.email, otp)
         contact = request_data.email
     else:
         await send_otp_via_sms(request_data.phone, otp)
@@ -101,7 +101,7 @@ async def login(request_data: RequestOTPRequest, db=Depends(get_db)):
     
     # Send OTP
     if request_data.email:
-        send_otp_via_email(request_data.email, otp)
+        await send_otp_via_email(request_data.email, otp)
         contact = request_data.email
     else:
         await send_otp_via_sms(request_data.phone, otp)
