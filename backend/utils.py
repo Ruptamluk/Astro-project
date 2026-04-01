@@ -1,6 +1,9 @@
 import random
 import smtplib
 import string
+import json
+import asyncio
+import urllib.request
 from datetime import datetime, timedelta
 import os
 from typing import Optional
@@ -193,42 +196,58 @@ def get_zodiac_sign(month: int, day: int) -> str:
     return "Unknown"
 
 async def send_otp_via_email(email: str, otp: str) -> bool:
-    """Send OTP via email using async aiosmtplib (non-blocking)"""
-    try:
-        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-        sender_email = os.getenv("SENDER_EMAIL")
-        sender_password = os.getenv("SENDER_PASSWORD")
+    """Send OTP via Resend HTTP API (primary) or SMTP (fallback for local dev)"""
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    sender_email = os.getenv("SENDER_EMAIL")
 
-        if not sender_email or not sender_password:
-            print(f"[Demo Mode] OTP for {email}: {otp}")
+    # --- Method 1: Resend HTTP API (works on Render Free Tier) ---
+    if resend_api_key:
+        try:
+            # Use the verified sender or Resend's default
+            from_email = sender_email or "Astrology App <onboarding@resend.dev>"
+
+            payload = json.dumps({
+                "from": from_email,
+                "to": [email],
+                "subject": "Your Astrology App OTP",
+                "text": f"Your OTP is: {otp}\nIt will expire in 10 minutes."
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=payload,
+                headers={
+                    "Authorization": f"Bearer {resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+
+            # Run blocking urllib in a thread so we don't block the event loop
+            def _do_send():
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    return resp.status
+
+            status = await asyncio.to_thread(_do_send)
+            print(f"OTP sent to {email} via Resend (HTTP {status})")
             return True
 
-        msg = MIMEMultipart()
-        msg["From"] = sender_email
-        msg["To"] = email
-        msg["Subject"] = "Your Astrology App OTP"
+        except Exception as e:
+            print(f"Resend Error: {e}")
+            print(f"[Fallback OTP for {email}]: {otp}")
+            return False
 
-        body = f"""
-        Your OTP is: {otp}
-        It will expire in 10 minutes.
-        """
-
-        msg.attach(MIMEText(body, "plain"))
-
-        # Try port 465 (direct SSL) first — works on Render Free Tier
-        # Falls back to port 587 (STARTTLS) if 465 fails
+    # --- Method 2: SMTP (works locally, not on Render Free Tier) ---
+    sender_password = os.getenv("SENDER_PASSWORD")
+    if sender_email and sender_password:
         try:
-            await aiosmtplib.send(
-                msg,
-                hostname=smtp_host,
-                port=465,
-                use_tls=True,
-                username=sender_email,
-                password=sender_password,
-                timeout=30,
-            )
-        except Exception as e1:
-            print(f"Port 465 failed ({e1}), trying port 587...")
+            smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+            msg = MIMEMultipart()
+            msg["From"] = sender_email
+            msg["To"] = email
+            msg["Subject"] = "Your Astrology App OTP"
+            msg.attach(MIMEText(f"Your OTP is: {otp}\nIt will expire in 10 minutes.", "plain"))
+
             await aiosmtplib.send(
                 msg,
                 hostname=smtp_host,
@@ -238,14 +257,16 @@ async def send_otp_via_email(email: str, otp: str) -> bool:
                 password=sender_password,
                 timeout=30,
             )
+            print(f"OTP sent to {email} via SMTP")
+            return True
+        except Exception as e:
+            print(f"SMTP Error: {e}")
+            print(f"[Fallback OTP for {email}]: {otp}")
+            return False
 
-        print(f"OTP sent to email: {email}")
-        return True
-
-    except Exception as e:
-        print(f"Email Error: {e}")
-        print(f"[Fallback OTP for {email}]: {otp}")
-        return False
+    # --- No email method configured ---
+    print(f"[Demo Mode] OTP for {email}: {otp}")
+    return True
 async def send_otp_via_sms(phone: str, otp: str) -> bool:
     """Send OTP via SMS using Twilio"""
     try:
