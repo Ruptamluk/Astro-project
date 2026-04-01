@@ -1,9 +1,6 @@
 import random
 import smtplib
 import string
-import json
-import asyncio
-import urllib.request
 from datetime import datetime, timedelta
 import os
 from typing import Optional
@@ -11,11 +8,6 @@ import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# LO_SHU_GRID_LAYOUT = (
-#     (4, 9, 2),
-#     (3, 5, 7),
-#     (8, 1, 6),
-# )
 DOB_CHART_LAYOUT = [
     ["3", "1", "9"],
     ["6", "7", "5"],
@@ -30,8 +22,6 @@ def reduce_to_single_digit(num: int) -> int:
 
 def calculate_driver_number(dob: str) -> int:
     """Calculate driver number from date of birth (YYYY-MM-DD format)"""
-    # Driver number is the reduction of birth day only
-    # E.g., 23rd = 2 + 3 = 5
     try:
         parts = dob.split('-')
         day = int(parts[2])
@@ -41,8 +31,6 @@ def calculate_driver_number(dob: str) -> int:
 
 def calculate_conductor_number(dob: str) -> int:
     """Calculate conductor number (Life Path) from entire birth date"""
-    # Conductor number is the reduction of DD + MM + YYYY
-    # E.g., 23/05/1993 = 23 + 5 + 1993 = 2021 = 2+0+2+1 = 5
     try:
         parts = dob.split('-')
         day = int(parts[2])
@@ -56,8 +44,6 @@ def calculate_conductor_number(dob: str) -> int:
 
 def calculate_personal_year(dob: str) -> int:
     """Calculate personal year number based on current date"""
-    # Personal year = day + month + current year, reduced to single digit
-    # E.g., 23/05 + 2026 = 23 + 5 + 2026 = 2054 = 2+0+5+4 = 11 = 1+1 = 2
     try:
         current_year = datetime.now().year
         parts = dob.split('-')
@@ -69,11 +55,15 @@ def calculate_personal_year(dob: str) -> int:
     except:
         return 1
 
-def calculate_strength_number(driver: int, conductor: int) -> int:
-    """Calculate strength number from driver and conductor numbers"""
-    # Strength number = Driver + Conductor reduced to single digit
-    strength = driver + conductor
-    return reduce_to_single_digit(strength)
+def calculate_strength_number(dob: str, driver_number: int) -> int:
+    """Calculate strength number from driver number and birth month"""
+    try:
+        parts = dob.split('-')
+        month = parts[1]
+        month_digit_sum = sum(int(digit) for digit in month)
+        return reduce_to_single_digit(driver_number + month_digit_sum)
+    except:
+        return 1
 
 def get_driver_conductor_analysis(driver: int, conductor: int) -> dict:
     """Get detailed analysis for driver and conductor numbers"""
@@ -196,77 +186,43 @@ def get_zodiac_sign(month: int, day: int) -> str:
     return "Unknown"
 
 async def send_otp_via_email(email: str, otp: str) -> bool:
-    """Send OTP via Resend HTTP API (primary) or SMTP (fallback for local dev)"""
-    resend_api_key = os.getenv("RESEND_API_KEY")
-    sender_email = os.getenv("SENDER_EMAIL")
+    """Send OTP via email using async aiosmtplib (non-blocking)"""
+    try:
+        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        sender_email = os.getenv("SENDER_EMAIL")
+        sender_password = os.getenv("SENDER_PASSWORD")
 
-    # --- Method 1: Resend HTTP API (works on Render Free Tier) ---
-    if resend_api_key:
-        try:
-            # Use the verified sender or Resend's default
-            from_email = sender_email or "Astrology App <onboarding@resend.dev>"
-
-            payload = json.dumps({
-                "from": from_email,
-                "to": [email],
-                "subject": "Your Astrology App OTP",
-                "text": f"Your OTP is: {otp}\nIt will expire in 10 minutes."
-            }).encode("utf-8")
-
-            req = urllib.request.Request(
-                "https://api.resend.com/emails",
-                data=payload,
-                headers={
-                    "Authorization": f"Bearer {resend_api_key}",
-                    "Content-Type": "application/json",
-                },
-                method="POST",
-            )
-
-            # Run blocking urllib in a thread so we don't block the event loop
-            def _do_send():
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    return resp.status
-
-            status = await asyncio.to_thread(_do_send)
-            print(f"OTP sent to {email} via Resend (HTTP {status})")
+        if not sender_email or not sender_password:
+            print(f"[Demo Mode] OTP for {email}: {otp}")
             return True
 
-        except Exception as e:
-            print(f"Resend Error: {e}")
-            print(f"[Fallback OTP for {email}]: {otp}")
-            return False
+        msg = MIMEMultipart()
+        msg["From"] = sender_email
+        msg["To"] = email
+        msg["Subject"] = "Your Astrology App OTP"
 
-    # --- Method 2: SMTP (works locally, not on Render Free Tier) ---
-    sender_password = os.getenv("SENDER_PASSWORD")
-    if sender_email and sender_password:
-        try:
-            smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-            msg = MIMEMultipart()
-            msg["From"] = sender_email
-            msg["To"] = email
-            msg["Subject"] = "Your Astrology App OTP"
-            msg.attach(MIMEText(f"Your OTP is: {otp}\nIt will expire in 10 minutes.", "plain"))
+        body = f"Your OTP is: {otp}\nIt will expire in 10 minutes."
+        msg.attach(MIMEText(body, "plain"))
 
-            await aiosmtplib.send(
-                msg,
-                hostname=smtp_host,
-                port=587,
-                start_tls=True,
-                username=sender_email,
-                password=sender_password,
-                timeout=30,
-            )
-            print(f"OTP sent to {email} via SMTP")
-            return True
-        except Exception as e:
-            print(f"SMTP Error: {e}")
-            print(f"[Fallback OTP for {email}]: {otp}")
-            return False
+        await aiosmtplib.send(
+            msg,
+            hostname=smtp_host,
+            port=smtp_port,
+            start_tls=True,
+            username=sender_email,
+            password=sender_password,
+            timeout=30,
+        )
 
-    # --- No email method configured ---
-    print(f"[Demo Mode] OTP for {email}: {otp}")
-    return True
+        print(f"OTP sent to email: {email} via SMTP")
+        return True
+
+    except Exception as e:
+        print(f"Email Error: {e}")
+        print(f"[Fallback OTP for {email}]: {otp}")
+        return False
+
 async def send_otp_via_sms(phone: str, otp: str) -> bool:
     """Send OTP via SMS using Twilio"""
     try:
@@ -291,14 +247,6 @@ async def send_otp_via_sms(phone: str, otp: str) -> bool:
         print(f"Error sending SMS: {e}")
         print(f"[Demo Mode] OTP for {phone}: {otp}")
         return True
-def calculate_strength_number(dob: str, driver_number: int) -> int:
-    try:
-        parts = dob.split('-')
-        month = parts[1]
-        month_digit_sum = sum(int(digit) for digit in month)
-        return reduce_to_single_digit(driver_number + month_digit_sum)
-    except:
-        return 1
 
 def build_dob_chart(dob: str, driver_number: int) -> list[list[str]]:
     digits = [ch for ch in dob if ch.isdigit() and ch != "0"]
@@ -322,6 +270,7 @@ def build_dob_chart(dob: str, driver_number: int) -> list[list[str]]:
         [num * counts.get(num, 0) for num in row]
         for row in DOB_CHART_LAYOUT
     ]
+
 def get_zodiac_prediction(zodiac_sign: str) -> dict:
     """Get prediction data for a zodiac sign"""
     predictions = {
@@ -405,4 +354,3 @@ def get_zodiac_prediction(zodiac_sign: str) -> dict:
         "lucky_number": 11,
         "compatibility": "Universal compatibility"
     })
-    
