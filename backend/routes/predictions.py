@@ -36,6 +36,15 @@ LUCKY_COLOR_MAP = {
     for item in lucky_color_raw
 }
 
+# Unlucky color JSON
+with open(os.path.join(BASE_DIR, "data", "unlucky_color.json"), encoding="utf-8") as f:
+    unlucky_color_raw = json.load(f)
+
+UNLUCKY_COLOR_MAP = {
+    str(item["Driver number"]).strip(): str(item["unlucky color"]).strip()
+    for item in unlucky_color_raw
+}
+
 with open(os.path.join(BASE_DIR, "data", "gochor.json"), encoding="utf-8") as f:
     gochor_raw = json.load(f)
 
@@ -110,6 +119,14 @@ def get_lucky_color(driver: int):
     Returns comma-separated color string from JSON.
     """
     return LUCKY_COLOR_MAP.get(str(driver), "")
+
+
+def get_unlucky_color(driver: int):
+    """
+    Unlucky color comes from driver number mapping.
+    Returns comma-separated color string from JSON.
+    """
+    return UNLUCKY_COLOR_MAP.get(str(driver), "")
 
 
 def calculate_gochor(dob: str, current_date: datetime | None = None) -> int:
@@ -201,6 +218,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
 
         lucky_number = get_lucky_numbers(driver_number, conductor_number)
         lucky_color = get_lucky_color(driver_number)
+        unlucky_color = get_unlucky_color(driver_number)
 
         analysis_doc = await driver_conductor_collection.find_one({
             "driver_number": driver_number,
@@ -257,6 +275,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
                     "personal_year": personal_year,
                     "analysis": analysis,
                     "lucky_color": lucky_color,
+                    "unlucky_color": unlucky_color,
                     "lucky_number": lucky_number,
                     "strength_number": strength_number,
                     "strength_prediction": strength_prediction,
@@ -282,6 +301,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             "personal_year": personal_year,
             "analysis": analysis,
             "lucky_color": lucky_color,
+            "unlucky_color": unlucky_color,
             "lucky_number": lucky_number,
             "strength_number": strength_number,
             "strength_prediction": strength_prediction,
@@ -328,13 +348,20 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
 
         dob_chart = user.get("dob_chart") or build_dob_chart(user.get("dob"), user.get("driver_number") or 0)
 
+        driver_number = user.get("driver_number")
+        unlucky_color = user.get("unlucky_color")
+
+        if not unlucky_color and driver_number:
+            unlucky_color = get_unlucky_color(driver_number)
+
         return {
             "dob": user.get("dob"),
-            "driver_number": user.get("driver_number"),
+            "driver_number": driver_number,
             "conductor_number": user.get("conductor_number"),
             "personal_year": user.get("personal_year"),
             "analysis": user.get("analysis", "No analysis found."),
             "lucky_color": user.get("lucky_color", ""),
+            "unlucky_color": unlucky_color or "",
             "lucky_number": user.get("lucky_number"),
             "strength_number": user.get("strength_number"),
             "strength_prediction": user.get(

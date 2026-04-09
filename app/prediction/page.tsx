@@ -23,6 +23,17 @@ import {
   Clock3,
   Stars,
   X,
+  Trophy,
+  Brain,
+  Gem,
+  Dumbbell,
+  GraduationCap,
+  Eye,
+  Briefcase,
+  TrendingUp,
+  Sword,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react'
 
 interface Prediction {
@@ -31,6 +42,7 @@ interface Prediction {
   personal_year: number
   analysis: string
   lucky_color: string
+  unlucky_color?: string
   lucky_number: number | string
   dob: string
   dob_chart?: string[][]
@@ -50,7 +62,7 @@ interface Prediction {
   antardasha_remedy?: string
 }
 
-type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart'
+type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -80,6 +92,9 @@ const colorMap: Record<string, string> = {
   'Pale Green': '#98fb98',
   'Light Blue': '#add8e6',
   'Light Green': '#90ee90',
+  'Dark Blue': '#1e3a8a',
+  Ashy: '#b2beb5',
+  'Any Dark Color': '#1f2937',
   Navy: 'navy',
   'Navy Blue': 'navy',
   cream: '#fffdd0',
@@ -97,6 +112,469 @@ const numberCharacteristics: Record<number, string> = {
   8: "Discipline, justice, hard work.",
   9: "Courage, action, energy, leadership.",
 }
+
+const missingNumberAnalysis: Record<number, string> = {
+  1: 'Weak expression power, do not have proper goal, do not maintain relationship.',
+  2: 'Less sensitive power, weak intuition power, do not accept mistake.',
+  3: 'Creativity will not support, do not have imagination power, face relationship issue.',
+  4: 'Do not have discipline and not organized. Do not use knowledge properly and laziness.',
+  5: 'Do not have balance in life, ups and down in life, always need support.',
+  6: 'Luxury is missing, weak bonding in family, do not express thought, may do false commitment.',
+  7: 'Detachment and restless mind, can cheat anyone, do not have proper planning.',
+  8: 'Finance problem, unstable person, spend too much money, do not do hard work.',
+  9: 'Do not have humanity, do not help others, problem in education.',
+}
+
+const repeatedNumberNegativeAnalysis: Record<number, string> = {
+  1: 'Egoistic, dominating, stubborn, self-centered.',
+  2: 'Mood swings, oversensitive, dependent.',
+  3: 'Overconfidence, laziness, preaching nature.',
+  4: 'Confusion, obsession, sudden ups/downs.',
+  5: 'Restless, overthinking, laziness.',
+  6: 'Overindulgence, laziness.',
+  7: 'Isolation, confusion, detachment from reality.',
+  8: 'Delays, pessimism, loneliness.',
+  9: 'Anger, aggression.',
+}
+
+interface YogDefinition {
+  numbers: number[]
+  missingNumbers?: number[]
+  name: string
+  icon: typeof Star
+  gradient: string
+  borderColor: string
+  traits: string[]
+}
+
+const yogDefinitions: YogDefinition[] = [
+  {
+    numbers: [3, 1, 9],
+    name: 'Intellectual Yog',
+    icon: Brain,
+    gradient: 'from-blue-500 to-indigo-600',
+    borderColor: 'border-blue-200',
+    traits: [
+      'Intellectual success and growth in career',
+      'Name and fame in society',
+      'Late marriage',
+    ],
+  },
+  {
+    numbers: [6, 7, 5],
+    name: 'Comfort Yog',
+    icon: Gem,
+    gradient: 'from-pink-500 to-rose-600',
+    borderColor: 'border-pink-200',
+    traits: [
+      'Creative person',
+      'Business minded, work independently',
+      'Luxury & love marriage',
+      'Extra relationship possibility',
+    ],
+  },
+  {
+    numbers: [2, 8, 4],
+    name: 'Hard Working Success Yog',
+    icon: Dumbbell,
+    gradient: 'from-amber-500 to-orange-600',
+    borderColor: 'border-amber-200',
+    traits: [
+      'Health issues & probability of accident',
+      'Relationship issues',
+      'Success comes through hard work',
+      'Needs to be disciplined in life',
+    ],
+  },
+  {
+    numbers: [3, 6, 2],
+    name: 'Education Yog',
+    icon: GraduationCap,
+    gradient: 'from-emerald-500 to-teal-600',
+    borderColor: 'border-emerald-200',
+    traits: [
+      'Higher education & highly intellectual',
+      'Manipulating & sensitive nature',
+      'Less speaking person',
+      'Need to control food habits',
+    ],
+  },
+  {
+    numbers: [1, 7, 8],
+    name: 'Spiritual Yog',
+    icon: Eye,
+    gradient: 'from-purple-500 to-violet-600',
+    borderColor: 'border-purple-200',
+    traits: [
+      '6th sense is high',
+      'Multiple sources of income',
+    ],
+  },
+  {
+    numbers: [9, 5, 4],
+    name: 'Workaholic Yog',
+    icon: Briefcase,
+    gradient: 'from-slate-500 to-gray-700',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Hard working person',
+      'Appreciation will come late',
+      'Can create enemies by words',
+      'Helpful but creates disputes with siblings',
+    ],
+  },
+  {
+    numbers: [7, 3, 4],
+    name: 'Success Yog',
+    icon: TrendingUp,
+    gradient: 'from-cyan-500 to-sky-600',
+    borderColor: 'border-cyan-200',
+    traits: [
+      'High success rate with positive & spiritual mindset',
+      'Money flow and growth in life',
+      'Follow discipline in life',
+    ],
+  },
+  {
+    numbers: [9, 7, 2],
+    name: 'Courageous Yog',
+    icon: Sword,
+    gradient: 'from-red-500 to-rose-700',
+    borderColor: 'border-red-200',
+    traits: [
+      'Unstable mind',
+      'Possibility of health issues',
+      'Initial stage of life struggle may come',
+      'Need to follow discipline & set goals',
+    ],
+  },
+  {
+    numbers: [3, 1],
+    missingNumbers: [9],
+    name: 'Partial Intellectual Yog',
+    icon: Brain,
+    gradient: 'from-blue-400 to-indigo-500',
+    borderColor: 'border-blue-200',
+    traits: [
+      'Good thinker, leader',
+      'Simple living, high thinking',
+      'Good relationship with father and son',
+      'Possibility of doctor and engineer',
+    ],
+  },
+  {
+    numbers: [1, 9],
+    missingNumbers: [3],
+    name: 'Partial Intellectual Yog',
+    icon: Brain,
+    gradient: 'from-blue-400 to-indigo-500',
+    borderColor: 'border-blue-200',
+    traits: [
+      'High energy, working in freedom',
+      'High confidence, leadership quality',
+      'Anger issue',
+      'Higher education',
+    ],
+  },
+  {
+    numbers: [2, 8],
+    missingNumbers: [4],
+    name: 'Partial Hard Working Yog',
+    icon: Dumbbell,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'Emotional with bad habit',
+      'Family disturbance',
+      'Struggle / injury in life',
+      'Maintain distance from water',
+    ],
+  },
+  {
+    numbers: [8, 4],
+    missingNumbers: [2],
+    name: 'Partial Hard Working Yog',
+    icon: Dumbbell,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'Struggle and negativity too much',
+      'Relationship issue',
+      'Bad habit can make lazy',
+      'Do not trust other, taking unwanted responsibility',
+    ],
+  },
+  {
+    numbers: [6, 7],
+    missingNumbers: [5],
+    name: 'Partial Comfort Yog',
+    icon: Gem,
+    gradient: 'from-pink-400 to-rose-500',
+    borderColor: 'border-pink-200',
+    traits: [
+      'Support luxury and comfort life',
+      'Knowledge in fine art',
+      'Attract opposite gender, addiction',
+    ],
+  },
+  {
+    numbers: [5, 7],
+    missingNumbers: [6],
+    name: 'Partial Comfort Yog',
+    icon: Gem,
+    gradient: 'from-pink-400 to-rose-500',
+    borderColor: 'border-pink-200',
+    traits: [
+      'Do not give correct answer',
+      'Always make support, argumentity',
+      'Can be good writer or good judge',
+    ],
+  },
+  {
+    numbers: [3, 6],
+    missingNumbers: [2],
+    name: 'Partial Education Yog',
+    icon: GraduationCap,
+    gradient: 'from-emerald-400 to-teal-500',
+    borderColor: 'border-emerald-200',
+    traits: [
+      'Knowledgeable person, good professional life',
+      'Higher education',
+      'Always follows rules and regulation',
+      'Health issue or marriage issue (get success after marriage)',
+    ],
+  },
+  {
+    numbers: [6, 2],
+    missingNumbers: [3],
+    name: 'Partial Education Yog',
+    icon: GraduationCap,
+    gradient: 'from-emerald-400 to-teal-500',
+    borderColor: 'border-emerald-200',
+    traits: [
+      'Charming and attractive personality',
+      'Attract opposite gender',
+      'Good person by heart',
+      'Interest in fine art, break in education',
+    ],
+  },
+  {
+    numbers: [1, 7],
+    missingNumbers: [8],
+    name: 'Partial Spiritual Yog',
+    icon: Eye,
+    gradient: 'from-purple-400 to-violet-500',
+    borderColor: 'border-purple-200',
+    traits: [
+      'Noble hearted person',
+      'Good growth in life if spiritual',
+      'They can have ego problem',
+      'Good possibility of government job',
+    ],
+  },
+  {
+    numbers: [7, 8],
+    missingNumbers: [1],
+    name: 'Partial Spiritual Yog',
+    icon: Eye,
+    gradient: 'from-purple-400 to-violet-500',
+    borderColor: 'border-purple-200',
+    traits: [
+      'Family disturbance',
+      'Bad habit',
+      'Multiple relationship',
+    ],
+  },
+  {
+    numbers: [9, 5],
+    missingNumbers: [4],
+    name: 'Partial Workaholic Yog',
+    icon: Briefcase,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Action oriented, sharp minded',
+      'May be out spoken',
+      'Can be good businessman, good doctor, good engineer',
+      'Easily make bad relationship by their words',
+    ],
+  },
+  {
+    numbers: [5, 4],
+    missingNumbers: [9],
+    name: 'Partial Workaholic Yog',
+    icon: Briefcase,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Intellectual, clever',
+      'Do not follow other advice, can win anyone mind',
+      'High risk taking capacity, strong will power',
+      'Chance visit court or hospital due to some issues',
+    ],
+  },
+  {
+    numbers: [3, 7],
+    missingNumbers: [4],
+    name: 'Partial Success Yog',
+    icon: TrendingUp,
+    gradient: 'from-cyan-400 to-sky-500',
+    borderColor: 'border-cyan-200',
+    traits: [
+      'Very good combination, knowledgeable person',
+      'Feel emotional for others',
+      'Do good for society, interest in occult science',
+    ],
+  },
+  {
+    numbers: [7, 4],
+    missingNumbers: [3],
+    name: 'Partial Success Yog',
+    icon: TrendingUp,
+    gradient: 'from-cyan-400 to-sky-500',
+    borderColor: 'border-cyan-200',
+    traits: [
+      'May be good or bad, need family support',
+      'Can have addiction',
+      'Do not give time value',
+    ],
+  },
+  {
+    numbers: [9, 7],
+    missingNumbers: [2],
+    name: 'Partial Courageous Yog',
+    icon: Sword,
+    gradient: 'from-red-400 to-rose-500',
+    borderColor: 'border-red-200',
+    traits: [
+      'Growth or blame in life',
+      'Do not have good relationship with opposite gender',
+      'Restless energy, blood loss',
+    ],
+  },
+  {
+    numbers: [7, 2],
+    missingNumbers: [9],
+    name: 'Partial Courageous Yog',
+    icon: Sword,
+    gradient: 'from-red-400 to-rose-500',
+    borderColor: 'border-red-200',
+    traits: [
+      'Emotionally weak',
+      'Living in past',
+      'Health issue',
+    ],
+  },
+  {
+    numbers: [3, 2],
+    missingNumbers: [6],
+    name: 'Partial Education Yog',
+    icon: GraduationCap,
+    gradient: 'from-emerald-400 to-teal-500',
+    borderColor: 'border-emerald-200',
+    traits: [
+      'Philosopher minded and emotional',
+      'Can have ego, win over enemy',
+      'Make relationship from heart',
+      'Sometimes child happiness is missing',
+    ],
+  },
+  {
+    numbers: [1, 8],
+    missingNumbers: [7],
+    name: 'Partial Spiritual Yog',
+    icon: Eye,
+    gradient: 'from-purple-400 to-violet-500',
+    borderColor: 'border-purple-200',
+    traits: [
+      'Health issue, financial instability',
+      'Sometimes argument between father and children',
+      'Ups and down in career',
+      'Do bad with government body',
+    ],
+  },
+  {
+    numbers: [9, 4],
+    missingNumbers: [5],
+    name: 'Partial Workaholic Yog',
+    icon: Briefcase,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Strong will power',
+      'Dominating in nature',
+      'Taking unwanted responsibility',
+      'Do not maintain discipline',
+    ],
+  },
+  {
+    numbers: [3, 9],
+    missingNumbers: [1],
+    name: 'Partial Intellectual Yog',
+    icon: Brain,
+    gradient: 'from-blue-400 to-indigo-500',
+    borderColor: 'border-blue-200',
+    traits: [
+      'Helpful in nature and intelligent',
+      'Multi talented, good advisor, hard worker',
+      'Have respect in society',
+    ],
+  },
+  {
+    numbers: [5, 6],
+    missingNumbers: [7],
+    name: 'Partial Comfort Yog',
+    icon: Gem,
+    gradient: 'from-pink-400 to-rose-500',
+    borderColor: 'border-pink-200',
+    traits: [
+      'Luxury and materialistic life',
+      'Love travelling',
+      'Create conflict in family by their own behavior',
+    ],
+  },
+  {
+    numbers: [2, 4],
+    missingNumbers: [8],
+    name: 'Partial Hard Working Yog',
+    icon: Dumbbell,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'High level mood swing',
+      'Family and health issue',
+      'Can involve in criminal activity',
+    ],
+  },
+  {
+    numbers: [3, 4],
+    missingNumbers: [7],
+    name: 'Partial Success Yog',
+    icon: TrendingUp,
+    gradient: 'from-cyan-400 to-sky-500',
+    borderColor: 'border-cyan-200',
+    traits: [
+      'Struggle in life',
+      'Highly intelligent and multi talented but can be destructive',
+      'Need to drive life on its own way',
+      'Family tension due to behavior but maintain good relationship outside home',
+    ],
+  },
+  {
+    numbers: [2, 9],
+    missingNumbers: [7],
+    name: 'Partial Courageous Yog',
+    icon: Sword,
+    gradient: 'from-red-400 to-rose-500',
+    borderColor: 'border-red-200',
+    traits: [
+      'Health issue due to outside food or season changes',
+      'Aggressive in nature',
+      'Very helpful',
+      'Family disturbance',
+    ],
+  },
+]
 
 function reduceToSingleDigit(num: number): number {
   let value = num
@@ -238,11 +716,48 @@ export default function PredictionPage() {
     ?.split(',')
     .map((c: string) => c.trim())
     .filter(Boolean)
+  const unluckyColorsArray = prediction.unlucky_color
+    ?.split(',')
+    .map((c: string) => c.trim())
+    .filter(Boolean)
   const dobChart = prediction.dob_chart ?? [
     ['', '', ''],
     ['', '', ''],
     ['', '', ''],
   ]
+  const presentDobNumbers = new Set(
+    dobChart
+      .flat()
+      .flatMap((cell) => cell.split(''))
+      .filter(Boolean)
+      .map((digit) => Number(digit))
+      .filter((digit) => digit >= 1 && digit <= 9)
+  )
+  const dobNumberCounts = dobChart
+    .flat()
+    .flatMap((cell) => cell.split(''))
+    .filter(Boolean)
+    .reduce<Record<number, number>>((counts, digit) => {
+      const parsedDigit = Number(digit)
+      if (parsedDigit >= 1 && parsedDigit <= 9) {
+        counts[parsedDigit] = (counts[parsedDigit] ?? 0) + 1
+      }
+      return counts
+    }, {})
+  const missingDobNumbers = Array.from({ length: 9 }, (_, index) => index + 1).filter(
+    (digit) => !presentDobNumbers.has(digit)
+  )
+  const repeatedNegativeDobNumbers = Array.from({ length: 9 }, (_, index) => index + 1).filter(
+    (digit) => (dobNumberCounts[digit] ?? 0) > 2
+  )
+
+  const yogResults = yogDefinitions.map((yog) => {
+    const active =
+      yog.numbers.every((n) => presentDobNumbers.has(n)) &&
+      (!yog.missingNumbers || yog.missingNumbers.every((n) => !presentDobNumbers.has(n)))
+    return { ...yog, active }
+  })
+  const activeYogCount = yogResults.filter((y) => y.active).length
 
   const insightContent = {
     strength: {
@@ -288,6 +803,13 @@ export default function PredictionPage() {
       prediction: '',
       remedy: '',
     },
+    yog: {
+      title: 'YOG Analysis',
+      value: null,
+      icon: Trophy,
+      prediction: '',
+      remedy: '',
+    },
   } as const
 
   const currentInsight = insightContent[activeInsight]
@@ -327,6 +849,13 @@ export default function PredictionPage() {
       title: 'Vedic DOB Chart',
       subtitle: 'DOB digit matrix',
       icon: Sparkles,
+      value: null,
+    },
+    {
+      key: 'yog' as InsightKey,
+      title: 'YOG',
+      subtitle: 'Vedic yog analysis',
+      icon: Trophy,
       value: null,
     },
   ]
@@ -454,10 +983,7 @@ export default function PredictionPage() {
                 <Button
                   variant="link"
                   className="px-0 text-violet-700 text-base font-semibold hover:text-fuchsia-600"
-                  onClick={() => {
-                    setActiveInsight('strength')
-                    setOpenKnowMore(true)
-                  }}
+                  onClick={() => router.push('/prediction/know-more?tab=strength')}
                 >
                   Know more
                 </Button>
@@ -469,12 +995,12 @@ export default function PredictionPage() {
             <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">
               <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <Palette className="w-6 h-6 text-indigo-600" />
-                Auspicious Elements
+                Color & Number Guidance
               </h2>
             </div>
 
             <div className="p-6 md:p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <div className="rounded-2xl border border-violet-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[280px]">
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
                     Lucky Color
@@ -499,6 +1025,32 @@ export default function PredictionPage() {
                   </div>
 
                   <p className="text-slate-600 text-center">Your auspicious colors</p>
+                </div>
+
+                <div className="rounded-2xl border border-rose-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[280px]">
+                  <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+                    Unlucky Color
+                  </p>
+
+                  <div className="w-full max-w-[280px] min-h-[160px] rounded-3xl bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-200 flex flex-wrap items-center justify-center gap-3 shadow-lg mb-4 px-6 py-6">
+                    {unluckyColorsArray?.map((color: string, index: number) => {
+                      const colorValue = colorMap[color] || colorMap[color.toLowerCase()] || color.toLowerCase() || '#999999'
+
+                      return (
+                        <div key={index} className="flex flex-col items-center gap-1 max-w-[70px]">
+                          <div
+                            className="w-10 h-10 rounded-full border-2 border-white shadow"
+                            style={{ backgroundColor: colorValue }}
+                          />
+                          <span className="text-[10px] text-slate-600 text-center leading-4 break-words">
+                            {color}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <p className="text-slate-600 text-center">Colors to avoid when possible</p>
                 </div>
 
                 <div className="rounded-2xl border border-violet-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[280px]">
@@ -541,105 +1093,269 @@ export default function PredictionPage() {
       </div>
 
       <Dialog open={openKnowMore} onOpenChange={setOpenKnowMore}>
-        <DialogContent className="w-[96vw] max-w-6xl max-h-[92vh] overflow-y-auto p-0 border-0 rounded-2xl shadow-2xl [&>button]:hidden">
-          <div className="relative bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 px-5 md:px-7 py-5 md:py-6 rounded-t-2xl">
+        <DialogContent className="w-[98vw] sm:w-[96vw] max-w-7xl max-h-[94vh] overflow-y-auto p-0 border border-violet-100/80 rounded-2xl md:rounded-[28px] bg-white/95 shadow-[0_32px_100px_-40px_rgba(76,29,149,0.55)] backdrop-blur-xl [&>button]:hidden">
+          <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.26),_transparent_32%),linear-gradient(135deg,_#7c3aed,_#c026d3_55%,_#4f46e5)] px-5 md:px-8 py-6 md:py-7 rounded-t-2xl md:rounded-t-[28px]">
+            <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.12)_45%,transparent_100%)] pointer-events-none" />
             <button
               type="button"
               onClick={() => setOpenKnowMore(false)}
-              className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition"
+              className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/15 hover:bg-white/25 transition"
               aria-label="Close modal"
             >
               <X className="h-5 w-5 text-white" />
             </button>
 
             <DialogHeader>
-              <DialogTitle className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-white/80" />
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-white/90">
+                <Sparkles className="w-3.5 h-3.5 text-white/80" />
+                Insight Studio
+              </div>
+              <DialogTitle className="mt-3 text-2xl md:text-3xl font-bold text-white">
                 Know More
               </DialogTitle>
-              <DialogDescription className="text-violet-100 text-sm mt-1">
+              <DialogDescription className="text-violet-100 text-sm md:text-base mt-2 max-w-3xl leading-7">
                 Explore deeper astrology insights for Strength Number, Gochor, Mahadasha, Antardasha, and Vedic DOB Chart.
               </DialogDescription>
             </DialogHeader>
           </div>
 
-          <div className="bg-[#f8f7ff] p-4 md:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
-              {insightCards.map((item) => {
-                const Icon = item.icon
-                const isActive = activeInsight === item.key
+          <div className="bg-[linear-gradient(180deg,_#f8f7ff_0%,_#f6f3ff_52%,_#ffffff_100%)] p-4 md:p-6 lg:p-8">
+            <div className="sticky top-0 z-10 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 pb-4 bg-[linear-gradient(180deg,_rgba(248,247,255,0.96)_0%,_rgba(248,247,255,0.92)_75%,_rgba(248,247,255,0)_100%)] backdrop-blur-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
+                {insightCards.map((item) => {
+                  const Icon = item.icon
+                  const isActive = activeInsight === item.key
 
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => setActiveInsight(item.key)}
-                    className={`rounded-xl border p-4 text-left transition-all duration-200 flex flex-col gap-2 min-h-[150px] md:min-h-[165px] w-full ${isActive
-                      ? 'border-violet-400 bg-white shadow-md ring-1 ring-violet-300'
-                      : 'border-slate-200 bg-white hover:border-violet-200 hover:shadow-sm'
-                      }`}
-                  >
-                    <div className={`w-8 h-8 shrink-0 rounded-md flex items-center justify-center ${isActive ? 'bg-violet-100' : 'bg-slate-100'}`}>
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-violet-600' : 'text-slate-500'}`} />
-                    </div>
-
-                    <span className={`text-sm font-semibold leading-5 break-words ${isActive ? 'text-violet-700' : 'text-slate-700'}`}>
-                      {item.title}
-                    </span>
-
-                    {item.value !== null && (
-                      <div className={`text-3xl font-bold ${isActive ? 'text-violet-600' : 'text-slate-500'}`}>
-                        {item.value}
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => setActiveInsight(item.key)}
+                      className={`rounded-2xl border p-4 md:p-5 text-left transition-all duration-200 flex flex-col gap-2 min-h-[150px] md:min-h-[165px] w-full ${isActive
+                        ? 'border-violet-300 bg-white shadow-[0_18px_40px_-24px_rgba(124,58,237,0.65)] ring-1 ring-violet-200'
+                        : 'border-white/80 bg-white/80 hover:border-violet-200 hover:bg-white hover:shadow-[0_16px_30px_-24px_rgba(15,23,42,0.35)]'
+                        }`}
+                    >
+                      <div className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${isActive ? 'bg-violet-100' : 'bg-slate-100'}`}>
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-violet-600' : 'text-slate-500'}`} />
                       </div>
-                    )}
 
-                    <p className="text-xs text-slate-500 leading-5 break-words">
-                      {item.subtitle}
-                    </p>
-                  </button>
-                )
-              })}
+                      <span className={`text-sm font-semibold leading-5 break-words ${isActive ? 'text-violet-700' : 'text-slate-700'}`}>
+                        {item.title}
+                      </span>
+
+                      {item.value !== null && (
+                        <div className={`text-3xl font-bold ${isActive ? 'text-violet-600' : 'text-slate-500'}`}>
+                          {item.value}
+                        </div>
+                      )}
+
+
+                      <p className="text-xs text-slate-500 leading-5 break-words">
+                        {item.subtitle}
+                      </p>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-4 md:px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3 bg-gradient-to-r from-violet-50 to-fuchsia-50">
-                <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
-                  <CurrentInsightIcon className="w-5 h-5 text-violet-600" />
+            <div className="bg-white/90 rounded-[28px] border border-white/80 shadow-[0_24px_60px_-34px_rgba(30,41,59,0.28)] overflow-hidden backdrop-blur-sm">
+              <div className="px-5 md:px-7 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-[linear-gradient(135deg,_rgba(245,243,255,0.96),_rgba(253,242,248,0.92))]">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="w-10 h-10 rounded-2xl bg-violet-100 flex items-center justify-center shadow-inner">
+                    <CurrentInsightIcon className="w-5 h-5 text-violet-600" />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg md:text-xl font-bold text-slate-800">{currentInsight.title}</h3>
+                    {(activeInsight === 'strength' || activeInsight === 'gochor') && currentInsight.value !== null && (
+                      <span className="text-xs font-bold text-violet-700 bg-violet-100 px-2.5 py-1 rounded-full border border-violet-200">
+                        {currentInsight.value}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-lg font-bold text-slate-800">{currentInsight.title}</h3>
-                  {(activeInsight === 'strength' || activeInsight === 'gochor') && currentInsight.value !== null && (
-                    <span className="text-xs font-bold text-violet-700 bg-violet-100 px-2.5 py-1 rounded-full border border-violet-200">
-                      {currentInsight.value}
-                    </span>
-                  )}
+                <div className="hidden md:flex items-center gap-2 rounded-full border border-violet-100 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500">
+                  <span className="inline-block w-2 h-2 rounded-full bg-violet-400" />
+                  Detailed view
                 </div>
               </div>
 
-              {activeInsight === 'dobChart' ? (
-                <div className="p-4 md:p-6">
-                  <div className="rounded-[28px] border border-violet-100 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.10),_transparent_30%),linear-gradient(135deg,_rgba(245,243,255,0.9),_rgba(255,255,255,1))] p-4 md:p-6 shadow-inner">
-                    <div className="max-w-[420px] mx-auto">
-                      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                        {dobChart.flatMap((row, rowIndex) =>
-                          row.map((cell, colIndex) => (
-                            <div
-                              key={`${rowIndex}-${colIndex}`}
-                              className="relative aspect-square overflow-hidden rounded-[22px] border border-violet-200/80 bg-white shadow-[0_10px_30px_-18px_rgba(124,58,237,0.45)] flex items-center justify-center"
-                            >
-                              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400" />
-                              <span className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-[0.12em] text-violet-700 leading-none">
-                                {cell || ''}
-                              </span>
-                            </div>
-                          ))
-                        )}
+
+              {activeInsight === 'yog' ? (
+                <div className="p-5 md:p-7">
+                  <div className="rounded-[30px] border border-violet-100 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.08),_transparent_30%),linear-gradient(135deg,_rgba(245,243,255,0.94),_rgba(255,255,255,1))] p-5 md:p-7 shadow-inner">
+                    {activeYogCount === 0 ? (
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-8 text-center">
+                        <p className="text-slate-500">No active yog combinations found in your DOB chart.</p>
                       </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {yogResults.filter((y) => y.active).map((yog, index) => {
+                          const YogIcon = yog.icon
+                          return (
+                            <div
+                              key={index}
+                              className={`rounded-2xl border ${yog.borderColor} bg-white p-5 shadow-lg transition-all duration-300`}
+                            >
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${yog.gradient} shadow-md`}>
+                                  <YogIcon className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="font-bold text-base text-slate-800">
+                                    {yog.name}
+                                  </h3>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-xs font-mono text-slate-500">
+                                      {yog.numbers.join(' \u2013 ')}
+                                      {yog.missingNumbers && yog.missingNumbers.length > 0 && ` (${yog.missingNumbers.join(', ')} missing)`}
+                                    </span>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                  </div>
+                                </div>
+                              </div>
+
+                              <ul className="space-y-1.5 mt-3 ml-1">
+                                {yog.traits.map((trait, tIndex) => (
+                                  <li key={tIndex} className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                                    {trait}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* <div className="mt-6 text-center">
+                      <p className="text-sm text-slate-500">
+                        <span className="font-semibold text-violet-700">{activeYogCount}</span> active yog{activeYogCount !== 1 ? 's' : ''} detected from your Vedic DOB Chart
+                      </p>
+                    </div> */}
+                  </div>
+                </div>
+              ) : activeInsight === 'dobChart' ? (
+                <div className="p-5 md:p-7">
+                  <div className="rounded-[30px] border border-violet-100 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.12),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(99,102,241,0.10),_transparent_28%),linear-gradient(135deg,_rgba(245,243,255,0.94),_rgba(255,255,255,1))] p-5 md:p-7 shadow-inner">
+                    <div className="flex flex-col xl:flex-row gap-6 xl:gap-8 items-start">
+                      <div className="w-full xl:flex-1">
+                        <div className="max-w-[520px] mx-auto">
+                          <div className="grid grid-cols-3 gap-4 sm:gap-5">
+                            {dobChart.flatMap((row, rowIndex) =>
+                              row.map((cell, colIndex) => (
+                                <div
+                                  key={`${rowIndex}-${colIndex}`}
+                                  className="relative aspect-square overflow-hidden rounded-[24px] border border-violet-200/80 bg-white shadow-[0_18px_36px_-24px_rgba(124,58,237,0.45)] flex items-center justify-center"
+                                >
+                                  <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400" />
+                                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(196,181,253,0.16),_transparent_36%)] pointer-events-none" />
+                                  <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-[0.12em] text-violet-700 leading-none">
+                                    {cell || ''}
+                                  </span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="w-full xl:max-w-[280px] grid grid-cols-2 xl:grid-cols-1 gap-3">
+                        <div className="rounded-2xl border border-violet-100 bg-white/75 px-4 py-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Missing</p>
+                          <p className="mt-2 text-2xl font-bold text-violet-700">{missingDobNumbers.length}</p>
+                          <p className="mt-1 text-sm text-slate-500">Numbers absent in the chart</p>
+                        </div>
+                        <div className="rounded-2xl border border-rose-100 bg-white/75 px-4 py-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Repeated</p>
+                          <p className="mt-2 text-2xl font-bold text-rose-600">{repeatedNegativeDobNumbers.length}</p>
+                          <p className="mt-1 text-sm text-slate-500">Numbers repeated more than twice</p>
+                        </div>
+                        <div className="col-span-2 xl:col-span-1 rounded-2xl border border-slate-100 bg-white/75 px-4 py-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Chart Note</p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            Repeated digits intensify tendencies, while missing digits highlight areas that may need conscious effort and balance.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div className="rounded-[24px] border border-slate-200 overflow-hidden bg-white shadow-[0_18px_40px_-30px_rgba(15,23,42,0.32)] h-full">
+                      <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 px-4 md:px-5 py-3 border-b border-slate-200">
+                        <h4 className="text-sm md:text-base font-bold text-slate-800">
+                          Missing Number Analysis
+                        </h4>
+                      </div>
+
+                      {missingDobNumbers.length > 0 ? (
+                        <div className="divide-y divide-slate-200 bg-white">
+                          {missingDobNumbers.map((digit) => (
+                            <div
+                              key={digit}
+                              className="px-4 md:px-5 py-3 md:py-4 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4"
+                            >
+                              <span className="shrink-0 inline-flex items-center justify-center min-w-10 h-10 rounded-full bg-violet-100 text-violet-700 font-bold">
+                                {digit}
+                              </span>
+                              <p className="text-sm md:text-base text-slate-700 leading-7">
+                                {missingNumberAnalysis[digit]}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-white px-4 md:px-5 py-4">
+                          <p className="text-sm md:text-base text-slate-700 leading-7">
+                            No missing numbers found in this Vedic DOB chart.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-[24px] border border-slate-200 overflow-hidden bg-white shadow-[0_18px_40px_-30px_rgba(15,23,42,0.32)] h-full">
+                      <div className="bg-gradient-to-r from-rose-50 to-orange-50 px-4 md:px-5 py-3 border-b border-slate-200">
+                        <h4 className="text-sm md:text-base font-bold text-slate-800">
+                          Negative Repeat Analysis
+                        </h4>
+                      </div>
+
+                      {repeatedNegativeDobNumbers.length > 0 ? (
+                        <div className="divide-y divide-slate-200 bg-white">
+                          {repeatedNegativeDobNumbers.map((digit) => (
+                            <div
+                              key={digit}
+                              className="px-4 md:px-5 py-3 md:py-4 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4"
+                            >
+                              <span className="shrink-0 inline-flex items-center justify-center min-w-10 h-10 rounded-full bg-rose-100 text-rose-700 font-bold">
+                                {digit}
+                              </span>
+                              <div className="space-y-1">
+                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                  Repeated {dobNumberCounts[digit]} times
+                                </p>
+                                <p className="text-sm md:text-base text-slate-700 leading-7">
+                                  {repeatedNumberNegativeAnalysis[digit]}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-white px-4 md:px-5 py-4">
+                          <p className="text-sm md:text-base text-slate-700 leading-7">
+                            No number is repeated more than two times in this Vedic DOB chart.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-5 flex flex-col min-h-[240px]">
+                <div className="p-5 md:p-7 grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="rounded-[24px] border border-violet-100 bg-violet-50/50 p-5 md:p-6 flex flex-col min-h-[240px] shadow-[0_18px_36px_-30px_rgba(124,58,237,0.55)]">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-1 h-5 rounded-full bg-violet-500" />
                       <h4 className="font-bold text-slate-800">Prediction</h4>
@@ -649,7 +1365,7 @@ export default function PredictionPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/50 p-5 flex flex-col min-h-[240px]">
+                  <div className="rounded-[24px] border border-fuchsia-100 bg-fuchsia-50/50 p-5 md:p-6 flex flex-col min-h-[240px] shadow-[0_18px_36px_-30px_rgba(217,70,239,0.45)]">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-1 h-5 rounded-full bg-fuchsia-500" />
                       <h4 className="font-bold text-slate-800">Remedy</h4>
@@ -665,7 +1381,7 @@ export default function PredictionPage() {
             <div className="flex justify-end mt-5">
               <Button
                 onClick={() => setOpenKnowMore(false)}
-                className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white px-6"
+                className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white px-6 shadow-lg"
               >
                 Close
               </Button>
