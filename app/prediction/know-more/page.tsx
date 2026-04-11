@@ -404,6 +404,345 @@ const yogDefinitions: YogDefinition[] = [
       'Health issue',
     ],
   },
+  {
+    numbers: [3, 8],
+    missingNumbers: [6, 2],
+    name: 'Consultancy Yog',
+    icon: Brain,
+    gradient: 'from-blue-400 to-indigo-500',
+    borderColor: 'border-blue-200',
+    traits: [
+      'Knowledgeable person, good for consultancy',
+      'Highly spiritual person',
+      'Become good judge',
+      'Success come after hard work'
+    ],
+  },
+  {
+    numbers: [9, 8],
+    missingNumbers: [5, 4],
+    name: 'High Energy Yog',
+    icon: Zap,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'High energy, anger issue',
+      'Hard working person, they can achieve target',
+      'Argumentative but logical thinker',
+      'They do not trust other, workaholic',
+      'Others can take their advantages, progress in life'
+    ],
+  },
+  {
+    numbers: [1, 4],
+    missingNumbers: [9, 5],
+    name: 'Egoistic Yog',
+    icon: XCircle,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Family disturbance',
+      'Extremely egoistic',
+      'Lost opportunities, depth in life',
+      'Create enemy by their own words'
+    ],
+  },
+  {
+    numbers: [1, 2],
+    missingNumbers: [3, 6],
+    name: 'Powerful Combination Yog',
+    icon: Trophy,
+    gradient: 'from-fuchsia-400 to-purple-500',
+    borderColor: 'border-fuchsia-200',
+    traits: [
+      'Very powerful combination, universal support',
+      'They are friendly in nature',
+      'Name frame in society',
+      'Sensitive person'
+    ],
+  },
+  {
+    numbers: [5, 2],
+    missingNumbers: [8, 4],
+    name: 'Intuition Yog',
+    icon: Sparkles,
+    gradient: 'from-emerald-400 to-teal-500',
+    borderColor: 'border-emerald-200',
+    traits: [
+      'High intuition power, sharp memory',
+      'Sensitive and emotional',
+      'Depend on others',
+      'Do not take other financial responsibility'
+    ],
+  },
+  {
+    numbers: [3, 5],
+    missingNumbers: [1, 9],
+    name: 'Financial Yog',
+    icon: Briefcase,
+    gradient: 'from-emerald-400 to-teal-500',
+    borderColor: 'border-emerald-200',
+    traits: [
+      'Sharp memory, good financial condition',
+      'Good for business',
+      'Good reputation in society',
+      'Sometime face cashflow problem'
+    ],
+  },
+  {
+    numbers: [9, 6],
+    missingNumbers: [3, 1],
+    name: 'Attractive Personality Yog',
+    icon: Gem,
+    gradient: 'from-pink-400 to-rose-500',
+    borderColor: 'border-pink-200',
+    traits: [
+      'Multiple relationship',
+      'Delaying in life',
+      'Help from opposite gender',
+      'Highly attractive personality'
+    ],
+  },
+  {
+    numbers: [6, 4],
+    missingNumbers: [2, 8],
+    name: 'Luxury Yog',
+    icon: Gem,
+    gradient: 'from-pink-400 to-rose-500',
+    borderColor: 'border-pink-200',
+    traits: [
+      'Luxury in life, good financial condition',
+      'Self centric person',
+      'Do not give values to other feelings',
+      'Family disturbance'
+    ],
+  },
+  {
+    numbers: [1, 7, 5],
+    missingNumbers: [9],
+    name: 'Astrologer Yog',
+    icon: MoonStar,
+    gradient: 'from-purple-400 to-violet-500',
+    borderColor: 'border-purple-200',
+    traits: [
+      'Good astrologer, good teacher',
+      'Relationship issues, argumentative nature',
+      'Addiction',
+      'Do not listen to other'
+    ],
+  },
+  {
+    numbers: [1, 7, 6],
+    missingNumbers: [3],
+    name: 'Fun Loving Yog',
+    icon: Star,
+    gradient: 'from-pink-400 to-rose-500',
+    borderColor: 'border-pink-200',
+    traits: [
+      'Fun and loving person',
+      'Easily attract to all good looking things',
+      'Money management is not good',
+      'Multiple relationship, unstable career'
+    ],
+  },
+  {
+    numbers: [5, 7, 8],
+    missingNumbers: [4],
+    name: 'Ego Issue Yog',
+    icon: XCircle,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Miss golden opportunity in life',
+      'Too much ego issue',
+      'Create family disturbance',
+      'Communication gap with siblings'
+    ],
+  },
+  {
+    numbers: [1, 9, 5],
+    missingNumbers: [7],
+    name: 'Dominating Nature Yog',
+    icon: Dumbbell,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'Sharp memory, good will power',
+      'Too much straight furrowed',
+      'Aggressive and dominating in nature',
+      'Do not serious in their professional life'
+    ],
+  },
+  {
+    numbers: [9, 1, 7],
+    missingNumbers: [5],
+    name: 'Strong Will Power Yog',
+    icon: Zap,
+    gradient: 'from-red-400 to-rose-500',
+    borderColor: 'border-red-200',
+    traits: [
+      'Very strong will power',
+      'Highly dominating and aggressive in nature',
+      'Good career success',
+      'Risk taking capacity high, foreign settlement'
+    ],
+  },
+  {
+    numbers: [3, 1, 7],
+    missingNumbers: [6],
+    name: 'High Reputation Yog',
+    icon: Trophy,
+    gradient: 'from-cyan-400 to-sky-500',
+    borderColor: 'border-cyan-200',
+    traits: [
+      'High reputation in society',
+      'Indicate government job and foreign travel',
+      'Higher education',
+      'Personal relationship issue'
+    ],
+  },
+  {
+    numbers: [1, 3, 6],
+    missingNumbers: [7],
+    name: 'Intellectual Success Yog',
+    icon: Brain,
+    gradient: 'from-blue-400 to-indigo-500',
+    borderColor: 'border-blue-200',
+    traits: [
+      'Highly intellectual and knowledgeable person',
+      'Good teaching quality',
+      'Good convincing power',
+      'High level of success and growth',
+      'Their luck support after marriage'
+    ],
+  },
+  {
+    numbers: [7, 5, 4],
+    missingNumbers: [8],
+    name: 'Struggle Yog',
+    icon: Dumbbell,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'High level of struggle in life',
+      'Mentally disturbance and arrogance in nature'
+    ],
+  },
+  {
+    numbers: [6, 7, 2],
+    missingNumbers: [8],
+    name: 'Comfort Life Yog',
+    icon: Gem,
+    gradient: 'from-pink-400 to-rose-500',
+    borderColor: 'border-pink-200',
+    traits: [
+      'Comfort life',
+      'Do not want to go outside for secure job',
+      'Do not like changes in life',
+      'Family support',
+      'Health issue, good intuition power'
+    ],
+  },
+  {
+    numbers: [5, 4, 8],
+    missingNumbers: [7],
+    name: 'Confusion State Yog',
+    icon: Orbit,
+    gradient: 'from-emerald-400 to-teal-500',
+    borderColor: 'border-emerald-200',
+    traits: [
+      'Life is going to a confusion state',
+      'Family issue',
+      'Ups and down in career',
+      'They are kind hearted person',
+      'Court case may occur'
+    ],
+  },
+  {
+    numbers: [6, 2, 8],
+    missingNumbers: [7],
+    name: 'Delay Yog',
+    icon: Clock3,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'Delay in luxury',
+      'Late marriage indication',
+      'Hurdle in education',
+      'Bad relationship with spouse'
+    ],
+  },
+  {
+    numbers: [8, 7],
+    missingNumbers: [2],
+    name: 'Law Skill Yog',
+    icon: Briefcase,
+    gradient: 'from-cyan-400 to-sky-500',
+    borderColor: 'border-cyan-200',
+    traits: [
+      'High level of luxury but need to work hard and value time',
+      'Go with fixed routine',
+      'Sharp memory, good for law skill',
+      'Do critical work',
+      'Relationship issue with opposite gender'
+    ],
+  },
+  {
+    numbers: [2, 8, 7],
+    missingNumbers: [6],
+    name: 'Health Issue Yog',
+    icon: Dumbbell,
+    gradient: 'from-red-400 to-rose-500',
+    borderColor: 'border-red-200',
+    traits: [
+      'Health issue',
+      'They need proper guidance and support in profession and personal life',
+      'Do not believe other and rude in nature'
+    ],
+  },
+  {
+    numbers: [7, 8, 4],
+    missingNumbers: [5],
+    name: 'Hidden Talent Yog',
+    icon: Dumbbell,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Too much struggle in life',
+      'Ego and over confidence create issue',
+      'They have hidden talent',
+      'Success come through hard work'
+    ],
+  },
+  {
+    numbers: [3, 6, 7],
+    missingNumbers: [1],
+    name: 'Research Minded Yog',
+    icon: Brain,
+    gradient: 'from-purple-400 to-violet-500',
+    borderColor: 'border-purple-200',
+    traits: [
+      'Always work on to improve knowledge',
+      'Ego problem',
+      'Want to stay alone',
+      'Research minded, do not run behind money'
+    ],
+  },
+  {
+    numbers: [9, 5, 7],
+    missingNumbers: [1],
+    name: 'Courageous Communication Yog',
+    icon: Zap,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'Courageous and good communication skill',
+      'Highly argumentative',
+      'Family issue, restless mind',
+      'High level of energy',
+      'Do not take spicy food'
+    ],
+  },
 ]
 
 function reduceToSingleDigit(num: number): number {
