@@ -40,7 +40,7 @@ interface Prediction {
   driver_number: number
   conductor_number: number
   personal_year: number
-  analysis: string
+  analysis: any
   lucky_color: string
   unlucky_color?: string
   lucky_number: number | string
@@ -973,11 +973,49 @@ export default function PredictionPage() {
             </div>
 
             <div className="p-6 md:p-8">
-              <div className="rounded-2xl border border-violet-100 bg-white/70 p-6 md:p-7 shadow-sm">
-                <p className="text-slate-700 leading-8 text-base md:text-lg whitespace-pre-line">
-                  {prediction.analysis}
-                </p>
-              </div>
+              {typeof prediction.analysis === 'object' && prediction.analysis !== null ? (
+                <div className="space-y-4">
+                  {prediction.analysis.positive && (
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-sm flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        <h4 className="font-bold text-slate-800">Positive Traits</h4>
+                      </div>
+                      <p className="text-slate-700 leading-relaxed pl-7 text-sm md:text-base">
+                        {prediction.analysis.positive}
+                      </p>
+                    </div>
+                  )}
+                  {prediction.analysis.negative && (
+                    <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-5 shadow-sm flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="w-5 h-5 text-rose-600" />
+                        <h4 className="font-bold text-slate-800">Challenges & Weaknesses</h4>
+                      </div>
+                      <p className="text-slate-700 leading-relaxed pl-7 text-sm md:text-base">
+                        {prediction.analysis.negative}
+                      </p>
+                    </div>
+                  )}
+                  {prediction.analysis.advice && (
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-blue-600" />
+                        <h4 className="font-bold text-slate-800">Advice & Remedies</h4>
+                      </div>
+                      <p className="text-slate-700 leading-relaxed pl-7 text-sm md:text-base">
+                        {prediction.analysis.advice}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-violet-100 bg-white/70 p-6 md:p-7 shadow-sm">
+                  <p className="text-slate-700 leading-8 text-base md:text-lg whitespace-pre-line">
+                    {String(prediction.analysis || "")}
+                  </p>
+                </div>
+              )}
 
               <div className="mt-6">
                 <Button
