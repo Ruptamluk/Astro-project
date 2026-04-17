@@ -1,7 +1,7 @@
 import random
 import smtplib
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as dt_date
 import os
 from typing import Optional
 import aiosmtplib
@@ -354,3 +354,135 @@ def get_zodiac_prediction(zodiac_sign: str) -> dict:
         "lucky_number": 11,
         "compatibility": "Universal compatibility"
     })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Mahadasha / Antardasha  (Vimsottari system mapped to numerology numbers)
+# 1=Sun 2=Moon 3=Jupiter 4=Rahu 5=Mercury 6=Venus 7=Ketu 8=Saturn 9=Mars
+# Total cycle = 120 years
+# ─────────────────────────────────────────────────────────────────────────────
+
+PLANET_NAMES: dict[int, str] = {
+    1: "Sun",
+    2: "Moon",
+    3: "Jupiter",
+    4: "Rahu",
+    5: "Mercury",
+    6: "Venus",
+    7: "Ketu",
+    8: "Saturn",
+    9: "Mars",
+}
+
+# Total years for each Mahadasha lord (sums to 120)
+MAHADASHA_YEARS: dict[int, int] = {
+    1: 6,    # Sun
+    2: 10,   # Moon
+    3: 16,   # Jupiter
+    4: 18,   # Rahu
+    5: 17,   # Mercury
+    6: 20,   # Venus
+    7: 7,    # Ketu
+    8: 19,   # Saturn
+    9: 7,    # Mars
+}
+
+CYCLE_ORDER: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+def calculate_mahadasha_antardasha(dob_str: str, driver_number: int, current_date=None) -> dict:
+    """
+    Calculate the current Mahadasha and Antardasha using the exact proprietary numerology calendar system:
+    - Cycle order starts with Driver number and ascends cyclically.
+    - Mahadasha `M` always lasts `M` astrological years.
+    - Inside Mahadasha `M`, Antardashas follow cyclical sequence starting from `M`.
+    - Antardasha `A` inside Mahadasha `M` lasts `M * A / 45` years (`M * A * 8` days).
+    - Calculations rely on exactly 360 days per year and 30 days per month arithmetic.
+    """
+    import datetime
+
+    # Parse DOB
+    try:
+        y_dob, m_dob, d_dob = map(int, dob_str.split('-'))
+    except ValueError:
+        return {}
+        
+    if current_date is None:
+        current_date_obj = datetime.datetime.now()
+        current_y, current_m, current_d = current_date_obj.year, current_date_obj.month, current_date_obj.day
+    else:
+        current_y, current_m, current_d = current_date.year, current_date.month, current_date.day
+
+    # Helpers for absolute 360-day astrological calendar conversion
+    def date_to_abs(Y, M, D):
+        return Y * 360 + (M - 1) * 30 + (D - 1)
+        
+    def abs_to_date(absolute_days):
+        Y = absolute_days // 360
+        rem = absolute_days % 360
+        M = (rem // 30) + 1
+        D = (rem % 30) + 1
+        return f"{Y:04d}-{M:02d}-{D:02d}"
+
+    abs_dob = date_to_abs(y_dob, m_dob, d_dob)
+    abs_now = date_to_abs(current_y, current_m, current_d)
+
+    # Cycle of Mahadashas starts with the driver number
+    cycle_order = [((driver_number - 1 + i) % 9) + 1 for i in range(9)]
+    
+    current_abs = abs_dob
+    
+    # 45 Astrological years = 16200 days per full mega-cycle
+    # Fast forward into the current 45-year block
+    while abs_now >= current_abs + 16200:
+        current_abs += 16200
+
+    planets = {
+        1: "Sun", 2: "Moon", 3: "Jupiter", 4: "Rahu", 5: "Mercury",
+        6: "Venus", 7: "Ketu", 8: "Saturn", 9: "Mars"
+    }
+
+    # Determine Mahadasha
+    for m in cycle_order:
+        mah_days = m * 360  # M years duration
+        new_abs = current_abs + mah_days
+        
+        if current_abs <= abs_now < new_abs:
+            maha_num = m
+            maha_start_abs = current_abs
+            maha_end_abs = new_abs
+            
+            # Determine Antardasha
+            antar_cycle = [((m - 1 + i) % 9) + 1 for i in range(9)]
+            
+            antar_abs = maha_start_abs
+            for a in antar_cycle:
+                # Duration of Antardasha = M * A * 8 days
+                antar_days = m * a * 8
+                new_antar_abs = antar_abs + antar_days
+                if antar_abs <= abs_now < new_antar_abs:
+                    return {
+                        "current_mahadasha_number": maha_num,
+                        "current_mahadasha_planet": planets.get(maha_num, ""),
+                        "mahadasha_start": abs_to_date(maha_start_abs),
+                        "mahadasha_end": abs_to_date(maha_end_abs),
+                        "current_antardasha_number": a,
+                        "current_antardasha_planet": planets.get(a, ""),
+                        "antardasha_start": abs_to_date(antar_abs),
+                        "antardasha_end": abs_to_date(new_antar_abs),
+                    }
+                antar_abs = new_antar_abs
+            break
+            
+        current_abs = new_abs
+        
+    # Beyond all cycles — return a best-effort fallback
+    return {
+        "current_mahadasha_number": driver_number,
+        "current_mahadasha_planet": planets.get(driver_number, ""),
+        "current_antardasha_number": driver_number,
+        "current_antardasha_planet": planets.get(driver_number, ""),
+        "mahadasha_start": dob_str,
+        "mahadasha_end": dob_str,
+        "antardasha_start": dob_str,
+        "antardasha_end": dob_str,
+    }

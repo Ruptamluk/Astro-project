@@ -10,6 +10,7 @@ from utils import (
     calculate_personal_year,
     calculate_strength_number,
     build_dob_chart,
+    calculate_mahadasha_antardasha,
 )
 from datetime import datetime
 from bson import ObjectId
@@ -259,10 +260,14 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             "remedy",
             "No gochor remedy available yet."
         )
+
         mahadasha_prediction = ""
         mahadasha_remedy = ""
         antardasha_prediction = ""
         antardasha_remedy = ""
+
+        # Live Mahadasha / Antardasha calculation (on-the-fly based on today's date)
+        dasha_info = calculate_mahadasha_antardasha(request_data.dob, driver_number)
 
         await users_collection.update_one(
             {"_id": user_obj_id},
@@ -313,7 +318,16 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             "mahadasha_remedy": mahadasha_remedy,
             "antardasha_prediction": antardasha_prediction,
             "antardasha_remedy": antardasha_remedy,
-            "dob_chart": dob_chart
+            "dob_chart": dob_chart,
+            # Live dasha fields
+            "current_mahadasha_number": dasha_info.get("current_mahadasha_number"),
+            "current_mahadasha_planet": dasha_info.get("current_mahadasha_planet", ""),
+            "current_antardasha_number": dasha_info.get("current_antardasha_number"),
+            "current_antardasha_planet": dasha_info.get("current_antardasha_planet", ""),
+            "mahadasha_start": dasha_info.get("mahadasha_start", ""),
+            "mahadasha_end": dasha_info.get("mahadasha_end", ""),
+            "antardasha_start": dasha_info.get("antardasha_start", ""),
+            "antardasha_end": dasha_info.get("antardasha_end", ""),
         }
 
     except HTTPException:
@@ -354,6 +368,11 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
         if not unlucky_color and driver_number:
             unlucky_color = get_unlucky_color(driver_number)
 
+        # Always recalculate Dashas on-the-fly so they reflect today's date
+        dasha_info: dict = {}
+        if user.get("dob") and driver_number:
+            dasha_info = calculate_mahadasha_antardasha(user.get("dob"), driver_number)
+
         return {
             "dob": user.get("dob"),
             "driver_number": driver_number,
@@ -379,7 +398,16 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
             "mahadasha_remedy": user.get("mahadasha_remedy", ""),
             "antardasha_prediction": user.get("antardasha_prediction", ""),
             "antardasha_remedy": user.get("antardasha_remedy", ""),
-            "dob_chart": dob_chart
+            "dob_chart": dob_chart,
+            # Live dasha fields — recalculated on every request
+            "current_mahadasha_number": dasha_info.get("current_mahadasha_number"),
+            "current_mahadasha_planet": dasha_info.get("current_mahadasha_planet", ""),
+            "current_antardasha_number": dasha_info.get("current_antardasha_number"),
+            "current_antardasha_planet": dasha_info.get("current_antardasha_planet", ""),
+            "mahadasha_start": dasha_info.get("mahadasha_start", ""),
+            "mahadasha_end": dasha_info.get("mahadasha_end", ""),
+            "antardasha_start": dasha_info.get("antardasha_start", ""),
+            "antardasha_end": dasha_info.get("antardasha_end", ""),
         }
 
     except HTTPException:

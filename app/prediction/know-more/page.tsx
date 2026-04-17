@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   ArrowLeft,
+  CalendarDays,
   Clock3,
   MoonStar,
   Orbit,
@@ -45,9 +46,18 @@ interface Prediction {
   mahadasha_remedy?: string
   antardasha_prediction?: string
   antardasha_remedy?: string
+  // Live-calculated dasha fields
+  current_mahadasha_number?: number
+  current_mahadasha_planet?: string
+  current_antardasha_number?: number
+  current_antardasha_planet?: string
+  mahadasha_start?: string
+  mahadasha_end?: string
+  antardasha_start?: string
+  antardasha_end?: string
 }
 
-type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog'
+type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -772,7 +782,30 @@ function isInsightKey(value: string | null): value is InsightKey {
     value === 'mahadasha' ||
     value === 'antardasha' ||
     value === 'dobChart' ||
-    value === 'yog'
+    value === 'yog' ||
+    value === 'dashas'
+}
+
+// ── Dasha helpers ──────────────────────────────────────────────────────────
+
+const PLANET_DESCRIPTIONS: Record<number, string> = {
+  1: 'Sun brings authority, vitality, career growth, and government-related opportunities during this period.',
+  2: 'Moon heightens emotions, intuition, mental sensitivity, and matters related to home and family.',
+  3: 'Jupiter brings wisdom, expansion, spiritual growth, higher education, and abundance.',
+  4: 'Rahu amplifies desires, foreign influences, technology gains, and karmic lessons to learn.',
+  5: 'Mercury sharpens intellect, communication skills, business acumen, and analytical ability.',
+  6: 'Venus brings love, luxury, comfort, artistic pursuits, and harmony in relationships.',
+  7: 'Ketu promotes spiritual detachment, inner wisdom, mystical insights, and past-life themes.',
+  8: 'Saturn enforces discipline, karmic accountability, hard work, and long-term rewards.',
+  9: 'Mars energises action, courage, ambition, physical strength, and competitive spirit.',
+}
+
+function calculateProgress(startDate: string, endDate: string): number {
+  const start = new Date(startDate).getTime()
+  const end   = new Date(endDate).getTime()
+  const now   = Date.now()
+  if (end <= start) return 0
+  return Math.min(Math.max(((now - start) / (end - start)) * 100, 0), 100)
 }
 
 export default function KnowMorePage() {
@@ -992,6 +1025,15 @@ export default function KnowMorePage() {
       prediction: '',
       remedy: '',
     },
+    {
+      key: 'dashas' as InsightKey,
+      title: 'Dashas',
+      subtitle: 'Current planetary periods',
+      icon: CalendarDays,
+      value: null,
+      prediction: '',
+      remedy: '',
+    },
   ]
 
   return (
@@ -1067,7 +1109,138 @@ export default function KnowMorePage() {
 
               {insightCards.map((item) => (
                 <TabsContent key={item.key} value={item.key}>
-                  {item.key === 'yog' ? (
+                  {item.key === 'dashas' ? (
+                    <div className="space-y-6">
+                      {prediction.current_mahadasha_number ? (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* ── Current Mahadasha ── */}
+                            <Card className="rounded-[28px] border-violet-100 overflow-hidden shadow-sm bg-white/90">
+                              <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-purple-50 px-5 py-4 flex items-center gap-2">
+                                <MoonStar className="w-5 h-5 text-violet-600" />
+                                <h2 className="text-lg font-bold text-slate-800">Current Mahadasha</h2>
+                              </div>
+                              <div className="p-6 space-y-4">
+                                <div className="flex items-start gap-4">
+                                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg shrink-0">
+                                    <span className="text-3xl font-bold text-white">{prediction.current_mahadasha_number}</span>
+                                  </div>
+                                  <div>
+                                    <p className="text-2xl font-bold text-slate-800">{prediction.current_mahadasha_planet}</p>
+                                    <p className="text-sm font-medium text-violet-600 mt-0.5">Major Planetary Period</p>
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5 text-sm text-slate-600">
+                                  <div className="flex items-center gap-2">
+                                    <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <span>From: <span className="font-semibold text-slate-800">{prediction.mahadasha_start}</span></span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <span>Until: <span className="font-semibold text-slate-800">{prediction.mahadasha_end}</span></span>
+                                  </div>
+                                </div>
+                                {prediction.mahadasha_start && prediction.mahadasha_end && (
+                                  <div>
+                                    <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+                                      <span>Period Progress</span>
+                                      <span className="font-semibold text-violet-700">
+                                        {Math.round(calculateProgress(prediction.mahadasha_start, prediction.mahadasha_end))}%
+                                      </span>
+                                    </div>
+                                    <div className="h-2.5 rounded-full bg-violet-100 overflow-hidden">
+                                      <div
+                                        className="h-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 transition-all duration-500"
+                                        style={{ width: `${calculateProgress(prediction.mahadasha_start, prediction.mahadasha_end)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="rounded-xl bg-violet-50 border border-violet-100 p-3">
+                                  <p className="text-sm leading-6 text-violet-800">
+                                    {PLANET_DESCRIPTIONS[prediction.current_mahadasha_number] ?? ''}
+                                  </p>
+                                </div>
+                              </div>
+                            </Card>
+
+                            {/* ── Current Antardasha ── */}
+                            <Card className="rounded-[28px] border-fuchsia-100 overflow-hidden shadow-sm bg-white/90">
+                              <div className="border-b border-fuchsia-100 bg-gradient-to-r from-fuchsia-50 to-pink-50 px-5 py-4 flex items-center gap-2">
+                                <Star className="w-5 h-5 text-fuchsia-600" />
+                                <h2 className="text-lg font-bold text-slate-800">Current Antardasha</h2>
+                              </div>
+                              <div className="p-6 space-y-4">
+                                <div className="flex items-start gap-4">
+                                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-700 flex items-center justify-center shadow-lg shrink-0">
+                                    <span className="text-3xl font-bold text-white">{prediction.current_antardasha_number}</span>
+                                  </div>
+                                  <div>
+                                    <p className="text-2xl font-bold text-slate-800">{prediction.current_antardasha_planet}</p>
+                                    <p className="text-sm font-medium text-fuchsia-600 mt-0.5">Sub Planetary Period</p>
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5 text-sm text-slate-600">
+                                  <div className="flex items-center gap-2">
+                                    <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <span>From: <span className="font-semibold text-slate-800">{prediction.antardasha_start}</span></span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <span>Until: <span className="font-semibold text-slate-800">{prediction.antardasha_end}</span></span>
+                                  </div>
+                                </div>
+                                {prediction.antardasha_start && prediction.antardasha_end && (
+                                  <div>
+                                    <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+                                      <span>Period Progress</span>
+                                      <span className="font-semibold text-fuchsia-700">
+                                        {Math.round(calculateProgress(prediction.antardasha_start, prediction.antardasha_end))}%
+                                      </span>
+                                    </div>
+                                    <div className="h-2.5 rounded-full bg-fuchsia-100 overflow-hidden">
+                                      <div
+                                        className="h-2.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-600 transition-all duration-500"
+                                        style={{ width: `${calculateProgress(prediction.antardasha_start, prediction.antardasha_end)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="rounded-xl bg-fuchsia-50 border border-fuchsia-100 p-3">
+                                  <p className="text-sm leading-6 text-fuchsia-800">
+                                    {PLANET_DESCRIPTIONS[prediction.current_antardasha_number ?? 0] ?? ''}
+                                  </p>
+                                </div>
+                              </div>
+                            </Card>
+                          </div>
+
+                          {/* Combined influence summary */}
+                          <Card className="rounded-[28px] border-slate-100 bg-gradient-to-br from-slate-50 to-violet-50/40 p-6 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1.5 h-6 rounded-full bg-violet-500" />
+                              <h2 className="text-lg font-bold text-slate-800">Combined Period Influence</h2>
+                            </div>
+                            <p className="text-base leading-8 text-slate-700">
+                              You are currently in the{' '}
+                              <span className="font-bold text-violet-700">{prediction.current_mahadasha_planet} Mahadasha</span>
+                              {' '}(Number {prediction.current_mahadasha_number}) with{' '}
+                              <span className="font-bold text-fuchsia-700">{prediction.current_antardasha_planet} Antardasha</span>
+                              {' '}(Number {prediction.current_antardasha_number}). The combined energies of{' '}
+                              <strong>{prediction.current_mahadasha_planet}</strong> and{' '}
+                              <strong>{prediction.current_antardasha_planet}</strong> are actively shaping your life experiences.
+                              Align your actions with these planetary vibrations for the best results.
+                            </p>
+                          </Card>
+                        </>
+                      ) : (
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-8 text-center">
+                          <MoonStar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                          <p className="text-slate-500">Dasha information is being computed. Please re-submit your date of birth to activate this feature.</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : item.key === 'yog' ? (
                     <div className="space-y-6">
                       {activeYogCount === 0 ? (
                         <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-8 text-center">
