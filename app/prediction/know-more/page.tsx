@@ -55,12 +55,19 @@ interface Prediction {
   mahadasha_end?: string
   antardasha_start?: string
   antardasha_end?: string
+  dasha_analysis?: string
 }
 
 type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+
+const DOB_CHART_LAYOUT = [
+  ['3', '1', '9'],
+  ['6', '7', '5'],
+  ['2', '8', '4'],
+]
 
 const missingNumberAnalysis: Record<number, string> = {
   1: 'Weak expression power, do not have proper goal, do not maintain relationship.',
@@ -990,24 +997,6 @@ export default function KnowMorePage() {
       remedy: prediction.gochor_remedy || 'No gochor remedy available yet.',
     },
     {
-      key: 'mahadasha' as InsightKey,
-      title: 'Mahadasha',
-      subtitle: 'Major planetary period',
-      icon: MoonStar,
-      value: null,
-      prediction: prediction.mahadasha_prediction || 'No mahadasha prediction available yet.',
-      remedy: prediction.mahadasha_remedy || 'No mahadasha remedy available yet.',
-    },
-    {
-      key: 'antardasha' as InsightKey,
-      title: 'Antardasha',
-      subtitle: 'Sub-period insight',
-      icon: Clock3,
-      value: null,
-      prediction: prediction.antardasha_prediction || 'No antardasha prediction available yet.',
-      remedy: prediction.antardasha_remedy || 'No antardasha remedy available yet.',
-    },
-    {
       key: 'dobChart' as InsightKey,
       title: 'Vedic DOB Chart',
       subtitle: 'DOB digit matrix',
@@ -1083,19 +1072,21 @@ export default function KnowMorePage() {
                       <TabsTrigger
                         key={item.key}
                         value={item.key}
-                        className="h-auto min-h-[148px] min-w-[220px] items-start justify-start rounded-[24px] border border-violet-100 bg-white/90 px-5 py-5 text-left text-slate-700 shadow-sm data-[state=active]:border-violet-300 data-[state=active]:bg-white data-[state=active]:text-violet-700 data-[state=active]:shadow-[0_18px_40px_-26px_rgba(124,58,237,0.7)]"
+                        className="h-auto min-h-[148px] min-w-[220px] shrink-0 flex-none items-start justify-start rounded-[24px] border border-violet-100 bg-white/90 px-5 py-5 text-left text-slate-700 shadow-sm data-[state=active]:border-violet-300 data-[state=active]:bg-white data-[state=active]:text-violet-700 data-[state=active]:shadow-[0_18px_40px_-26px_rgba(124,58,237,0.7)]"
                       >
                         <div className="flex w-full flex-col gap-4">
                           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100">
                             <Icon className="w-5 h-5 text-violet-600" />
                           </div>
                           <div>
-                            <p className="text-lg font-bold leading-6 whitespace-normal">{item.title}</p>
-                            {item.value !== null && (
-                              <p className="mt-3 text-4xl font-bold leading-none text-slate-600">
-                                {item.value}
-                              </p>
-                            )}
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-lg font-bold leading-6 whitespace-normal">{item.title}</p>
+                              {item.value !== null && (
+                                <span className="inline-flex min-w-9 items-center justify-center rounded-full bg-violet-50 px-3 py-1 text-sm font-bold leading-none text-violet-700 border border-violet-100">
+                                  {item.value}
+                                </span>
+                              )}
+                            </div>
                             <p className="mt-3 text-sm leading-6 whitespace-normal text-slate-500">
                               {item.subtitle}
                             </p>
@@ -1232,6 +1223,33 @@ export default function KnowMorePage() {
                               Align your actions with these planetary vibrations for the best results.
                             </p>
                           </Card>
+
+                          <Card className="rounded-[28px] border-amber-100 overflow-hidden shadow-sm bg-white/90">
+                            <div className="border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 flex items-center gap-2">
+                              <Sparkles className="w-5 h-5 text-amber-600" />
+                              <h2 className="text-lg font-bold text-slate-800">Dasha Analysis</h2>
+                            </div>
+                            <div className="p-6 space-y-4">
+                              <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex items-center rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 border border-violet-100">
+                                  Mahadasha {prediction.current_mahadasha_number} | {prediction.current_mahadasha_planet}
+                                </span>
+                                <span className="inline-flex items-center rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 border border-fuchsia-100">
+                                  Antardasha {prediction.current_antardasha_number} | {prediction.current_antardasha_planet}
+                                </span>
+                              </div>
+
+                              {prediction.dasha_analysis ? (
+                                <p className="text-base leading-8 text-slate-700">
+                                  {prediction.dasha_analysis}
+                                </p>
+                              ) : (
+                                <p className="text-sm leading-7 text-slate-500">
+                                  No dasha analysis is available yet for this Mahadasha and Antardasha combination.
+                                </p>
+                              )}
+                            </div>
+                          </Card>
                         </>
                       ) : (
                         <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-8 text-center">
@@ -1292,19 +1310,62 @@ export default function KnowMorePage() {
                   ) : item.key === 'dobChart' ? (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-6">
-                        <Card className="rounded-[28px] border-violet-100 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.10),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(99,102,241,0.10),_transparent_28%),linear-gradient(135deg,_rgba(245,243,255,0.95),_rgba(255,255,255,1))] p-5 md:p-7 shadow-inner">
-                          <div className="grid grid-cols-3 gap-4 md:gap-5 max-w-[640px] mx-auto">
+                        <Card className="rounded-[28px] border-violet-100 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.12),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(99,102,241,0.10),_transparent_24%),linear-gradient(135deg,_rgba(245,243,255,0.96),_rgba(255,255,255,1))] p-4 md:p-5 shadow-inner">
+                          <div className="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-500">Vedic Grid</p>
+                              <h2 className="mt-1 text-lg font-bold text-slate-800">DOB Energy Matrix</h2>
+                            </div>
+                            <div className="rounded-2xl border border-violet-100 bg-white/80 px-3 py-2 text-right shadow-sm">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Active Cells</p>
+                              <p className="mt-1 text-lg font-bold text-violet-700">
+                                {presentDobNumbers.size}/9
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-3 md:gap-4 max-w-[520px] mx-auto">
                             {dobChart.flatMap((row, rowIndex) =>
                               row.map((cell, colIndex) => (
                                 <div
                                   key={`${rowIndex}-${colIndex}`}
-                                  className="relative aspect-square overflow-hidden rounded-[26px] border border-violet-200/80 bg-white shadow-[0_18px_38px_-24px_rgba(124,58,237,0.45)] flex items-center justify-center"
+                                  className={`group relative aspect-square overflow-hidden rounded-[24px] border shadow-[0_16px_34px_-24px_rgba(124,58,237,0.45)] transition-all ${
+                                    cell
+                                      ? 'border-violet-200/80 bg-white'
+                                      : 'border-dashed border-violet-100 bg-white/60'
+                                  }`}
                                 >
-                                  <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400" />
-                                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(196,181,253,0.16),_transparent_36%)] pointer-events-none" />
-                                  <span className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-[0.12em] text-violet-700 leading-none">
-                                    {cell || ''}
-                                  </span>
+                                  <div className={`absolute inset-x-0 top-0 h-1.5 ${
+                                    cell
+                                      ? 'bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400'
+                                      : 'bg-gradient-to-r from-violet-100 via-fuchsia-100 to-indigo-100'
+                                  }`} />
+                                  <div className="absolute left-3 top-3 inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-violet-100 bg-violet-50 px-2 text-xs font-bold text-violet-500">
+                                    {DOB_CHART_LAYOUT[rowIndex][colIndex]}
+                                  </div>
+                                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(196,181,253,0.16),_transparent_40%)] pointer-events-none" />
+
+                                  <div className="flex h-full items-center justify-center p-4">
+                                    {cell ? (
+                                      <div className="flex max-w-full flex-wrap items-center justify-center gap-2">
+                                        {cell.split('').map((digit, digitIndex) => (
+                                          <span
+                                            key={`${rowIndex}-${colIndex}-${digitIndex}`}
+                                            className="inline-flex h-12 min-w-12 items-center justify-center rounded-2xl bg-violet-100 px-3 text-2xl font-bold leading-none text-violet-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] sm:h-14 sm:min-w-14 sm:text-3xl"
+                                          >
+                                            {digit}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center text-violet-200">
+                                        <div className="h-10 w-10 rounded-full border border-dashed border-violet-200/80" />
+                                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                          Missing
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               ))
                             )}
@@ -1314,12 +1375,20 @@ export default function KnowMorePage() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-4">
                           <Card className="rounded-[24px] border-violet-100 bg-white/90 p-5 shadow-sm">
                             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Missing</p>
-                            <p className="mt-3 text-3xl font-bold text-violet-700">{missingDobNumbers.length}</p>
+                            <p className="mt-3 text-3xl font-bold text-violet-700">
+                              {missingDobNumbers.length > 0
+                                ? `${missingDobNumbers.join(', ')} (${missingDobNumbers.length})`
+                                : 'None (0)'}
+                            </p>
                             <p className="mt-2 text-sm leading-6 text-slate-500">Numbers absent in the chart</p>
                           </Card>
                           <Card className="rounded-[24px] border-rose-100 bg-white/90 p-5 shadow-sm">
                             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Repeated</p>
-                            <p className="mt-3 text-3xl font-bold text-rose-600">{repeatedNegativeDobNumbers.length}</p>
+                            <p className="mt-3 text-3xl font-bold text-rose-600">
+                              {repeatedNegativeDobNumbers.length > 0
+                                ? `${repeatedNegativeDobNumbers.join(', ')} (${repeatedNegativeDobNumbers.length})`
+                                : 'None (0)'}
+                            </p>
                             <p className="mt-2 text-sm leading-6 text-slate-500">Numbers repeated more than twice</p>
                           </Card>
                           <Card className="rounded-[24px] border-slate-100 bg-white/90 p-5 shadow-sm">

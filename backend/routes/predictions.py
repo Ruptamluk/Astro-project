@@ -88,6 +88,27 @@ async def get_db(request: Request):
     return request.app.db
 
 
+async def get_dasha_analysis(
+    db,
+    mahadasha_number: int | None,
+    antardasha_number: int | None,
+) -> str:
+    if not mahadasha_number or not antardasha_number:
+        return ""
+
+    collection = db["dasha_analysis"]
+    doc = await collection.find_one(
+        {
+            "mahadasha_number": mahadasha_number,
+            "antardasha_number": antardasha_number,
+        }
+    )
+    if not doc:
+        return ""
+
+    return str(doc.get("analysis", "")).strip()
+
+
 def get_lucky_numbers(driver: int, conductor: int):
     """
     Lucky number is the ordered intersection of driver's and conductor's friend lists.
@@ -268,6 +289,11 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
 
         # Live Mahadasha / Antardasha calculation (on-the-fly based on today's date)
         dasha_info = calculate_mahadasha_antardasha(request_data.dob, driver_number)
+        dasha_analysis = await get_dasha_analysis(
+            db,
+            dasha_info.get("current_mahadasha_number"),
+            dasha_info.get("current_antardasha_number"),
+        )
 
         await users_collection.update_one(
             {"_id": user_obj_id},
@@ -328,6 +354,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             "mahadasha_end": dasha_info.get("mahadasha_end", ""),
             "antardasha_start": dasha_info.get("antardasha_start", ""),
             "antardasha_end": dasha_info.get("antardasha_end", ""),
+            "dasha_analysis": dasha_analysis,
         }
 
     except HTTPException:
@@ -372,6 +399,11 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
         dasha_info: dict = {}
         if user.get("dob") and driver_number:
             dasha_info = calculate_mahadasha_antardasha(user.get("dob"), driver_number)
+        dasha_analysis = await get_dasha_analysis(
+            db,
+            dasha_info.get("current_mahadasha_number"),
+            dasha_info.get("current_antardasha_number"),
+        )
 
         return {
             "dob": user.get("dob"),
@@ -408,6 +440,7 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
             "mahadasha_end": dasha_info.get("mahadasha_end", ""),
             "antardasha_start": dasha_info.get("antardasha_start", ""),
             "antardasha_end": dasha_info.get("antardasha_end", ""),
+            "dasha_analysis": dasha_analysis,
         }
 
     except HTTPException:
