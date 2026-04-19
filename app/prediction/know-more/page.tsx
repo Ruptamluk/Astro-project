@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -817,20 +817,16 @@ function calculateProgress(startDate: string, endDate: string): number {
 
 export default function KnowMorePage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [loading, setLoading] = useState(true)
-  const initialTab = searchParams.get('tab')
-  const [activeInsight, setActiveInsight] = useState<InsightKey>(
-    isInsightKey(initialTab) ? initialTab : 'strength'
-  )
+  const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
 
   useEffect(() => {
-    const nextTab = searchParams.get('tab')
+    const nextTab = new URLSearchParams(window.location.search).get('tab')
     if (isInsightKey(nextTab)) {
       setActiveInsight(nextTab)
     }
-  }, [searchParams])
+  }, [])
 
   useEffect(() => {
     let isMounted = true
