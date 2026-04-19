@@ -103,9 +103,9 @@ export default function AuthPage() {
         <div className="absolute bottom-20 left-20 h-64 w-64 rounded-full bg-secondary/10 blur-3xl sm:h-96 sm:w-96" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center justify-center">
-        <div className="w-full">
-          <div className="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(380px,460px)] lg:items-stretch lg:gap-12">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full items-center justify-center">
+        <div className="mx-auto w-fit max-w-full">
+          <div className="grid items-center gap-8 lg:grid-cols-[300px_minmax(380px,460px)] lg:items-stretch lg:gap-12">
             <div className="flex justify-center lg:justify-end lg:self-stretch">
               <div className="relative w-full max-w-[180px] sm:max-w-[220px] md:max-w-[260px] lg:h-full lg:max-w-[300px]">
                 <div className="absolute inset-0 rounded-[2rem] bg-primary/15 blur-3xl" />
