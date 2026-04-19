@@ -248,7 +248,11 @@ async def send_otp_via_sms(phone: str, otp: str) -> bool:
         print(f"[Demo Mode] OTP for {phone}: {otp}")
         return True
 
-def build_dob_chart(dob: str, driver_number: int) -> list[list[str]]:
+def build_dob_chart(
+    dob: str,
+    driver_number: int,
+    conductor_number: int,
+) -> list[list[str]]:
     digits = [ch for ch in dob if ch.isdigit() and ch != "0"]
 
     try:
@@ -265,6 +269,9 @@ def build_dob_chart(dob: str, driver_number: int) -> list[list[str]]:
 
     if day is not None and day >= 10 and 1 <= driver_number <= 9:
         counts[str(driver_number)] = counts.get(str(driver_number), 0) + 1
+
+    if 1 <= conductor_number <= 9:
+        counts[str(conductor_number)] = counts.get(str(conductor_number), 0) + 1
 
     return [
         [num * counts.get(num, 0) for num in row]

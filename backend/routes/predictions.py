@@ -151,38 +151,32 @@ def get_unlucky_color(driver: int):
     return UNLUCKY_COLOR_MAP.get(str(driver), "")
 
 
-def calculate_gochor(dob: str, current_date: datetime | None = None) -> int:
+def calculate_gochor(
+    dob: str,
+    driver_number: int,
+    current_date: datetime | None = None,
+) -> int:
     """
     Running age = current year - birth year
 
     Rule:
     - remainder = running_age % 9
-    - build series from remainder: e.g. 6,7,8,9,1,2,3,4,5
-    - gochor is the last element of that series
+    - if remainder == 0, treat it as 9
+    - count forward from driver number to that remainder in a circular 1..9 series
+    - the count itself is the gochor number
 
-    Compact form:
-    - if remainder == 0 => gochor = 9
-    - else gochor = remainder - 1
-    - if that becomes 0 => gochor = 9
-
-    Examples:
-    1993 with current year 2026 => age 33 => 33 % 9 = 6 => gochor = 5
-    age 32 => 32 % 9 = 5 => gochor = 4
-    age 27 => 27 % 9 = 0 => gochor = 9
+    Example:
+    - DOB 1982-10-01 with current year 2026 => age 44 => 44 % 9 = 8
+    - driver = 1, so counting 1..8 gives gochor = 8
     """
     try:
-        if current_date is None:
-            current_date = datetime.now()
+        current_year = datetime.now().year
 
         birth_year = int(dob.split("-")[0])
-        running_age = current_date.year - birth_year
+        running_age = current_year - birth_year
         remainder = running_age % 9
-
-        if remainder == 0:
-            return 9
-
-        gochor = remainder - 1
-        return 9 if gochor == 0 else gochor
+        target_number = 9 if remainder == 0 else remainder
+        return ((target_number - driver_number) % 9) + 1
 
     except Exception:
         return 9
@@ -235,8 +229,12 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
         conductor_number = calculate_conductor_number(request_data.dob)
         personal_year = calculate_personal_year(request_data.dob)
         strength_number = calculate_strength_number(request_data.dob, driver_number)
-        gochor_number = calculate_gochor(request_data.dob)
-        dob_chart = build_dob_chart(request_data.dob, driver_number)
+        gochor_number = calculate_gochor(request_data.dob, driver_number)
+        dob_chart = build_dob_chart(
+            request_data.dob,
+            driver_number,
+            conductor_number,
+        )
 
         lucky_number = get_lucky_numbers(driver_number, conductor_number)
         lucky_color = get_lucky_color(driver_number)
@@ -387,7 +385,11 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
                 detail="User has not submitted DOB yet"
             )
 
-        dob_chart = user.get("dob_chart") or build_dob_chart(user.get("dob"), user.get("driver_number") or 0)
+        dob_chart = user.get("dob_chart") or build_dob_chart(
+            user.get("dob"),
+            user.get("driver_number") or 0,
+            user.get("conductor_number") or 0,
+        )
 
         driver_number = user.get("driver_number")
         unlucky_color = user.get("unlucky_color")
