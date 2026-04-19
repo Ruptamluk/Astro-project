@@ -760,6 +760,51 @@ const yogDefinitions: YogDefinition[] = [
       'Do not take spicy food'
     ],
   },
+  {
+    numbers: [3, 2],
+    missingNumbers: [6],
+    name: 'Darsonic Mindset Yog',
+    icon: Brain,
+    gradient: 'from-blue-400 to-indigo-500',
+    borderColor: 'border-blue-200',
+    traits: [
+      'Darsonic mindset',
+      'Emotional nature',
+      'Wins over enemies',
+      'Makes relationships from the heart',
+      'Ego problem',
+    ],
+  },
+  {
+    numbers: [1, 8],
+    missingNumbers: [7],
+    name: 'Health Instability Yog',
+    icon: XCircle,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Health issue',
+      'Financial instability',
+      'Sometimes arguments with father',
+      'Ups and down in career',
+      'Should not do wrong with government bodies',
+    ],
+  },
+  {
+    numbers: [4, 9],
+    missingNumbers: [5],
+    name: 'Strong Willpower Yog',
+    icon: Zap,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'Strong willpower',
+      'Dominating in nature',
+      'Needs to maintain discipline',
+      'Takes unwanted responsibility',
+      'Sometimes speaks too much',
+    ],
+  },
 ]
 
 function reduceToSingleDigit(num: number): number {
@@ -1034,7 +1079,7 @@ export default function KnowMorePage() {
                   Insight Studio
                 </div>
                 <h1 className="mt-3 text-3xl md:text-4xl font-bold text-white">
-                  Deep Astrology Insights
+                  Deep Numerology Insights
                 </h1>
                 <p className="mt-2 text-sm md:text-base leading-7 text-violet-100">
                   Explore your Strength Number, Gochor, Mahadasha, Antardasha, Vedic DOB Chart, and YOG Analysis in a full-screen tab view.
@@ -1256,13 +1301,14 @@ export default function KnowMorePage() {
                     </div>
                   ) : item.key === 'yog' ? (
                     <div className="space-y-6">
-                      {activeYogCount === 0 ? (
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-8 text-center">
-                          <p className="text-slate-500">No active yog combinations found in your DOB chart.</p>
-                        </div>
-                      ) : (
+                      <div className="rounded-2xl border border-violet-100 bg-white/75 px-4 py-4">
+                        <p className="text-sm text-slate-600">
+                          Showing <span className="font-semibold text-violet-700">{activeYogCount}</span> active yog{activeYogCount !== 1 ? 's' : ''} for this DOB.
+                        </p>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {yogResults.filter((y) => y.active).map((yog, index) => {
+                        {yogResults.filter((yog) => yog.active).map((yog, index) => {
                           const YogIcon = yog.icon
                           return (
                             <Card
@@ -1274,15 +1320,20 @@ export default function KnowMorePage() {
                                   <YogIcon className="w-5 h-5 text-white" />
                                 </div>
                                 <div className="flex-1">
-                                  <h3 className="font-bold text-base text-slate-800">
-                                    {yog.name}
-                                  </h3>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <h3 className="font-bold text-base text-slate-800">
+                                      {yog.name}
+                                    </h3>
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                      Active
+                                    </span>
+                                  </div>
                                   <div className="flex items-center gap-1.5 mt-0.5">
                                     <span className="text-xs font-mono text-slate-500">
                                       {yog.numbers.join(' \u2013 ')}
                                       {yog.missingNumbers && yog.missingNumbers.length > 0 && ` (${yog.missingNumbers.join(', ')} missing)`}
                                     </span>
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                   </div>
                                 </div>
                               </div>
@@ -1299,9 +1350,6 @@ export default function KnowMorePage() {
                           )
                         })}
                       </div>
-                      )}
-
-
                     </div>
                   ) : item.key === 'dobChart' ? (
                     <div className="space-y-6">

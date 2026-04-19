@@ -574,6 +574,51 @@ const yogDefinitions: YogDefinition[] = [
       'Family disturbance',
     ],
   },
+  {
+    numbers: [3, 2],
+    missingNumbers: [6],
+    name: 'Darsonic Mindset Yog',
+    icon: Brain,
+    gradient: 'from-blue-400 to-indigo-500',
+    borderColor: 'border-blue-200',
+    traits: [
+      'Darsonic mindset',
+      'Emotional nature',
+      'Wins over enemies',
+      'Makes relationships from the heart',
+      'Ego problem',
+    ],
+  },
+  {
+    numbers: [1, 8],
+    missingNumbers: [7],
+    name: 'Health Instability Yog',
+    icon: XCircle,
+    gradient: 'from-slate-400 to-gray-500',
+    borderColor: 'border-slate-200',
+    traits: [
+      'Health issue',
+      'Financial instability',
+      'Sometimes arguments with father',
+      'Ups and down in career',
+      'Should not do wrong with government bodies',
+    ],
+  },
+  {
+    numbers: [4, 9],
+    missingNumbers: [5],
+    name: 'Strong Willpower Yog',
+    icon: Zap,
+    gradient: 'from-amber-400 to-orange-500',
+    borderColor: 'border-amber-200',
+    traits: [
+      'Strong willpower',
+      'Dominating in nature',
+      'Needs to maintain discipline',
+      'Takes unwanted responsibility',
+      'Sometimes speaks too much',
+    ],
+  },
 ]
 
 function reduceToSingleDigit(num: number): number {
@@ -871,7 +916,7 @@ export default function PredictionPage() {
               </div>
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-indigo-700 bg-clip-text text-transparent mb-3">
-              Your Astrology Insights
+              Your Numerology Insights
             </h1>
             <p className="text-slate-600 text-sm md:text-base">
               Date of Birth: <span className="font-semibold text-slate-800">{prediction.dob}</span>
@@ -1222,56 +1267,55 @@ export default function PredictionPage() {
               {activeInsight === 'yog' ? (
                 <div className="p-5 md:p-7">
                   <div className="rounded-[30px] border border-violet-100 bg-[radial-gradient(circle_at_top,_rgba(217,70,239,0.08),_transparent_30%),linear-gradient(135deg,_rgba(245,243,255,0.94),_rgba(255,255,255,1))] p-5 md:p-7 shadow-inner">
-                    {activeYogCount === 0 ? (
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-8 text-center">
-                        <p className="text-slate-500">No active yog combinations found in your DOB chart.</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {yogResults.filter((y) => y.active).map((yog, index) => {
-                          const YogIcon = yog.icon
-                          return (
-                            <div
-                              key={index}
-                              className={`rounded-2xl border ${yog.borderColor} bg-white p-5 shadow-lg transition-all duration-300`}
-                            >
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${yog.gradient} shadow-md`}>
-                                  <YogIcon className="w-5 h-5 text-white" />
-                                </div>
-                                <div className="flex-1">
+                    <div className="mb-5 rounded-2xl border border-violet-100 bg-white/75 px-4 py-4">
+                      <p className="text-sm text-slate-600">
+                        Showing <span className="font-semibold text-violet-700">{activeYogCount}</span> active yog{activeYogCount !== 1 ? 's' : ''} for this DOB.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {yogResults.filter((yog) => yog.active).map((yog, index) => {
+                        const YogIcon = yog.icon
+                        return (
+                          <div
+                            key={index}
+                            className={`rounded-2xl border ${yog.borderColor} bg-white p-5 shadow-lg transition-all duration-300`}
+                          >
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${yog.gradient} shadow-md`}>
+                                <YogIcon className="w-5 h-5 text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-start justify-between gap-3">
                                   <h3 className="font-bold text-base text-slate-800">
                                     {yog.name}
                                   </h3>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className="text-xs font-mono text-slate-500">
-                                      {yog.numbers.join(' \u2013 ')}
-                                      {yog.missingNumbers && yog.missingNumbers.length > 0 && ` (${yog.missingNumbers.join(', ')} missing)`}
-                                    </span>
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                  </div>
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                    Active
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-xs font-mono text-slate-500">
+                                    {yog.numbers.join(' \u2013 ')}
+                                    {yog.missingNumbers && yog.missingNumbers.length > 0 && ` (${yog.missingNumbers.join(', ')} missing)`}
+                                  </span>
                                 </div>
                               </div>
-
-                              <ul className="space-y-1.5 mt-3 ml-1">
-                                {yog.traits.map((trait, tIndex) => (
-                                  <li key={tIndex} className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
-                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
-                                    {trait}
-                                  </li>
-                                ))}
-                              </ul>
                             </div>
-                          )
-                        })}
-                      </div>
-                    )}
 
-                    {/* <div className="mt-6 text-center">
-                      <p className="text-sm text-slate-500">
-                        <span className="font-semibold text-violet-700">{activeYogCount}</span> active yog{activeYogCount !== 1 ? 's' : ''} detected from your Vedic DOB Chart
-                      </p>
-                    </div> */}
+                            <ul className="space-y-1.5 mt-3 ml-1">
+                              {yog.traits.map((trait, tIndex) => (
+                                <li key={tIndex} className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
+                                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-violet-400 shrink-0" />
+                                  {trait}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : activeInsight === 'dobChart' ? (
