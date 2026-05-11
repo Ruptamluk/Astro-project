@@ -867,11 +867,21 @@ export default function KnowMorePage() {
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
 
   useEffect(() => {
-    const nextTab = new URLSearchParams(window.location.search).get('tab')
+    const params = new URLSearchParams(window.location.search)
+    const unlocked = params.get('unlocked')
+    const userId = localStorage.getItem('userId')
+
+    // Redirect to prediction page if accessed without a valid token unlock
+    if (!unlocked || !userId) {
+      router.replace('/prediction')
+      return
+    }
+
+    const nextTab = params.get('tab')
     if (isInsightKey(nextTab)) {
       setActiveInsight(nextTab)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     let isMounted = true

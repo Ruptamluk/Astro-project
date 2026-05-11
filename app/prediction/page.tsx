@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import PaymentModal from '@/components/PaymentModal'
 import { Card } from '@/components/ui/card'
 import {
   Dialog,
@@ -34,6 +35,7 @@ import {
   Sword,
   CheckCircle2,
   XCircle,
+  Coins,
 } from 'lucide-react'
 
 interface Prediction {
@@ -648,6 +650,9 @@ export default function PredictionPage() {
   const [loading, setLoading] = useState(true)
   const [openKnowMore, setOpenKnowMore] = useState(false)
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
+  const [tokenBalance, setTokenBalance] = useState<number>(0)
+  const [tokenLoading, setTokenLoading] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -716,6 +721,15 @@ export default function PredictionPage() {
 
     loadPrediction()
 
+    // Load token balance
+    const uid = localStorage.getItem('userId')
+    if (uid) {
+      fetch(`${API_BASE_URL}/api/payment/tokens/${uid}`)
+        .then((r) => r.json())
+        .then((data) => { if (isMounted) setTokenBalance(data.tokens ?? 0) })
+        .catch(() => {})
+    }
+
     return () => {
       isMounted = false
     }
@@ -725,6 +739,31 @@ export default function PredictionPage() {
     localStorage.removeItem('userId')
     localStorage.removeItem('prediction')
     router.push('/')
+  }
+
+  const handleKnowMore = async () => {
+    const userId = localStorage.getItem('userId')
+    if (!userId) return
+
+    if (tokenBalance > 0) {
+      setTokenLoading(true)
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/payment/use-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setTokenBalance(data.tokens)
+          router.push('/prediction/know-more?tab=strength&unlocked=true')
+        }
+      } finally {
+        setTokenLoading(false)
+      }
+    } else {
+      setShowPaymentModal(true)
+    }
   }
 
   if (loading) {
@@ -1062,14 +1101,19 @@ export default function PredictionPage() {
                 </div>
               )}
 
-              <div className="mt-6">
+              <div className="mt-6 flex items-center justify-between flex-wrap gap-3">
                 <Button
                   variant="link"
                   className="px-0 text-violet-700 text-base font-semibold hover:text-fuchsia-600"
-                  onClick={() => router.push('/prediction/know-more?tab=strength')}
+                  onClick={handleKnowMore}
+                  disabled={tokenLoading}
                 >
-                  Know more
+                  {tokenLoading ? 'Opening…' : 'Know more'}
                 </Button>
+                <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                  <Coins className="w-4 h-4 text-violet-500" />
+                  <span>{tokenBalance} token{tokenBalance !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
           </Card>
@@ -1471,6 +1515,33 @@ export default function PredictionPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {showPaymentModal && (
+        <PaymentModal
+          open={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          userId={localStorage.getItem('userId') || ''}
+          onTokensAdded={(newBalance) => {
+            setTokenBalance(newBalance)
+            setShowPaymentModal(false)
+            // Auto-navigate after token purchase
+            const userId = localStorage.getItem('userId')
+            if (userId) {
+              fetch(`${API_BASE_URL}/api/payment/use-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId }),
+              })
+                .then((r) => r.json())
+                .then((data) => {
+                  setTokenBalance(data.tokens)
+                  router.push('/prediction/know-more?tab=strength&unlocked=true')
+                })
+                .catch(() => {})
+            }
+          }}
+        />
+      )}
     </>
   )
 }

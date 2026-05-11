@@ -224,29 +224,8 @@ async def send_otp_via_email(email: str, otp: str) -> bool:
         return False
 
 async def send_otp_via_sms(phone: str, otp: str) -> bool:
-    """Send OTP via SMS using Twilio"""
-    try:
-        from twilio.rest import Client
-        
-        account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-        twilio_number = os.getenv("TWILIO_PHONE_NUMBER")
-        
-        if not account_sid or not auth_token:
-            print(f"[Demo Mode] OTP for {phone}: {otp}")
-            return True
-        
-        client = Client(account_sid, auth_token)
-        message = client.messages.create(
-            body=f"Your Astrology App OTP is: {otp}. Valid for 10 minutes.",
-            from_=twilio_number,
-            to=phone
-        )
-        return True
-    except Exception as e:
-        print(f"Error sending SMS: {e}")
-        print(f"[Demo Mode] OTP for {phone}: {otp}")
-        return True
+    """Stub — SMS not used; OTP is verified via email."""
+    return True
 
 def build_dob_chart(
     dob: str,
