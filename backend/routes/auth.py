@@ -212,7 +212,8 @@ async def get_user(user_id: str, db=Depends(get_db)):
             "email_verified": user.get("email_verified", False),
             "phone_verified": user.get("phone_verified", False),
             "dob": user.get("dob"),
-            "zodiac_sign": user.get("zodiac_sign")
+            "zodiac_sign": user.get("zodiac_sign"),
+            "know_more_access": user.get("know_more_access", False)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

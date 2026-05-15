@@ -34,6 +34,7 @@ import {
   Sword,
   CheckCircle2,
   XCircle,
+  Lock,
 } from 'lucide-react'
 
 interface Prediction {
@@ -146,7 +147,7 @@ interface YogDefinition {
   borderColor: string
   traits: string[]
 }
-
+// These definitions are based on traditional Vedic astrology principles and may need to be adjusted based on specific interpretations or regional variations.
 const yogDefinitions: YogDefinition[] = [
   {
     numbers: [3, 1, 9],
@@ -648,6 +649,7 @@ export default function PredictionPage() {
   const [loading, setLoading] = useState(true)
   const [openKnowMore, setOpenKnowMore] = useState(false)
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
+  const [knowMoreAccess, setKnowMoreAccess] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -659,6 +661,16 @@ export default function PredictionPage() {
         if (!userId) {
           router.push('/')
           return
+        }
+
+        try {
+          const userRes = await fetch(`${API_BASE_URL}/api/auth/user/${userId}`)
+          if (userRes.ok) {
+            const userData = await userRes.json()
+            if (isMounted) setKnowMoreAccess(userData.know_more_access === true)
+          }
+        } catch {
+          // access stays false on error
         }
 
         const storedPrediction = localStorage.getItem('prediction')
@@ -1063,13 +1075,27 @@ export default function PredictionPage() {
               )}
 
               <div className="mt-6">
-                <Button
-                  variant="link"
-                  className="px-0 text-violet-700 text-base font-semibold hover:text-fuchsia-600"
-                  onClick={() => router.push('/prediction/know-more?tab=strength')}
-                >
-                  Know more
-                </Button>
+                {knowMoreAccess ? (
+                  <Button
+                    variant="link"
+                    className="px-0 text-violet-700 text-base font-semibold hover:text-fuchsia-600"
+                    onClick={() => router.push('/prediction/know-more?tab=strength')}
+                  >
+                    Know more
+                  </Button>
+                ) : (
+                  <div className="flex flex-col items-start gap-1">
+                    <Button
+                      variant="link"
+                      className="px-0 text-slate-400 text-base font-semibold cursor-not-allowed pointer-events-none flex items-center gap-1.5"
+                      disabled
+                    >
+                      <Lock className="w-4 h-4" />
+                      Know more
+                    </Button>
+                    <span className="text-xs text-slate-400 pl-0.5">Coming Soon</span>
+                  </div>
+                )}
               </div>
             </div>
           </Card>

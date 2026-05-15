@@ -885,6 +885,23 @@ export default function KnowMorePage() {
           return
         }
 
+        try {
+          const userRes = await fetch(`${API_BASE_URL}/api/auth/user/${userId}`)
+          if (userRes.ok) {
+            const userData = await userRes.json()
+            if (!userData.know_more_access) {
+              router.push('/prediction')
+              return
+            }
+          } else {
+            router.push('/prediction')
+            return
+          }
+        } catch {
+          router.push('/prediction')
+          return
+        }
+
         const storedPrediction = localStorage.getItem('prediction')
 
         if (storedPrediction) {

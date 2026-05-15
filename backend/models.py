@@ -27,6 +27,7 @@ class User(BaseModel):
     phone: Optional[str] = None
     dob: Optional[str] = None
     zodiac_sign: Optional[str] = None
+    know_more_access: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:
