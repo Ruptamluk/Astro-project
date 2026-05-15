@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 export default function AuthPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('login')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,6 +24,7 @@ export default function AuthPage() {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
     setStep('request')
+    setName('')
     setEmail('')
     setPhone('')
     setOtp('')
@@ -32,22 +34,25 @@ export default function AuthPage() {
 
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (contactMethod === 'email' && !email) {
-      toast.error('Please enter email')
-      return
-    }
-    if (contactMethod === 'phone' && !phone) {
-      toast.error('Please enter phone number')
-      return
+    if (activeTab === 'register') {
+      if (!name) { toast.error('Please enter your name'); return }
+      if (!email) { toast.error('Please enter your email'); return }
+      if (!phone) { toast.error('Please enter your mobile number'); return }
+    } else {
+      if (contactMethod === 'email' && !email) { toast.error('Please enter email'); return }
+      if (contactMethod === 'phone' && !phone) { toast.error('Please enter phone number'); return }
     }
 
     setLoading(true)
     try {
       const endpoint = activeTab === 'register' ? '/api/auth/register' : '/api/auth/login'
+      const body = activeTab === 'register'
+        ? { name, email, phone }
+        : (contactMethod === 'email' ? { email } : { phone })
       const response = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contactMethod === 'email' ? { email } : { phone }),
+        body: JSON.stringify(body),
       })
 
       const data = await response.json()
@@ -74,10 +79,13 @@ export default function AuthPage() {
 
     setLoading(true)
     try {
+      const verifyBody = activeTab === 'register'
+        ? { email, otp }
+        : (contactMethod === 'email' ? { email, otp } : { phone, otp })
       const response = await fetch(`${BACKEND_URL}/api/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contactMethod === 'email' ? { email, otp } : { phone, otp }),
+        body: JSON.stringify(verifyBody),
       })
 
       const data = await response.json()
@@ -226,63 +234,44 @@ export default function AuthPage() {
 
                     <TabsContent value="register" className="space-y-6">
                       <p className="text-center text-sm text-muted-foreground">
-                        Create a new account with your email or phone - verify with OTP to get started
+                        Create a new account — verify with OTP to get started
                       </p>
                       <div className="space-y-4">
                         {step === 'request' ? (
-                          <>
-                            <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-                              <Button
-                                type="button"
-                                variant={contactMethod === 'email' ? 'default' : 'outline'}
-                                onClick={() => setContactMethod('email')}
-                                className="flex-1 gap-2"
-                              >
-                                <Mail className="h-4 w-4" />
-                                Email
-                              </Button>
-                              <Button
-                                type="button"
-                                variant={contactMethod === 'phone' ? 'default' : 'outline'}
-                                onClick={() => setContactMethod('phone')}
-                                className="flex-1 gap-2"
-                              >
-                                <Phone className="h-4 w-4" />
-                                Phone
-                              </Button>
-                            </div>
-
-                            <form onSubmit={handleRequestOTP} className="space-y-4">
-                              {contactMethod === 'email' ? (
-                                <Input
-                                  type="email"
-                                  placeholder="Enter your email"
-                                  value={email}
-                                  onChange={(e) => setEmail(e.target.value)}
-                                  className="bg-input"
-                                />
-                              ) : (
-                                <Input
-                                  type="tel"
-                                  placeholder="+1 (555) 000-0000"
-                                  value={phone}
-                                  onChange={(e) => setPhone(e.target.value)}
-                                  className="bg-input"
-                                />
-                              )}
-                              <Button
-                                type="submit"
-                                className="w-full bg-primary hover:bg-primary/90"
-                                disabled={loading}
-                              >
-                                {loading ? 'Sending OTP...' : 'Send OTP'}
-                              </Button>
-                            </form>
-                          </>
+                          <form onSubmit={handleRequestOTP} className="space-y-4">
+                            <Input
+                              type="text"
+                              placeholder="Enter your name"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              className="bg-input"
+                            />
+                            <Input
+                              type="email"
+                              placeholder="Enter your email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              className="bg-input"
+                            />
+                            <Input
+                              type="tel"
+                              placeholder="Enter your mobile number"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value)}
+                              className="bg-input"
+                            />
+                            <Button
+                              type="submit"
+                              className="w-full bg-primary hover:bg-primary/90"
+                              disabled={loading}
+                            >
+                              {loading ? 'Sending OTP...' : 'Send OTP'}
+                            </Button>
+                          </form>
                         ) : (
                           <>
                             <p className="text-center text-sm text-muted-foreground">
-                              OTP sent to {contactMethod === 'email' ? email : phone}
+                              OTP sent to {email}
                             </p>
                             <form onSubmit={handleVerifyOTP} className="space-y-4">
                               <Input

@@ -6,6 +6,11 @@ class RequestOTPRequest(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
 
+class RegisterRequest(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str
+
 class VerifyOTPRequest(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
@@ -17,6 +22,7 @@ class LoginRequest(BaseModel):
 
 class User(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
+    name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     dob: Optional[str] = None

@@ -1078,7 +1078,7 @@ export default function PredictionPage() {
             <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">
               <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <Palette className="w-6 h-6 text-indigo-600" />
-                Color & Number Guidance
+                Colour & Number Guidance
               </h2>
             </div>
 
@@ -1086,7 +1086,7 @@ export default function PredictionPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <div className="rounded-2xl border border-violet-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[280px]">
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
-                    Lucky Color
+                    Lucky Colour
                   </p>
 
                   <div className="w-full max-w-[280px] min-h-[160px] rounded-3xl bg-gradient-to-br from-violet-100 to-fuchsia-100 border border-violet-200 flex flex-wrap items-center justify-center gap-3 shadow-lg mb-4 px-6 py-6">
@@ -1107,12 +1107,12 @@ export default function PredictionPage() {
                     })}
                   </div>
 
-                  <p className="text-slate-600 text-center">Your auspicious colors</p>
+                  <p className="text-slate-600 text-center">Your auspicious colours</p>
                 </div>
 
                 <div className="rounded-2xl border border-rose-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[280px]">
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
-                    Unlucky Color
+                    Unlucky Colour
                   </p>
 
                   <div className="w-full max-w-[280px] min-h-[160px] rounded-3xl bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-200 flex flex-wrap items-center justify-center gap-3 shadow-lg mb-4 px-6 py-6">
@@ -1133,7 +1133,7 @@ export default function PredictionPage() {
                     })}
                   </div>
 
-                  <p className="text-slate-600 text-center">Colors to avoid when possible</p>
+                  <p className="text-slate-600 text-center">Colours to avoid when possible</p>
                 </div>
 
                 <div className="rounded-2xl border border-violet-100 bg-white/80 p-8 flex flex-col items-center justify-center shadow-sm min-h-[280px]">

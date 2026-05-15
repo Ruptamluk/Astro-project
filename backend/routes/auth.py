@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from models import RequestOTPRequest, VerifyOTPRequest, User
+from models import RequestOTPRequest, RegisterRequest, VerifyOTPRequest, User
 from utils import generate_otp, send_otp_via_email, send_otp_via_sms
 from datetime import datetime, timedelta
 import os
@@ -10,30 +10,24 @@ async def get_db(request: Request):
     return request.app.db
 
 @router.post("/register")
-async def register(request_data: RequestOTPRequest, db=Depends(get_db)):
-    """Register a new user with email or phone"""
-    
-    if not request_data.email and not request_data.phone:
-        raise HTTPException(status_code=400, detail="Email or phone number is required")
-    
+async def register(request_data: RegisterRequest, db=Depends(get_db)):
+    """Register a new user with name, email, and phone"""
+
     users_collection = db["users"]
-    
-    # Check if user already exists
-    query = {}
-    if request_data.email:
-        query["email"] = request_data.email
-    if request_data.phone:
-        query["phone"] = request_data.phone
-    
-    existing_user = await users_collection.find_one(query)
+
+    # Check if user already exists by email or phone
+    existing_user = await users_collection.find_one({
+        "$or": [{"email": request_data.email}, {"phone": request_data.phone}]
+    })
     if existing_user:
         raise HTTPException(status_code=409, detail="User already registered. Please login instead.")
-    
-    # Generate and send OTP
+
+    # Generate OTP
     otp = await generate_otp()
     expires_at = datetime.utcnow() + timedelta(minutes=10)
-    
+
     otp_data = {
+        "name": request_data.name,
         "email": request_data.email,
         "phone": request_data.phone,
         "otp": otp,
@@ -42,22 +36,15 @@ async def register(request_data: RequestOTPRequest, db=Depends(get_db)):
         "verified": False,
         "type": "registration"
     }
-    
-    # Save OTP to database
+
     otps_collection = db["otps"]
     result = await otps_collection.insert_one(otp_data)
-    
-    # Send OTP
-    if request_data.email:
-        await send_otp_via_email(request_data.email, otp)
-        contact = request_data.email
-    else:
-        await send_otp_via_sms(request_data.phone, otp)
-        contact = request_data.phone
-    
+
+    await send_otp_via_email(str(request_data.email), otp)
+
     return {
         "success": True,
-        "message": f"OTP sent to {contact}. Please verify to complete registration.",
+        "message": f"OTP sent to {request_data.email}. Please verify to complete registration.",
         "otp_id": str(result.inserted_id)
     }
 
@@ -162,10 +149,11 @@ async def verify_otp(request_data: VerifyOTPRequest, db=Depends(get_db)):
     user = await users_collection.find_one(query)
     
     if not user:
-        # Create new user with email/phone verified status
+        # Create new user — pull name and phone stored in the OTP record
         user_data = {
+            "name": otp_record.get("name"),
             "email": request_data.email,
-            "phone": request_data.phone,
+            "phone": otp_record.get("phone") or request_data.phone,
             "email_verified": bool(request_data.email),
             "phone_verified": bool(request_data.phone),
             "dob": None,
@@ -181,19 +169,20 @@ async def verify_otp(request_data: VerifyOTPRequest, db=Depends(get_db)):
             update_data["email_verified"] = True
         if request_data.phone:
             update_data["phone_verified"] = True
-        
+
         if update_data:
             await users_collection.update_one(
                 {"_id": user["_id"]},
                 {"$set": update_data}
             )
             user = await users_collection.find_one({"_id": user["_id"]})
-    
+
     return {
         "success": True,
         "message": "OTP verified successfully",
         "user": {
             "id": str(user["_id"]),
+            "name": user.get("name"),
             "email": user.get("email"),
             "phone": user.get("phone"),
             "email_verified": user.get("email_verified", False),
@@ -217,6 +206,7 @@ async def get_user(user_id: str, db=Depends(get_db)):
         
         return {
             "id": str(user["_id"]),
+            "name": user.get("name"),
             "email": user.get("email"),
             "phone": user.get("phone"),
             "email_verified": user.get("email_verified", False),
