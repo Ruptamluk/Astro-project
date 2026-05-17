@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   ArrowLeft,
   CalendarDays,
   Clock3,
@@ -25,6 +31,7 @@ import {
   Sword,
   CheckCircle2,
   XCircle,
+  Shield,
 } from 'lucide-react'
 
 interface Prediction {
@@ -56,9 +63,10 @@ interface Prediction {
   antardasha_start?: string
   antardasha_end?: string
   dasha_analysis?: string
+  driver_conductor_remedy?: string
 }
 
-type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas'
+type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas' | 'remedy'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -835,7 +843,8 @@ function isInsightKey(value: string | null): value is InsightKey {
     value === 'antardasha' ||
     value === 'dobChart' ||
     value === 'yog' ||
-    value === 'dashas'
+    value === 'dashas' ||
+    value === 'remedy'
 }
 
 // ── Dasha helpers ──────────────────────────────────────────────────────────
@@ -860,11 +869,186 @@ function calculateProgress(startDate: string, endDate: string): number {
   return Math.min(Math.max(((now - start) / (end - start)) * 100, 0), 100)
 }
 
+interface GayatriMantra {
+  label: string
+  sanskrit: string
+  transliteration: string
+  benefits: string[]
+}
+
+const GAYATRI_MANTRAS: Record<string, GayatriMantra> = {
+  Sun: {
+    label: 'Surya (Sun) Gayatri Mantra',
+    sanskrit: 'ॐ आदित्याय विद्महे\nदिवाकराय धीमहि\nतन्नः सूर्यः प्रचोदयात्॥',
+    transliteration: 'Om Adityaya Vidmahe\nDivakaraya Dhimahi\nTannah Suryah Prachodayat',
+    benefits: [
+      'Boosts confidence and leadership',
+      'Improves health, vitality, and fame',
+      'Enhances father relationship and authority',
+      'Removes negativity and laziness',
+    ],
+  },
+  Moon: {
+    label: 'Chandra (Moon) Gayatri Mantra',
+    sanskrit: 'ॐ क्षीरपुत्राय विद्महे\nअमृततत्त्वाय धीमहि\nतन्नः चन्द्रः प्रचोदयात्॥',
+    transliteration: 'Om Kshirputraya Vidmahe\nAmrit Tatvaya Dhimahi\nTannah Chandrah Prachodayat',
+    benefits: [
+      'Gives mental peace and emotional balance',
+      'Improves sleep and intuition',
+      'Strengthens motherly support and creativity',
+      'Reduces anxiety and overthinking',
+    ],
+  },
+  Mars: {
+    label: 'Mangal (Mars) Gayatri Mantra',
+    sanskrit: 'ॐ अंगारकाय विद्महे\nशक्तिहस्ताय धीमहि\nतन्नो भौमः प्रचोदयात्॥',
+    transliteration: 'Om Angarakaya Vidmahe\nShakti Hastaya Dhimahi\nTanno Bhaumah Prachodayat',
+    benefits: [
+      'Increases courage and determination',
+      'Helps in property and land matters',
+      'Reduces anger and conflicts',
+      'Supports success in competition',
+    ],
+  },
+  Mercury: {
+    label: 'Budh (Mercury) Gayatri Mantra',
+    sanskrit: 'ॐ गजध्वजाय विद्महे\nसुखहस्ताय धीमहि\nतन्नो बुधः प्रचोदयात्॥',
+    transliteration: 'Om Gajadhwajaya Vidmahe\nSukh Hastaya Dhimahi\nTanno Budhah Prachodayat',
+    benefits: [
+      'Improves communication and intelligence',
+      'Enhances business and analytical skills',
+      'Helps students in studies and memory',
+      'Strengthens decision-making ability',
+    ],
+  },
+  Jupiter: {
+    label: 'Guru (Jupiter) Gayatri Mantra',
+    sanskrit: 'ॐ बृहस्पतये विद्महे\nदिव्यदेहाय धीमहि\nतन्नो गुरुः प्रचोदयात्॥',
+    transliteration: 'Om Brihaspataye Vidmahe\nDivya Dehaya Dhimahi\nTanno Guruh Prachodayat',
+    benefits: [
+      'Brings wisdom and spiritual growth',
+      'Supports marriage and children blessings',
+      'Increases prosperity and good fortune',
+      'Helps attract mentors and guidance',
+    ],
+  },
+  Venus: {
+    label: 'Shukra (Venus) Gayatri Mantra',
+    sanskrit: 'ॐ शुक्राय विद्महे\nदैत्याचार्याय धीमहि\nतन्नः शुक्रः प्रचोदयात्॥',
+    transliteration: 'Om Shukraya Vidmahe\nDaityacharyaya Dhimahi\nTannah Shukrah Prachodayat',
+    benefits: [
+      'Improves love and relationships',
+      'Attracts luxury, beauty, and comforts',
+      'Enhances creativity and artistic talents',
+      'Helps financial stability',
+    ],
+  },
+  Saturn: {
+    label: 'Shani (Saturn) Gayatri Mantra',
+    sanskrit: 'ॐ सूर्यपुत्राय विद्महे\nमृत्युरूपाय धीमहि\nतन्नः शनिः प्रचोदयात्॥',
+    transliteration: 'Om Suryaputraya Vidmahe\nMrityu Rupaya Dhimahi\nTannah Shanih Prachodayat',
+    benefits: [
+      'Removes obstacles and karmic suffering',
+      'Builds patience and discipline',
+      'Protects from negativity and delays',
+      'Supports long-term success',
+    ],
+  },
+  Rahu: {
+    label: 'Rahu Gayatri Mantra',
+    sanskrit: 'ॐ नागमुखाय विद्महे\nसिंहिकानन्दनाय धीमहि\nतन्नो राहुः प्रचोदयात्॥',
+    transliteration: 'Om Nagamukhaya Vidmahe\nSimhika Nandanaya Dhimahi\nTanno Rahuh Prachodayat',
+    benefits: [
+      'Helps overcome confusion and illusion',
+      'Protects from sudden losses and fears',
+      'Supports foreign opportunities and technology',
+      'Enhances strategic thinking',
+    ],
+  },
+  Ketu: {
+    label: 'Ketu Gayatri Mantra',
+    sanskrit: 'ॐ धूम्रकेतवे विद्महे\nतीक्ष्णदंष्ट्राय धीमहि\nतन्नः केतुः प्रचोदयात्॥',
+    transliteration: 'Om Dhumraketave Vidmahe\nTikshna Damshtraya Dhimahi\nTannah Ketuh Prachodayat',
+    benefits: [
+      'Increases spirituality and intuition',
+      'Helps detach from negativity and ego',
+      'Protects from hidden enemies',
+      'Supports meditation and inner awakening',
+    ],
+  },
+}
+
+interface PlanetYantra {
+  label: string
+  grid: number[][]
+  benefits: string[]
+  howToUse: string[]
+}
+
+const PLANET_YANTRAS: Record<number, PlanetYantra> = {
+  1: {
+    label: 'Surya (Sun) Yantra',
+    grid: [[6,1,8],[7,5,3],[2,9,4]],
+    benefits: ['Boosts confidence and authority','Improves leadership and recognition','Enhances vitality and success','Strengthens father-related karma'],
+    howToUse: ['Worship on Sunday morning','Draw/write on copper sheet or red paper','Chant Surya mantra 108 times','Keep in office or east direction'],
+  },
+  2: {
+    label: 'Chandra (Moon) Yantra',
+    grid: [[7,2,9],[8,6,4],[3,10,5]],
+    benefits: ['Emotional stability','Peaceful mind and better sleep','Improves intuition and creativity','Enhances motherly blessings'],
+    howToUse: ['Use on Monday evening/night','Draw on silver or white paper','Place near bedside or meditation area'],
+  },
+  3: {
+    label: 'Guru (Jupiter) Yantra',
+    grid: [[10,5,12],[11,9,7],[6,13,8]],
+    benefits: ['Wisdom and spiritual growth','Marriage and child blessings','Wealth and prosperity','Guidance and higher learning'],
+    howToUse: ['Thursday morning','Use yellow paper or भोजपत्र','Place in temple or study area'],
+  },
+  4: {
+    label: 'Rahu Yantra',
+    grid: [[13,8,15],[14,12,10],[9,16,11]],
+    benefits: ['Removes confusion and fear','Foreign opportunities','Success in technology/media','Protection from hidden enemies'],
+    howToUse: ['Saturday or Wednesday','Worship during Rahu Kaal carefully','Keep hidden in sacred place'],
+  },
+  5: {
+    label: 'Budh (Mercury) Yantra',
+    grid: [[9,4,11],[10,8,6],[5,12,7]],
+    benefits: ['Sharpens intelligence','Improves communication','Business growth','Better memory and learning'],
+    howToUse: ['Wednesday morning','Write with green ink','Keep near study or work desk'],
+  },
+  6: {
+    label: 'Shukra (Venus) Yantra',
+    grid: [[11,6,13],[12,10,8],[7,14,9]],
+    benefits: ['Love and relationship harmony','Luxury and beauty','Financial comfort','Artistic and creative success'],
+    howToUse: ['Friday morning','Use white or pink paper','Keep in bedroom or wallet'],
+  },
+  7: {
+    label: 'Ketu Yantra',
+    grid: [[14,9,16],[15,13,11],[10,17,12]],
+    benefits: ['Spiritual awakening','Strong intuition','Protection from negative energies','Helps meditation and detachment'],
+    howToUse: ['Tuesday or Saturday','Use saffron or sandalwood ink','Place in meditation room'],
+  },
+  8: {
+    label: 'Shani (Saturn) Yantra',
+    grid: [[12,7,14],[13,11,9],[8,15,10]],
+    benefits: ['Removes obstacles and delays','Protection from negativity','Discipline and stability','Career growth after struggles'],
+    howToUse: ['Saturday evening','Use black ink on iron/copper','Keep near entrance or workplace'],
+  },
+  9: {
+    label: 'Mangal (Mars) Yantra',
+    grid: [[12,7,14],[13,11,9],[8,15,10]],
+    benefits: ['Courage and strength','Protection from enemies','Property and land success','Controls anger and aggression'],
+    howToUse: ['Worship on Tuesday','Use red ink or copper plate','Keep in south direction'],
+  },
+}
+
 export default function KnowMorePage() {
   const router = useRouter()
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
+  const [mantraOpen, setMantraOpen] = useState<string | null>(null)
+  const [yantraOpen, setYantraOpen] = useState(false)
 
   useEffect(() => {
     const nextTab = new URLSearchParams(window.location.search).get('tab')
@@ -1077,6 +1261,15 @@ export default function KnowMorePage() {
       title: 'Dashas',
       subtitle: 'Current planetary periods',
       icon: CalendarDays,
+      value: null,
+      prediction: '',
+      remedy: '',
+    },
+    {
+      key: 'remedy' as InsightKey,
+      title: 'Remedy',
+      subtitle: 'Personalized spiritual remedies',
+      icon: Shield,
       value: null,
       prediction: '',
       remedy: '',
@@ -1526,6 +1719,96 @@ export default function KnowMorePage() {
                         </Card>
                       </div>
                     </div>
+                  ) : item.key === 'remedy' ? (
+                    <div className="space-y-6">
+                      {/* Driver-Conductor Remedy */}
+                      <Card className="rounded-[28px] border-emerald-100 overflow-hidden shadow-sm bg-white/90">
+                        <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-emerald-600" />
+                          <h2 className="text-lg font-bold text-slate-800">Driver-Conductor Remedy</h2>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-100">
+                              Driver {prediction.driver_number}
+                            </span>
+                            <span className="inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 border border-teal-100">
+                              Conductor {prediction.conductor_number}
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+                            <p className="text-base leading-8 text-emerald-900">
+                              {prediction.driver_conductor_remedy || 'No remedy available for this combination.'}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Mahadasha Remedy */}
+                      <Card className="rounded-[28px] border-violet-100 overflow-hidden shadow-sm bg-white/90">
+                        <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-purple-50 px-5 py-4 flex items-center gap-2">
+                          <MoonStar className="w-5 h-5 text-violet-600" />
+                          <h2 className="text-lg font-bold text-slate-800">Mahadasha Remedy</h2>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          {prediction.current_mahadasha_planet && (
+                            <div className="flex flex-wrap gap-2">
+                              <span className="inline-flex items-center rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 border border-violet-100">
+                                Mahadasha {prediction.current_mahadasha_number} | {prediction.current_mahadasha_planet}
+                              </span>
+                            </div>
+                          )}
+                          <div className="rounded-xl bg-violet-50 border border-violet-100 p-4">
+                            {(() => {
+                              const planet = prediction.current_mahadasha_planet
+                              const mantra = planet ? GAYATRI_MANTRAS[planet] : undefined
+                              return mantra ? (
+                                <button
+                                  onClick={() => setMantraOpen(planet)}
+                                  className="text-violet-700 font-semibold underline underline-offset-4 hover:text-violet-900 transition-colors text-base text-left"
+                                >
+                                  {mantra.label}
+                                </button>
+                              ) : (
+                                <p className="text-base leading-8 text-violet-900">
+                                  {prediction.mahadasha_remedy || 'No mahadasha remedy available yet.'}
+                                </p>
+                              )
+                            })()}
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Yantra */}
+                      <Card className="rounded-[28px] border-fuchsia-100 overflow-hidden shadow-sm bg-white/90">
+                        <div className="border-b border-fuchsia-100 bg-gradient-to-r from-fuchsia-50 to-pink-50 px-5 py-4 flex items-center gap-2">
+                          <Star className="w-5 h-5 text-fuchsia-600" />
+                          <h2 className="text-lg font-bold text-slate-800">Yantra</h2>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-flex items-center rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 border border-fuchsia-100">
+                              Driver {prediction.driver_number}
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-fuchsia-50 border border-fuchsia-100 p-4">
+                            {(() => {
+                              const yantra = PLANET_YANTRAS[prediction.driver_number]
+                              return yantra ? (
+                                <button
+                                  onClick={() => setYantraOpen(true)}
+                                  className="text-fuchsia-700 font-semibold underline underline-offset-4 hover:text-fuchsia-900 transition-colors text-base text-left"
+                                >
+                                  {yantra.label}
+                                </button>
+                              ) : (
+                                <p className="text-base leading-8 text-fuchsia-900">No yantra available.</p>
+                              )
+                            })()}
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <Card className="rounded-[28px] border-violet-100 bg-violet-50/60 p-6 md:p-7 shadow-sm">
@@ -1555,6 +1838,106 @@ export default function KnowMorePage() {
           </div>
         </div>
       </div>
+
+      {mantraOpen && GAYATRI_MANTRAS[mantraOpen] && (
+        <Dialog open={!!mantraOpen} onOpenChange={(open) => { if (!open) setMantraOpen(null) }}>
+          <DialogContent className="max-w-lg rounded-[28px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-slate-800">
+                {GAYATRI_MANTRAS[mantraOpen].label}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="rounded-xl bg-violet-50 border border-violet-100 p-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-2">Sanskrit</p>
+                <p className="text-lg leading-9 text-violet-900 whitespace-pre-line font-serif">
+                  {GAYATRI_MANTRAS[mantraOpen].sanskrit}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">English Transliteration</p>
+                <p className="text-base leading-8 text-slate-700 whitespace-pre-line italic">
+                  {GAYATRI_MANTRAS[mantraOpen].transliteration}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 mb-3">Benefits</p>
+                <ul className="space-y-1.5">
+                  {GAYATRI_MANTRAS[mantraOpen].benefits.map((b, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700 leading-relaxed">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {yantraOpen && (() => {
+        const yantra = PLANET_YANTRAS[prediction?.driver_number ?? 0]
+        if (!yantra) return null
+        return (
+          <Dialog open={yantraOpen} onOpenChange={(open) => { if (!open) setYantraOpen(false) }}>
+            <DialogContent className="max-w-lg rounded-[28px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-slate-800">
+                  {yantra.label}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="rounded-xl bg-fuchsia-50 border border-fuchsia-100 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-fuchsia-500 mb-3">Numerological Yantra</p>
+                  <div className="grid grid-cols-3 gap-2 max-w-[180px] mx-auto">
+                    {yantra.grid.flat().map((num, i) => (
+                      <div
+                        key={i}
+                        className={`flex items-center justify-center h-12 w-full rounded-lg border text-lg font-bold ${
+                          i < 3
+                            ? 'bg-fuchsia-600 text-white border-fuchsia-700'
+                            : 'bg-white text-slate-800 border-fuchsia-200'
+                        }`}
+                      >
+                        {num}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 mb-2">Benefits</p>
+                  <ul className="space-y-1.5">
+                    {yantra.benefits.map((b, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-700 leading-relaxed">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-fuchsia-400 shrink-0" />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 mb-2">How to Use</p>
+                  <ul className="space-y-1.5">
+                    {yantra.howToUse.map((h, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-700 leading-relaxed">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )
+      })()}
     </div>
   )
 }

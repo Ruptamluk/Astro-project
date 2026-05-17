@@ -46,6 +46,10 @@ UNLUCKY_COLOR_MAP = {
     for item in unlucky_color_raw
 }
 
+# Driver-Conductor remedy JSON
+with open(os.path.join(BASE_DIR, "data", "driver_conductor_remedy.json"), encoding="utf-8") as f:
+    DRIVER_CONDUCTOR_REMEDY_MAP: dict = json.load(f)
+
 with open(os.path.join(BASE_DIR, "data", "gochor.json"), encoding="utf-8") as f:
     gochor_raw = json.load(f)
 
@@ -151,33 +155,27 @@ def get_unlucky_color(driver: int):
     return UNLUCKY_COLOR_MAP.get(str(driver), "")
 
 
+def get_driver_conductor_remedy(driver: int, conductor: int) -> str:
+    return DRIVER_CONDUCTOR_REMEDY_MAP.get(f"{driver}-{conductor}", "")
+
+
 def calculate_gochor(
     dob: str,
     driver_number: int,
     current_date: datetime | None = None,
 ) -> int:
     """
-    Running age = current year - birth year
-
-    Rule:
-    - remainder = running_age % 9
-    - if remainder == 0, treat it as 9
-    - count forward from driver number to that remainder in a circular 1..9 series
-    - the count itself is the gochor number
-
-    Example:
-    - DOB 1982-10-01 with current year 2026 => age 44 => 44 % 9 = 8
-    - driver = 1, so counting 1..8 gives gochor = 8
+    Gochor = running_age % 9  (0 → 9)
+    running_age = (current_year - birth_year) + 1 if birthday passed this year, else current_year - birth_year
     """
     try:
-        current_year = datetime.now().year
-
-        birth_year = int(dob.split("-")[0])
-        running_age = current_year - birth_year
+        now = current_date or datetime.now()
+        parts = dob.split("-")
+        birth_year, birth_month, birth_day = int(parts[0]), int(parts[1]), int(parts[2])
+        birthday_passed = (now.month, now.day) >= (birth_month, birth_day)
+        running_age = (now.year - birth_year) + (1 if birthday_passed else 0)
         remainder = running_age % 9
-        target_number = 9 if remainder == 0 else remainder
-        return ((target_number - driver_number) % 9) + 1
-
+        return 9 if remainder == 0 else remainder
     except Exception:
         return 9
 
@@ -239,6 +237,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
         lucky_number = get_lucky_numbers(driver_number, conductor_number)
         lucky_color = get_lucky_color(driver_number)
         unlucky_color = get_unlucky_color(driver_number)
+        driver_conductor_remedy = get_driver_conductor_remedy(driver_number, conductor_number)
 
         analysis_doc = await driver_conductor_collection.find_one({
             "driver_number": driver_number,
@@ -312,6 +311,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
                     "gochor_number": gochor_number,
                     "gochor_prediction": gochor_prediction,
                     "gochor_remedy": gochor_remedy,
+                    "driver_conductor_remedy": driver_conductor_remedy,
                     "mahadasha_prediction": mahadasha_prediction,
                     "mahadasha_remedy": mahadasha_remedy,
                     "antardasha_prediction": antardasha_prediction,
@@ -338,6 +338,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             "gochor_number": gochor_number,
             "gochor_prediction": gochor_prediction,
             "gochor_remedy": gochor_remedy,
+            "driver_conductor_remedy": driver_conductor_remedy,
             "mahadasha_prediction": mahadasha_prediction,
             "mahadasha_remedy": mahadasha_remedy,
             "antardasha_prediction": antardasha_prediction,
@@ -428,6 +429,9 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
             "gochor_number": user.get("gochor_number"),
             "gochor_prediction": user.get("gochor_prediction", ""),
             "gochor_remedy": user.get("gochor_remedy", ""),
+            "driver_conductor_remedy": user.get("driver_conductor_remedy") or get_driver_conductor_remedy(
+                driver_number or 0, user.get("conductor_number") or 0
+            ),
             "mahadasha_prediction": user.get("mahadasha_prediction", ""),
             "mahadasha_remedy": user.get("mahadasha_remedy", ""),
             "antardasha_prediction": user.get("antardasha_prediction", ""),
