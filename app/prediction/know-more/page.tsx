@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import {
   ArrowLeft,
   CalendarDays,
@@ -32,14 +33,17 @@ import {
   CheckCircle2,
   XCircle,
   Shield,
+  Download,
+  FileText,
 } from 'lucide-react'
 
 interface Prediction {
   driver_number: number
   conductor_number: number
   personal_year: number
-  analysis: string
-  lucky_color: string
+  analysis: any
+  lucky_color: string | string[]
+  unlucky_color?: string | string[]
   lucky_number: number | string
   dob: string
   dob_chart?: string[][]
@@ -66,7 +70,7 @@ interface Prediction {
   driver_conductor_remedy?: string
 }
 
-type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas' | 'remedy'
+type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas' | 'remedy' | 'report'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -99,6 +103,18 @@ const repeatedNumberNegativeAnalysis: Record<number, string> = {
   7: 'Isolation, confusion, detachment from reality.',
   8: 'Delays, pessimism, loneliness.',
   9: 'Anger, aggression.',
+}
+
+const numberCharacteristics: Record<number, string> = {
+  1: 'Leadership, authority, confidence, independence, Name and Fame',
+  2: 'Emotional, intuitive, artistic, nurturing.',
+  3: 'Wisdom, expansion, knowledge, spirituality.',
+  4: 'Innovative, unconventional, technical genius.',
+  5: 'Communication, intelligence, adaptability.',
+  6: 'Love, luxury, beauty, harmony.',
+  7: 'Spiritual, research-oriented, detached wisdom.',
+  8: 'Discipline, justice, hard work.',
+  9: 'Courage, action, energy, leadership.',
 }
 
 interface YogDefinition {
@@ -844,7 +860,8 @@ function isInsightKey(value: string | null): value is InsightKey {
     value === 'dobChart' ||
     value === 'yog' ||
     value === 'dashas' ||
-    value === 'remedy'
+    value === 'remedy' ||
+    value === 'report'
 }
 
 // ── Dasha helpers ──────────────────────────────────────────────────────────
@@ -985,6 +1002,83 @@ interface PlanetYantra {
   howToUse: string[]
 }
 
+const yogRemedyData: Record<string, string[]> = {
+  // Main Vedic Yog
+  '1,3,9|': ['Follow discipline daily', 'Avoid laziness and procrastination'],
+  '5,6,7|': ['Maintain strict discipline', 'Avoid bad habits and addictions'],
+  '2,4,8|': ['Worship Lord Shiva', 'Recite / listen to Chandrashekhar Ashtakam', 'Follow time discipline consistently'],
+  '2,3,6|': ['Worship Lord Vishnu', 'Worship Lord Shiva', 'Maintain mental balance'],
+  '1,7,8|': ['Worship Hanuman ji (most effective)', 'Worship Goddess Durga'],
+  '4,5,9|': ['Worship Lord Ganesha', 'Worship Hanuman ji', 'Do not make hasty decisions'],
+  '3,4,7|': ['Worship Lord Shiva', 'Worship Lord Vishnu', 'Chant the name of Ram daily', 'Maintain honesty in all dealings'],
+  '2,7,9|': ['Worship Lord Shiva', 'Practice anger control', 'Maintain relationship balance'],
+  // Conjunction (Partial Yogs)
+  '1,3|9': ['Donate food (Anna Daan)', 'Recite Vishnu Sahasranam', 'Worship the Sun'],
+  '1,9|3': ['Recite Hanuman Chalisa', 'Donate yellow-coloured items'],
+  '2,8|4': ['Worship Lord Shiva'],
+  '4,8|2': ['Build a consistent daily routine', 'Set small, achievable goals'],
+  '6,7|5': ['Worship Lord Ram'],
+  '5,7|6': ['Worship Lord Ganesha'],
+  '3,6|2': ['Worship Guru (Jupiter) or Lord Shiva'],
+  '2,6|3': ['Worship Lord Ram'],
+  '5,9|4': ['Worship Hanuman ji'],
+  '4,5|9': ['Worship Lord Ganesha or Khatu Shyam ji'],
+  '1,7|8': ['Worship the Sun or Goddess Durga'],
+  '7,8|1': ['Worship Hanuman ji'],
+  '3,7|4': ['Worship Lord Ram'],
+  '4,7|3': ['Visit temple regularly', 'Practice meditation and spiritual discipline'],
+  '7,9|2': ['Worship Lord Ram or Hanuman ji'],
+  '2,7|9': ['Worship Lord Shiva', 'Practice forgiveness regularly'],
+  // Angular / 90 Yog
+  '1,5,7|9': ['Worship Lord Ganesha', 'Practice mind grounding / meditation'],
+  '1,6,7|3': ['Worship Lakshmi Narayan', 'Control ego and overconfidence'],
+  '1,7,9|5': ['Worship the Sun', 'Worship Lord Ram'],
+  '1,3,7|6': ['Recite Vishnu Sahasranam', 'Worship Lakshmi Narayan'],
+  '1,3,6|7': ['Growth accelerates after marriage'],
+  '1,5,9|7': ['Perform Sun-related remedies'],
+  '5,7,8|4': ['Cultivate good company and positive friendships', 'Recite Hanuman Chalisa'],
+  '5,7,9|1': ['Exercise regularly', 'Maintain food discipline', 'Worship Sun and Lord Ganesha'],
+  '4,5,8|7': ['Recite Hanuman Chalisa', 'Worship Lord Ram'],
+  '2,6,7|8': ['Worship Shiva-Parvati together', 'Develop and trust your intuition'],
+  '2,7,8|6': ['Worship Lord Shiva', 'Seek guidance from a mentor or elder'],
+  '4,7,8|5': ['Worship Hanuman ji', 'Practice planning and discipline'],
+  '3,6,7|1': ['Donate towards education-related causes', 'Share your knowledge with others'],
+  // Retro Aspect
+  '1,4|5,9': ['Worship the Sun', 'Recite Aditya Hridaya Stotra', 'Avoid unnecessary conflicts with government bodies'],
+  '1,2|3,6': ['Worship the Sun', 'Build positive and meaningful social networks'],
+  '2,5|4,8': ['Worship Lord Shiva', 'Read a spiritual book daily', 'Keep expectations low'],
+  '3,5|1,9': ['Worship Guru (Jupiter)', 'Recite Hanuman Chalisa', 'Perform Sun-related remedies'],
+  '4,6|2,8': ['Worship Goddess Lakshmi', 'Worship Goddess Durga', 'Limit the number of close relationships'],
+  '6,9|1,3': ['Worship Lord Shiva', 'Worship Lord Ram', 'Maintain discipline in relationships'],
+  // Previously missing – now filled
+  '2,3|6':  ['Matarani worship', 'Durga worship', 'Maa Laxmi worship'],
+  '1,8|7':  ['Cats eye crystal', 'Hanuman Chalisa 5 times chanting'],
+  '4,9|5':  ['Green aventurine crystal', 'Ganesh Puja on Wednesday', 'Take one time food inside kitchen'],
+  '3,9|1':  ['Sun remedy', 'Offer water to Sun'],
+  '5,6|7':  ['Ganesh Puja', 'Nand Kumar chanting', 'Offer mug daal to birds'],
+  '2,4|8':  ['Khatusam Ji Puja', 'Hanuman Chalisa chanting'],
+  '3,4|7':  ['Vishnu chanting', 'Sun remedy'],
+  '2,9|7':  ['Shiva worship', 'Hanuman ji worship'],
+}
+
+function getYogRemedyKey(numbers: number[], missingNumbers?: number[]): string {
+  const sortedNums = [...numbers].sort((a, b) => a - b).join(',')
+  const sortedMissing = missingNumbers ? [...missingNumbers].sort((a, b) => a - b).join(',') : ''
+  return `${sortedNums}|${sortedMissing}`
+}
+
+const PERSONAL_YEAR_REMEDIES: Record<number, string> = {
+  1: 'Surya Suryani',
+  2: 'Rohinish',
+  3: 'Shiddhi Guru',
+  4: 'Swarbhanusudan Vigraha',
+  5: 'Shiddhi Buddh',
+  6: 'Shiddhi Sukra',
+  7: 'Shiddhi Ketu',
+  8: 'Dineshaatmaz',
+  9: 'Shiddhi Mangal',
+}
+
 const PLANET_YANTRAS: Record<number, PlanetYantra> = {
   1: {
     label: 'Surya (Sun) Yantra',
@@ -1049,6 +1143,10 @@ export default function KnowMorePage() {
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
   const [mantraOpen, setMantraOpen] = useState<string | null>(null)
   const [yantraOpen, setYantraOpen] = useState(false)
+  const [userName, setUserName] = useState<string>('')
+  const [userLogo, setUserLogo] = useState<string | null>(null)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const reportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const nextTab = new URLSearchParams(window.location.search).get('tab')
@@ -1219,6 +1317,69 @@ export default function KnowMorePage() {
   })
   const activeYogCount = yogResults.filter((y) => y.active).length
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setUserLogo(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleGeneratePdf = async () => {
+    if (!reportRef.current || !prediction) return
+    setIsGeneratingPdf(true)
+    try {
+      const { default: jsPDF } = await import('jspdf')
+      const { default: html2canvas } = await import('html2canvas')
+      const el = reportRef.current
+
+      // Make element visible and positioned off-screen for capture
+      el.style.display = 'block'
+      el.style.position = 'absolute'
+      el.style.left = '-9999px'
+      el.style.top = '0'
+      el.style.width = '794px'
+
+      // Wait two animation frames + extra time for images/fonts to settle
+      await new Promise((r) => requestAnimationFrame(r))
+      await new Promise((r) => requestAnimationFrame(r))
+      await new Promise((r) => setTimeout(r, 300))
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 794,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc) => {
+          // Strip all stylesheets — they contain lab() colors html2canvas can't parse.
+          // The report div uses only inline styles so nothing is lost.
+          clonedDoc.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => el.remove())
+        },
+      })
+
+      // Hide again
+      el.style.display = 'none'
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95)
+      const pdfW = 210  // A4 width in mm
+      const imgHeightMm = (canvas.height * pdfW) / canvas.width
+      // Single custom-height page — avoids cutting sections across page boundaries
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfW, imgHeightMm] })
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, imgHeightMm)
+
+      pdf.save(`${userName ? userName.replace(/\s+/g, '_') + '_' : ''}numerology_report.pdf`)
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+      alert('PDF generation failed. Please try again.')
+    } finally {
+      setIsGeneratingPdf(false)
+    }
+  }
+
   const insightCards = [
     {
       key: 'strength' as InsightKey,
@@ -1270,6 +1431,15 @@ export default function KnowMorePage() {
       title: 'Remedy',
       subtitle: 'Personalized spiritual remedies',
       icon: Shield,
+      value: null,
+      prediction: '',
+      remedy: '',
+    },
+    {
+      key: 'report' as InsightKey,
+      title: 'Download Report',
+      subtitle: 'Generate your PDF report',
+      icon: Download,
       value: null,
       prediction: '',
       remedy: '',
@@ -1764,7 +1934,7 @@ export default function KnowMorePage() {
                               const mantra = planet ? GAYATRI_MANTRAS[planet] : undefined
                               return mantra ? (
                                 <button
-                                  onClick={() => setMantraOpen(planet)}
+                                  onClick={() => setMantraOpen(planet ?? null)}
                                   className="text-violet-700 font-semibold underline underline-offset-4 hover:text-violet-900 transition-colors text-base text-left"
                                 >
                                   {mantra.label}
@@ -1808,6 +1978,172 @@ export default function KnowMorePage() {
                           </div>
                         </div>
                       </Card>
+
+                      {/* Personal Year Remedy */}
+                      <Card className="rounded-[28px] border-indigo-100 overflow-hidden shadow-sm bg-white/90">
+                        <div className="border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-4 flex items-center gap-2">
+                          <CalendarDays className="w-5 h-5 text-indigo-600" />
+                          <h2 className="text-lg font-bold text-slate-800">Remedy for Personal Year</h2>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 border border-indigo-100">
+                              Personal Year {prediction.personal_year}
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-4">
+                            <p className="text-base leading-8 text-indigo-900">
+                              {PERSONAL_YEAR_REMEDIES[prediction.personal_year] ?? 'No remedy available for this personal year.'}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Yog Remedy */}
+                      {(() => {
+                        const activeYogsWithRemedies = yogResults
+                          .filter((y) => y.active)
+                          .map((y) => ({
+                            name: y.name,
+                            remedies: yogRemedyData[getYogRemedyKey(y.numbers, y.missingNumbers)],
+                          }))
+                          .filter((y) => y.remedies && y.remedies.length > 0)
+
+                        if (activeYogsWithRemedies.length === 0) return null
+
+                        return (
+                          <Card className="rounded-[28px] border-amber-100 overflow-hidden shadow-sm bg-white/90">
+                            <div className="border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 flex items-center gap-2">
+                              <Trophy className="w-5 h-5 text-amber-600" />
+                              <h2 className="text-lg font-bold text-slate-800">Yog Remedies</h2>
+                            </div>
+                            <div className="p-6 space-y-5">
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                Remedies for your {activeYogsWithRemedies.length} active yog{activeYogsWithRemedies.length !== 1 ? 's' : ''}
+                              </p>
+                              {activeYogsWithRemedies.map((yog, idx) => (
+                                <div key={idx} className="rounded-xl bg-amber-50 border border-amber-100 p-4 space-y-2">
+                                  <p className="text-sm font-semibold text-amber-700 uppercase tracking-wide">
+                                    {yog.name}
+                                  </p>
+                                  <ul className="space-y-1.5 mt-2">
+                                    {yog.remedies.map((remedy, i) => (
+                                      <li key={i} className="flex items-start gap-2 text-base text-amber-900 leading-7">
+                                        <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                        {remedy}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          </Card>
+                        )
+                      })()}
+                    </div>
+                  ) : item.key === 'report' ? (
+                    <div className="space-y-8 max-w-2xl mx-auto">
+                      {/* Personalise card */}
+                      <Card className="rounded-[28px] border-violet-100 bg-white/90 overflow-hidden shadow-sm">
+                        <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-fuchsia-50 px-5 py-4 flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-violet-600" />
+                          <h2 className="text-lg font-bold text-slate-800">Personalise Your Report</h2>
+                        </div>
+                        <div className="p-6 space-y-5">
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700" htmlFor="report-name">
+                              Your Name <span className="text-slate-400 font-normal">(appears on the report header)</span>
+                            </label>
+                            <Input
+                              id="report-name"
+                              placeholder="e.g. Priya Sharma"
+                              value={userName}
+                              onChange={(e) => setUserName(e.target.value)}
+                              className="rounded-xl h-11 border-violet-200 focus-visible:ring-violet-400"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700" htmlFor="report-logo">
+                              Logo or Photo <span className="text-slate-400 font-normal">(optional)</span>
+                            </label>
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <label
+                                htmlFor="report-logo"
+                                className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-100 transition-colors"
+                              >
+                                <FileText className="w-4 h-4" />
+                                {userLogo ? 'Change Logo' : 'Upload Logo'}
+                              </label>
+                              <input
+                                id="report-logo"
+                                type="file"
+                                accept="image/*"
+                                className="sr-only"
+                                onChange={handleLogoUpload}
+                              />
+                              {userLogo && (
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    src={userLogo}
+                                    alt="Logo preview"
+                                    className="h-10 w-10 rounded-lg object-contain border border-violet-100 bg-white p-1"
+                                  />
+                                  <button
+                                    onClick={() => setUserLogo(null)}
+                                    className="text-xs text-rose-500 hover:text-rose-700 font-medium"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-400">Accepted: PNG, JPG, SVG. Max recommended 1 MB.</p>
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Preview summary */}
+                      <Card className="rounded-[28px] border-slate-100 bg-gradient-to-br from-slate-50 to-violet-50/40 p-6 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-1.5 h-6 rounded-full bg-violet-500" />
+                          <h2 className="text-lg font-bold text-slate-800">Report Preview</h2>
+                        </div>
+                        <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-inner text-sm text-slate-600 space-y-3">
+                          <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                            <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Header</span>
+                            <span className="text-slate-700">{userLogo ? 'Logo + ' : ''}{userName || '(Your name)'} — {new Date().toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                            <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Page 1</span>
+                            <span className="text-slate-700">Driver {prediction.driver_number} · Conductor {prediction.conductor_number} · Year {prediction.personal_year} · Colors · Analysis</span>
+                          </div>
+                          <div className="flex items-center justify-between py-2">
+                            <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Page 2+</span>
+                            <span className="text-slate-700">Strength {strengthNumber} · Gochor · DOB Chart · {activeYogCount} Yog{activeYogCount !== 1 ? 's' : ''} · Dashas · Remedies</span>
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Generate button */}
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={handleGeneratePdf}
+                          disabled={isGeneratingPdf}
+                          className="h-13 px-10 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {isGeneratingPdf ? (
+                            <>
+                              <Star className="w-5 h-5 mr-2 animate-spin" />
+                              Generating PDF…
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-5 h-5 mr-2" />
+                              Generate &amp; Download PDF
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1938,6 +2274,380 @@ export default function KnowMorePage() {
           </Dialog>
         )
       })()}
+
+      {/* ── Hidden PDF Report Template ── rendered off-screen for html2canvas capture */}
+      <div
+        ref={reportRef}
+        style={{
+          display: 'none',
+          position: 'absolute',
+          left: '-9999px',
+          top: 0,
+          width: '794px',
+          backgroundColor: '#ffffff',
+          fontFamily: 'Georgia, "Times New Roman", serif',
+          color: '#1e293b',
+          boxSizing: 'border-box',
+        }}
+      >
+        {prediction && (
+          <>
+            {/* ── HEADER ── */}
+            <div style={{ background: 'linear-gradient(135deg,#7c3aed,#c026d3 55%,#4f46e5)', padding: '28px 40px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody><tr>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <table style={{ borderCollapse: 'collapse' }}><tbody><tr>
+                    {userLogo && (
+                      <td style={{ verticalAlign: 'middle', paddingRight: '14px' }}>
+                        <img src={userLogo} alt="logo" style={{ height: '56px', width: '56px', objectFit: 'contain', borderRadius: '8px', background: '#fff', padding: '4px', display: 'block' }} />
+                      </td>
+                    )}
+                    <td style={{ verticalAlign: 'middle' }}>
+                      {userName && <div style={{ color: '#fff', fontSize: '22px', fontWeight: 700, letterSpacing: '0.01em' }}>{userName}</div>}
+                      <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', marginTop: userName ? '4px' : 0 }}>Numerology Report</div>
+                    </td>
+                  </tr></tbody></table>
+                </td>
+                <td style={{ verticalAlign: 'middle', textAlign: 'right' }}>
+                  <div style={{ color: '#fff', fontWeight: 700, fontSize: '15px' }}>{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '13px', marginTop: '4px' }}>Date of Birth: {prediction.dob}</div>
+                </td>
+              </tr></tbody></table>
+            </div>
+
+            {/* ── PREDICTION SUMMARY ── */}
+            <div style={{ padding: '28px 40px 0' }}>
+              <div style={{ borderBottom: '3px solid #7c3aed', paddingBottom: '6px', marginBottom: '20px' }}>
+                <span style={{ fontSize: '17px', fontWeight: 700, color: '#7c3aed', fontFamily: 'system-ui,sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Prediction Summary</span>
+              </div>
+
+              {/* Sacred Numbers — 4-column table */}
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '8px', marginBottom: '16px' }}><tbody><tr>
+                {([
+                  { label: 'Driver Number', value: prediction.driver_number, bg: '#f5f3ff', border: '#c4b5fd', color: '#7c3aed' },
+                  { label: 'Conductor Number', value: prediction.conductor_number, bg: '#fdf4ff', border: '#e879f9', color: '#c026d3' },
+                  { label: 'Personal Year', value: prediction.personal_year, bg: '#eef2ff', border: '#a5b4fc', color: '#4f46e5' },
+                  { label: 'Lucky Number', value: prediction.lucky_number, bg: '#f0fdf4', border: '#6ee7b7', color: '#059669' },
+                ] as const).map((item) => (
+                  <td key={item.label} style={{ width: '25%', background: item.bg, border: `1px solid ${item.border}`, borderRadius: '10px', padding: '14px 10px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px', fontFamily: 'system-ui,sans-serif' }}>{item.label}</div>
+                    <div style={{ fontSize: '32px', fontWeight: 800, color: item.color, lineHeight: 1, fontFamily: 'system-ui,sans-serif' }}>{item.value}</div>
+                  </td>
+                ))}
+              </tr></tbody></table>
+
+              {/* Colors — 2-column table */}
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '8px', marginBottom: '16px' }}><tbody><tr>
+                <td style={{ width: '50%', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '12px 16px', verticalAlign: 'top' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Lucky Color{Array.isArray(prediction.lucky_color) ? 's' : ''}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#166534', fontFamily: 'system-ui,sans-serif' }}>{Array.isArray(prediction.lucky_color) ? prediction.lucky_color.join(', ') : prediction.lucky_color}</div>
+                </td>
+                {prediction.unlucky_color && (
+                  <td style={{ width: '50%', background: '#fff1f2', border: '1px solid #fca5a5', borderRadius: '10px', padding: '12px 16px', verticalAlign: 'top' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Unlucky Color{Array.isArray(prediction.unlucky_color) ? 's' : ''}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#9f1239', fontFamily: 'system-ui,sans-serif' }}>{Array.isArray(prediction.unlucky_color) ? prediction.unlucky_color.join(', ') : prediction.unlucky_color}</div>
+                  </td>
+                )}
+              </tr></tbody></table>
+
+              {/* Numerology Characteristics */}
+              <div style={{ background: '#f8f7ff', border: '1px solid #ddd6fe', borderRadius: '10px', padding: '14px 18px', marginBottom: '14px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '10px' }}>Numerology Characteristics</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                  <tr><td style={{ paddingBottom: '6px', verticalAlign: 'top', width: '140px' }}><span style={{ fontSize: '12px', fontWeight: 700, color: '#7c3aed', fontFamily: 'system-ui,sans-serif' }}>Driver ({prediction.driver_number}):</span></td><td style={{ paddingBottom: '6px', fontSize: '13px', color: '#475569', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif' }}>{numberCharacteristics[prediction.driver_number] || '—'}</td></tr>
+                  {prediction.driver_number !== prediction.conductor_number && (
+                    <tr><td style={{ verticalAlign: 'top' }}><span style={{ fontSize: '12px', fontWeight: 700, color: '#c026d3', fontFamily: 'system-ui,sans-serif' }}>Conductor ({prediction.conductor_number}):</span></td><td style={{ fontSize: '13px', color: '#475569', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif' }}>{numberCharacteristics[prediction.conductor_number] || '—'}</td></tr>
+                  )}
+                </tbody></table>
+              </div>
+
+              {/* Driver-Conductor Analysis */}
+              {prediction.analysis && (
+                <div style={{ border: '1px solid #ddd6fe', borderRadius: '10px', padding: '14px 18px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '10px' }}>Driver–Conductor Analysis</div>
+                  {typeof prediction.analysis === 'object' ? (
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                      {prediction.analysis.positive && <tr><td style={{ paddingBottom: '8px', verticalAlign: 'top' }}><div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '10px 14px' }}><span style={{ fontSize: '11px', fontWeight: 700, color: '#15803d', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif' }}>Positive: </span><span style={{ fontSize: '13px', color: '#166534', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif' }}>{prediction.analysis.positive}</span></div></td></tr>}
+                      {prediction.analysis.negative && <tr><td style={{ paddingBottom: '8px', verticalAlign: 'top' }}><div style={{ background: '#fff1f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '10px 14px' }}><span style={{ fontSize: '11px', fontWeight: 700, color: '#be123c', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif' }}>Challenges: </span><span style={{ fontSize: '13px', color: '#9f1239', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif' }}>{prediction.analysis.negative}</span></div></td></tr>}
+                      {prediction.analysis.advice && <tr><td style={{ verticalAlign: 'top' }}><div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '10px 14px' }}><span style={{ fontSize: '11px', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif' }}>Advice: </span><span style={{ fontSize: '13px', color: '#1e40af', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif' }}>{prediction.analysis.advice}</span></div></td></tr>}
+                    </tbody></table>
+                  ) : (
+                    <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.6', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{String(prediction.analysis)}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── DEEP INSIGHTS ── */}
+            <div style={{ padding: '20px 40px 32px' }}>
+              <div style={{ borderBottom: '3px solid #7c3aed', paddingBottom: '6px', marginBottom: '20px' }}>
+                <span style={{ fontSize: '17px', fontWeight: 700, color: '#7c3aed', fontFamily: 'system-ui,sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Deep Numerology Insights</span>
+              </div>
+
+              {/* Strength */}
+              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '10px', padding: '16px 18px', marginBottom: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#5b21b6', fontFamily: 'system-ui,sans-serif', marginBottom: '8px' }}>Strength Number: {strengthNumber}</div>
+                {prediction.strength_prediction && <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', margin: '0 0 6px 0', fontFamily: 'system-ui,sans-serif' }}>{prediction.strength_prediction}</p>}
+                {prediction.strength_remedy && <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}><strong>Remedy:</strong> {prediction.strength_remedy}</p>}
+              </div>
+
+              {/* Gochor */}
+              {prediction.gochor_number != null && (
+                <div style={{ background: '#fdf4ff', border: '1px solid #f5d0fe', borderRadius: '10px', padding: '16px 18px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#86198f', fontFamily: 'system-ui,sans-serif', marginBottom: '8px' }}>Gochor Number: {prediction.gochor_number}</div>
+                  {prediction.gochor_prediction && <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', margin: '0 0 6px 0', fontFamily: 'system-ui,sans-serif' }}>{prediction.gochor_prediction}</p>}
+                  {prediction.gochor_remedy && <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}><strong>Remedy:</strong> {prediction.gochor_remedy}</p>}
+                </div>
+              )}
+
+              {/* ── VEDIC DOB CHART ── */}
+              <div style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: '10px', padding: '16px 18px', marginBottom: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#5b21b6', fontFamily: 'system-ui,sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px', borderBottom: '1px solid #ede9fe', paddingBottom: '8px' }}>Vedic DOB Chart</div>
+
+                {/* Grid table + stats side by side using outer table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '16px' }}><tbody><tr>
+                  {/* 3×3 DOB grid as a table */}
+                  <td style={{ verticalAlign: 'top', paddingRight: '20px', width: '260px' }}>
+                    <table style={{ borderCollapse: 'separate', borderSpacing: '6px' }}><tbody>
+                      {dobChart.map((row, ri) => (
+                        <tr key={ri}>
+                          {row.map((cell, ci) => (
+                            <td key={ci} style={{ width: '72px', height: '64px', border: cell ? '2px solid #c4b5fd' : '2px dashed #ddd6fe', borderRadius: '10px', background: cell ? '#ffffff' : '#faf5ff', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ fontSize: '10px', fontWeight: 600, color: '#a78bfa', fontFamily: 'system-ui,sans-serif', marginBottom: '2px' }}>{DOB_CHART_LAYOUT[ri][ci]}</div>
+                              <div style={{ fontSize: '17px', fontWeight: 800, color: cell ? '#7c3aed' : '#ddd6fe', fontFamily: 'system-ui,sans-serif', lineHeight: 1 }}>{cell || '–'}</div>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody></table>
+                  </td>
+
+                  {/* Stats column */}
+                  <td style={{ verticalAlign: 'top' }}>
+                    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}><tbody>
+                      <tr><td style={{ background: '#ede9fe', borderRadius: '8px', padding: '10px 14px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '3px' }}>Active Cells</div>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: '#5b21b6', fontFamily: 'system-ui,sans-serif', lineHeight: 1 }}>{presentDobNumbers.size}/9</div>
+                      </td></tr>
+                      <tr><td style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '8px', padding: '10px 14px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#be123c', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '3px' }}>Missing</div>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: '#9f1239', fontFamily: 'system-ui,sans-serif' }}>{missingDobNumbers.length > 0 ? `${missingDobNumbers.join(', ')} (${missingDobNumbers.length})` : 'None'}</div>
+                      </td></tr>
+                      <tr><td style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '3px' }}>Repeated (&gt;2×)</div>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: '#78350f', fontFamily: 'system-ui,sans-serif' }}>{repeatedNegativeDobNumbers.length > 0 ? `${repeatedNegativeDobNumbers.join(', ')} (${repeatedNegativeDobNumbers.length})` : 'None'}</div>
+                      </td></tr>
+                    </tbody></table>
+                  </td>
+                </tr></tbody></table>
+
+                {/* Missing Number Analysis */}
+                {missingDobNumbers.length > 0 && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', background: '#ede9fe', padding: '5px 10px', borderRadius: '5px', display: 'inline-block', marginBottom: '8px' }}>Missing Number Analysis</div>
+                    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 5px' }}><tbody>
+                      {missingDobNumbers.map((digit) => (
+                        <tr key={digit}>
+                          <td style={{ width: '40px', verticalAlign: 'middle', textAlign: 'center', paddingRight: '10px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ede9fe', border: '1px solid #c4b5fd', textAlign: 'center', lineHeight: '32px', fontSize: '13px', fontWeight: 700, color: '#7c3aed', fontFamily: 'system-ui,sans-serif', display: 'inline-block' }}>{digit}</div>
+                          </td>
+                          <td style={{ background: '#fff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '9px 13px', fontSize: '13px', color: '#475569', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif', verticalAlign: 'middle' }}>{missingNumberAnalysis[digit]}</td>
+                        </tr>
+                      ))}
+                    </tbody></table>
+                  </div>
+                )}
+
+                {/* Repeated Number Analysis */}
+                {repeatedNegativeDobNumbers.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', background: '#fff1f2', padding: '5px 10px', borderRadius: '5px', display: 'inline-block', marginBottom: '8px' }}>Negative Repeat Analysis</div>
+                    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 5px' }}><tbody>
+                      {repeatedNegativeDobNumbers.map((digit) => (
+                        <tr key={digit}>
+                          <td style={{ width: '40px', verticalAlign: 'middle', textAlign: 'center', paddingRight: '10px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff1f2', border: '1px solid #fca5a5', textAlign: 'center', lineHeight: '32px', fontSize: '13px', fontWeight: 700, color: '#be123c', fontFamily: 'system-ui,sans-serif', display: 'inline-block' }}>{digit}</div>
+                          </td>
+                          <td style={{ background: '#fff', border: '1px solid #fecdd3', borderRadius: '8px', padding: '9px 13px', fontSize: '13px', color: '#475569', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif', verticalAlign: 'middle' }}>{repeatedNumberNegativeAnalysis[digit]}</td>
+                        </tr>
+                      ))}
+                    </tbody></table>
+                  </div>
+                )}
+
+                {missingDobNumbers.length === 0 && repeatedNegativeDobNumbers.length === 0 && (
+                  <p style={{ fontSize: '13px', color: '#64748b', fontStyle: 'italic', margin: 0, fontFamily: 'system-ui,sans-serif' }}>All numbers present — an exceptionally harmonious chart.</p>
+                )}
+              </div>
+
+              {/* ── ACTIVE YOGs ── */}
+              {yogResults.filter((y) => y.active).length > 0 && (
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '16px 18px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#92400e', fontFamily: 'system-ui,sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px', borderBottom: '1px solid #fde68a', paddingBottom: '8px' }}>
+                    Active Yogs ({yogResults.filter((y) => y.active).length})
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}><tbody>
+                    {yogResults.filter((y) => y.active).map((yog, i) => (
+                      <tr key={i}>
+                        <td style={{ background: '#fff', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px 14px', verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#78350f', fontFamily: 'system-ui,sans-serif', marginBottom: '3px' }}>{yog.name}</div>
+                          <div style={{ fontSize: '11px', color: '#92400e', fontFamily: 'system-ui,sans-serif', marginBottom: '8px' }}>
+                            Numbers: {yog.numbers.join(' – ')}{yog.missingNumbers?.length ? ` (missing: ${yog.missingNumbers.join(', ')})` : ''}
+                          </div>
+                          <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                            {yog.traits.map((t, ti) => (
+                              <tr key={ti}><td style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif', paddingLeft: '14px', paddingBottom: '2px', verticalAlign: 'top' }}>• {t}</td></tr>
+                            ))}
+                          </tbody></table>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody></table>
+                </div>
+              )}
+
+              {/* ── CURRENT DASHAS ── */}
+              {prediction.current_mahadasha_number != null && (
+                <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '10px', padding: '16px 18px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#5b21b6', fontFamily: 'system-ui,sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px', borderBottom: '1px solid #ddd6fe', paddingBottom: '8px' }}>Current Dashas</div>
+                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '10px 0', marginBottom: prediction.dasha_analysis ? '12px' : 0 }}><tbody><tr>
+                    <td style={{ width: '50%', background: '#ede9fe', borderRadius: '8px', padding: '12px 14px', verticalAlign: 'top' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>Mahadasha</div>
+                      <div style={{ fontSize: '30px', fontWeight: 800, color: '#5b21b6', fontFamily: 'system-ui,sans-serif', lineHeight: 1, marginBottom: '4px' }}>{prediction.current_mahadasha_number}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#5b21b6', fontFamily: 'system-ui,sans-serif' }}>{prediction.current_mahadasha_planet}</div>
+                      {prediction.mahadasha_start && <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'system-ui,sans-serif', marginTop: '4px' }}>{prediction.mahadasha_start} → {prediction.mahadasha_end}</div>}
+                    </td>
+                    {prediction.current_antardasha_number != null && (
+                      <td style={{ width: '50%', background: '#fdf4ff', borderRadius: '8px', padding: '12px 14px', verticalAlign: 'top' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#c026d3', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>Antardasha</div>
+                        <div style={{ fontSize: '30px', fontWeight: 800, color: '#86198f', fontFamily: 'system-ui,sans-serif', lineHeight: 1, marginBottom: '4px' }}>{prediction.current_antardasha_number}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#86198f', fontFamily: 'system-ui,sans-serif' }}>{prediction.current_antardasha_planet}</div>
+                        {prediction.antardasha_start && <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'system-ui,sans-serif', marginTop: '4px' }}>{prediction.antardasha_start} → {prediction.antardasha_end}</div>}
+                      </td>
+                    )}
+                  </tr></tbody></table>
+                  {prediction.dasha_analysis && <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{prediction.dasha_analysis}</p>}
+                </div>
+              )}
+
+              {/* ── REMEDIES ── */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '16px 18px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#166534', fontFamily: 'system-ui,sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px', borderBottom: '1px solid #bbf7d0', paddingBottom: '8px' }}>Remedies</div>
+
+                {/* Driver-Conductor */}
+                {prediction.driver_conductor_remedy && (
+                  <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Driver-Conductor Remedy</div>
+                    <p style={{ fontSize: '13px', color: '#166534', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{prediction.driver_conductor_remedy}</p>
+                  </div>
+                )}
+
+                {/* Strength */}
+                {prediction.strength_remedy && prediction.strength_remedy !== 'No remedy available yet.' && (
+                  <div style={{ background: '#ede9fe', border: '1px solid #c4b5fd', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Strength Number Remedy</div>
+                    <p style={{ fontSize: '13px', color: '#5b21b6', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{prediction.strength_remedy}</p>
+                  </div>
+                )}
+
+                {/* Gochor */}
+                {prediction.gochor_remedy && (
+                  <div style={{ background: '#fdf4ff', border: '1px solid #e879f9', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#86198f', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Gochor Remedy</div>
+                    <p style={{ fontSize: '13px', color: '#701a75', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{prediction.gochor_remedy}</p>
+                  </div>
+                )}
+
+                {/* Mahadasha Gayatri Mantra */}
+                {(() => {
+                  const planet = prediction.current_mahadasha_planet
+                  const mantra = planet ? GAYATRI_MANTRAS[planet] : undefined
+                  if (!mantra) return null
+                  return (
+                    <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '10px' }}>Mahadasha Remedy — {mantra.label}</div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                        <tr><td style={{ paddingBottom: '8px', verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>Sanskrit Mantra</div>
+                          <p style={{ fontSize: '13px', color: '#4c1d95', lineHeight: '1.9', margin: 0, fontFamily: 'Georgia,serif', fontStyle: 'italic' }}>{mantra.sanskrit}</p>
+                        </td></tr>
+                        <tr><td style={{ paddingBottom: '8px', verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>Transliteration</div>
+                          <p style={{ fontSize: '12px', color: '#475569', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{mantra.transliteration}</p>
+                        </td></tr>
+                        <tr><td style={{ verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: '#059669', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>Benefits</div>
+                          {mantra.benefits.map((b, i) => (
+                            <p key={i} style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', margin: '0 0 3px 0', fontFamily: 'system-ui,sans-serif', paddingLeft: '12px' }}>• {b}</p>
+                          ))}
+                        </td></tr>
+                      </tbody></table>
+                    </div>
+                  )
+                })()}
+
+                {/* Antardasha */}
+                {prediction.antardasha_remedy && (
+                  <div style={{ background: '#fdf4ff', border: '1px solid #f5d0fe', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#86198f', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Antardasha Remedy</div>
+                    <p style={{ fontSize: '13px', color: '#701a75', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{prediction.antardasha_remedy}</p>
+                  </div>
+                )}
+
+                {/* Mahadasha text */}
+                {prediction.mahadasha_remedy && (
+                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Mahadasha Guidance</div>
+                    <p style={{ fontSize: '13px', color: '#1e40af', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{prediction.mahadasha_remedy}</p>
+                  </div>
+                )}
+
+                {/* Yantra */}
+                {(() => {
+                  const yantra = PLANET_YANTRAS[prediction.driver_number]
+                  if (!yantra) return null
+                  return (
+                    <div style={{ background: '#fdf2f8', border: '1px solid #f9a8d4', borderRadius: '8px', padding: '12px 14px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#be185d', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '12px' }}>Yantra — {yantra.label}</div>
+                      {/* Yantra grid as HTML table */}
+                      <table style={{ borderCollapse: 'separate', borderSpacing: '5px', marginBottom: '12px' }}><tbody>
+                        {yantra.grid.map((row, ri) => (
+                          <tr key={ri}>
+                            {row.map((num, ci) => {
+                              const idx = ri * 3 + ci
+                              return (
+                                <td key={ci} style={{ width: '68px', height: '50px', background: idx < 3 ? '#db2777' : '#fff', border: idx < 3 ? '2px solid #be185d' : '1px solid #f9a8d4', borderRadius: '7px', textAlign: 'center', verticalAlign: 'middle', fontSize: '16px', fontWeight: 700, color: idx < 3 ? '#fff' : '#be185d', fontFamily: 'system-ui,sans-serif' }}>{num}</td>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                      </tbody></table>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                        <tr><td style={{ verticalAlign: 'top', paddingBottom: '8px' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: '#059669', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>Benefits</div>
+                          {yantra.benefits.map((b, i) => <p key={i} style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', margin: '0 0 3px 0', fontFamily: 'system-ui,sans-serif', paddingLeft: '12px' }}>• {b}</p>)}
+                        </td></tr>
+                        <tr><td style={{ verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: '#d97706', textTransform: 'uppercase', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>How to Use</div>
+                          {yantra.howToUse.map((h, i) => <p key={i} style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', margin: '0 0 3px 0', fontFamily: 'system-ui,sans-serif', paddingLeft: '12px' }}>• {h}</p>)}
+                        </td></tr>
+                      </tbody></table>
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+
+            {/* ── FOOTER ── */}
+            <div style={{ background: '#f5f3ff', borderTop: '2px solid #ddd6fe', padding: '14px 40px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody><tr>
+                <td style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'system-ui,sans-serif' }}>Generated on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+                <td style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'system-ui,sans-serif', textAlign: 'right' }}>Numerology Report — Confidential</td>
+              </tr></tbody></table>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

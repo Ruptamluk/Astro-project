@@ -4,15 +4,18 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Calendar } from '@/components/ui/calendar'
 import { format, differenceInYears } from 'date-fns'
-import { Star, Sparkles, Moon, Sun, Compass } from 'lucide-react'
+import { Star, Sparkles, Moon, Sun, Compass, User, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 
 export default function DOBSelectionPage() {
   const router = useRouter()
   const [date, setDate] = useState<Date | undefined>(undefined)
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
 
@@ -28,6 +31,14 @@ export default function DOBSelectionPage() {
   }
 
   const handleSubmitDOB = async () => {
+    if (!name.trim()) {
+      toast.error('Please enter the name')
+      return
+    }
+    if (!phone.trim()) {
+      toast.error('Please enter the phone number')
+      return
+    }
     if (!date) {
       toast.error('Please select your date of birth')
       return
@@ -49,7 +60,7 @@ export default function DOBSelectionPage() {
 
       const data = await response.json()
       if (response.ok) {
-        localStorage.setItem('prediction', JSON.stringify(data))
+        localStorage.setItem('prediction', JSON.stringify({ ...data, name: name.trim(), phone: phone.trim() }))
         toast.success('Date submitted! Getting your prediction...')
         router.push('/prediction')
       } else {
@@ -136,6 +147,37 @@ export default function DOBSelectionPage() {
           <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-secondary/30 to-transparent" />
           
           <div className="relative bg-white/70 backdrop-blur-3xl rounded-[1.9rem] p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 h-full border border-black/5 disabled-text-selection">
+            {/* Name & Phone Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-center gap-2 text-[11px] sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary/90 to-secondary/90 uppercase tracking-[0.2em] sm:tracking-widest drop-shadow-sm text-center">
+                <User className="w-4 h-4 text-primary" />
+                Client Details
+                <Phone className="w-4 h-4 text-secondary" />
+              </div>
+              <div className="space-y-3">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder="Enter name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-9 bg-white/80 border-black/10 rounded-xl h-11 text-slate-800 placeholder:text-slate-400 focus-visible:ring-primary/30"
+                  />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <Input
+                    type="tel"
+                    placeholder="Enter phone number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="pl-9 bg-white/80 border-black/10 rounded-xl h-11 text-slate-800 placeholder:text-slate-400 focus-visible:ring-primary/30"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Calendar Section */}
             <div className="space-y-6">
               <div className="flex items-center justify-center gap-2 text-[11px] sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary/90 to-secondary/90 uppercase tracking-[0.2em] sm:tracking-widest drop-shadow-sm text-center">

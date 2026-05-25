@@ -46,6 +46,8 @@ interface Prediction {
   unlucky_color?: string
   lucky_number: number | string
   dob: string
+  name?: string
+  phone?: string
   dob_chart?: string[][]
 
   strength_number?: number
@@ -633,6 +635,25 @@ function reduceToSingleDigit(num: number): number {
   return value
 }
 
+const letterToNumber: Record<string, number> = {
+  a: 1, i: 1, j: 1, q: 1, y: 1,
+  b: 2, k: 2, r: 2,
+  c: 3, g: 3, l: 3, s: 3,
+  d: 4, m: 4, t: 4,
+  e: 5, h: 5, n: 5, x: 5,
+  u: 6, v: 6, w: 6,
+  o: 7, z: 7,
+  f: 8, p: 8,
+}
+
+function calculateNameNumber(name: string): number {
+  const total = name
+    .toLowerCase()
+    .split('')
+    .reduce((sum, char) => sum + (letterToNumber[char] ?? 0), 0)
+  return reduceToSingleDigit(total)
+}
+
 function getStrengthNumber(dob: string, driverNumber: number): number {
   const dobParts = dob.split('-')
   const month = dobParts[1] || '0'
@@ -706,10 +727,13 @@ export default function PredictionPage() {
 
           if (res.ok) {
             const latest = await res.json()
+            const stored = localStorage.getItem('prediction')
+            const storedParsed = stored ? JSON.parse(stored) : {}
+            const merged = { ...latest, name: storedParsed.name, phone: storedParsed.phone }
             if (isMounted) {
-              setPrediction(latest)
+              setPrediction(merged)
             }
-            localStorage.setItem('prediction', JSON.stringify(latest))
+            localStorage.setItem('prediction', JSON.stringify(merged))
           } else {
             console.error('Prediction fetch failed with status:', res.status)
           }
@@ -930,9 +954,58 @@ export default function PredictionPage() {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-indigo-700 bg-clip-text text-transparent mb-3">
               Your Numerology Insights
             </h1>
+            {prediction.name && (
+              <p className="text-slate-600 text-sm md:text-base">
+                Name: <span className="font-semibold text-slate-800">{prediction.name}</span>
+              </p>
+            )}
+            {prediction.phone && (
+              <p className="text-slate-600 text-sm md:text-base">
+                Phone: <span className="font-semibold text-slate-800">{prediction.phone}</span>
+              </p>
+            )}
             <p className="text-slate-600 text-sm md:text-base">
               Date of Birth: <span className="font-semibold text-slate-800">{prediction.dob}</span>
             </p>
+            {prediction.name && (() => {
+              const nameNumber = calculateNameNumber(prediction.name!)
+              const isCompatible = [1, 3, 5, 6].includes(nameNumber)
+              return (
+                <div className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${
+                  isCompatible
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                }`}>
+                  {isCompatible
+                    ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    : <XCircle className="w-4 h-4 shrink-0" />}
+                  {isCompatible
+                    ? 'Your name is compatible with dob'
+                    : 'Your name is not compatible with dob'}
+                </div>
+              )
+            })()}
+            {prediction.phone && (() => {
+              const phoneTotal = prediction.phone!
+                .split('')
+                .reduce((sum, ch) => sum + (isNaN(Number(ch)) ? 0 : Number(ch)), 0)
+              const phoneNumber = reduceToSingleDigit(phoneTotal)
+              const isCompatible = [1, 3, 5, 6].includes(phoneNumber)
+              return (
+                <div className={`mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${
+                  isCompatible
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                }`}>
+                  {isCompatible
+                    ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    : <XCircle className="w-4 h-4 shrink-0" />}
+                  {isCompatible
+                    ? 'Your phone number is compatible with dob'
+                    : 'Your phone number is not compatible with dob'}
+                </div>
+              )
+            })()}
           </div>
 
           <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
