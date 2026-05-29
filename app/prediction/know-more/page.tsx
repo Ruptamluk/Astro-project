@@ -1890,116 +1890,123 @@ export default function KnowMorePage() {
                       </div>
                     </div>
                   ) : item.key === 'remedy' ? (
-                    <div className="space-y-6">
-                      {/* Driver-Conductor Remedy */}
-                      <Card className="rounded-[28px] border-emerald-100 overflow-hidden shadow-sm bg-white/90">
-                        <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 flex items-center gap-2">
-                          <Shield className="w-5 h-5 text-emerald-600" />
-                          <h2 className="text-lg font-bold text-slate-800">Driver-Conductor Remedy</h2>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          <div className="flex flex-wrap gap-2">
-                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-100">
-                              Driver {prediction.driver_number}
-                            </span>
-                            <span className="inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 border border-teal-100">
-                              Conductor {prediction.conductor_number}
-                            </span>
-                          </div>
-                          <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
-                            <p className="text-base leading-8 text-emerald-900">
+                    <div className="space-y-4">
+                      {/* 2×2 grid for the 4 main remedy cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        {/* Driver-Conductor Remedy */}
+                        <Card className="rounded-[24px] border-emerald-100 overflow-hidden shadow-sm bg-white/90">
+                          <div className="p-5 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <div className="rounded-lg p-1.5 bg-emerald-100 shrink-0">
+                                  <Shield className="w-4 h-4 text-emerald-600" />
+                                </div>
+                                <h2 className="text-sm font-bold text-slate-800">Driver-Conductor Remedy</h2>
+                              </div>
+                              <div className="flex gap-1.5 shrink-0">
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-100">
+                                  D{prediction.driver_number}
+                                </span>
+                                <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700 border border-teal-100">
+                                  C{prediction.conductor_number}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm leading-7 text-slate-700">
                               {prediction.driver_conductor_remedy || 'No remedy available for this combination.'}
                             </p>
                           </div>
-                        </div>
-                      </Card>
+                        </Card>
 
-                      {/* Mahadasha Remedy */}
-                      <Card className="rounded-[28px] border-violet-100 overflow-hidden shadow-sm bg-white/90">
-                        <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-purple-50 px-5 py-4 flex items-center gap-2">
-                          <MoonStar className="w-5 h-5 text-violet-600" />
-                          <h2 className="text-lg font-bold text-slate-800">Mahadasha Remedy</h2>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          {prediction.current_mahadasha_planet && (
-                            <div className="flex flex-wrap gap-2">
-                              <span className="inline-flex items-center rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 border border-violet-100">
-                                Mahadasha {prediction.current_mahadasha_number} | {prediction.current_mahadasha_planet}
-                              </span>
+                        {/* Mahadasha Remedy */}
+                        <Card className="rounded-[24px] border-violet-100 overflow-hidden shadow-sm bg-white/90">
+                          <div className="p-5 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <div className="rounded-lg p-1.5 bg-violet-100 shrink-0">
+                                  <MoonStar className="w-4 h-4 text-violet-600" />
+                                </div>
+                                <h2 className="text-sm font-bold text-slate-800">Mahadasha Remedy</h2>
+                              </div>
+                              {prediction.current_mahadasha_planet && (
+                                <span className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700 border border-violet-100 shrink-0">
+                                  {prediction.current_mahadasha_planet}
+                                </span>
+                              )}
                             </div>
-                          )}
-                          <div className="rounded-xl bg-violet-50 border border-violet-100 p-4">
                             {(() => {
                               const planet = prediction.current_mahadasha_planet
                               const mantra = planet ? GAYATRI_MANTRAS[planet] : undefined
                               return mantra ? (
                                 <button
                                   onClick={() => setMantraOpen(planet ?? null)}
-                                  className="text-violet-700 font-semibold underline underline-offset-4 hover:text-violet-900 transition-colors text-base text-left"
+                                  className="text-violet-700 font-semibold underline underline-offset-4 hover:text-violet-900 transition-colors text-sm text-left"
                                 >
                                   {mantra.label}
                                 </button>
                               ) : (
-                                <p className="text-base leading-8 text-violet-900">
+                                <p className="text-sm leading-7 text-slate-700">
                                   {prediction.mahadasha_remedy || 'No mahadasha remedy available yet.'}
                                 </p>
                               )
                             })()}
                           </div>
-                        </div>
-                      </Card>
+                        </Card>
 
-                      {/* Yantra */}
-                      <Card className="rounded-[28px] border-fuchsia-100 overflow-hidden shadow-sm bg-white/90">
-                        <div className="border-b border-fuchsia-100 bg-gradient-to-r from-fuchsia-50 to-pink-50 px-5 py-4 flex items-center gap-2">
-                          <Star className="w-5 h-5 text-fuchsia-600" />
-                          <h2 className="text-lg font-bold text-slate-800">Yantra</h2>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          <div className="flex flex-wrap gap-2">
-                            <span className="inline-flex items-center rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 border border-fuchsia-100">
-                              Driver {prediction.driver_number}
-                            </span>
-                          </div>
-                          <div className="rounded-xl bg-fuchsia-50 border border-fuchsia-100 p-4">
+                        {/* Yantra */}
+                        <Card className="rounded-[24px] border-fuchsia-100 overflow-hidden shadow-sm bg-white/90">
+                          <div className="p-5 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <div className="rounded-lg p-1.5 bg-fuchsia-100 shrink-0">
+                                  <Star className="w-4 h-4 text-fuchsia-600" />
+                                </div>
+                                <h2 className="text-sm font-bold text-slate-800">Yantra</h2>
+                              </div>
+                              <span className="inline-flex items-center rounded-full bg-fuchsia-50 px-2.5 py-0.5 text-xs font-semibold text-fuchsia-700 border border-fuchsia-100 shrink-0">
+                                Driver {prediction.driver_number}
+                              </span>
+                            </div>
                             {(() => {
                               const yantra = PLANET_YANTRAS[prediction.driver_number]
                               return yantra ? (
                                 <button
                                   onClick={() => setYantraOpen(true)}
-                                  className="text-fuchsia-700 font-semibold underline underline-offset-4 hover:text-fuchsia-900 transition-colors text-base text-left"
+                                  className="text-fuchsia-700 font-semibold underline underline-offset-4 hover:text-fuchsia-900 transition-colors text-sm text-left"
                                 >
                                   {yantra.label}
                                 </button>
                               ) : (
-                                <p className="text-base leading-8 text-fuchsia-900">No yantra available.</p>
+                                <p className="text-sm leading-7 text-slate-700">No yantra available.</p>
                               )
                             })()}
                           </div>
-                        </div>
-                      </Card>
+                        </Card>
 
-                      {/* Personal Year Remedy */}
-                      <Card className="rounded-[28px] border-indigo-100 overflow-hidden shadow-sm bg-white/90">
-                        <div className="border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-4 flex items-center gap-2">
-                          <CalendarDays className="w-5 h-5 text-indigo-600" />
-                          <h2 className="text-lg font-bold text-slate-800">Remedy for Personal Year</h2>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          <div className="flex flex-wrap gap-2">
-                            <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 border border-indigo-100">
-                              Personal Year {prediction.personal_year}
-                            </span>
-                          </div>
-                          <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-4">
-                            <p className="text-base leading-8 text-indigo-900">
+                        {/* Personal Year Remedy */}
+                        <Card className="rounded-[24px] border-indigo-100 overflow-hidden shadow-sm bg-white/90">
+                          <div className="p-5 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <div className="rounded-lg p-1.5 bg-indigo-100 shrink-0">
+                                  <CalendarDays className="w-4 h-4 text-indigo-600" />
+                                </div>
+                                <h2 className="text-sm font-bold text-slate-800">Personal Year Remedy</h2>
+                              </div>
+                              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-100 shrink-0">
+                                Year {prediction.personal_year}
+                              </span>
+                            </div>
+                            <p className="text-sm leading-7 text-slate-700">
                               {PERSONAL_YEAR_REMEDIES[prediction.personal_year] ?? 'No remedy available for this personal year.'}
                             </p>
                           </div>
-                        </div>
-                      </Card>
+                        </Card>
 
-                      {/* Yog Remedy */}
+                      </div>
+
+                      {/* Yog Remedies — full width below grid */}
                       {(() => {
                         const activeYogsWithRemedies = yogResults
                           .filter((y) => y.active)
@@ -2012,30 +2019,34 @@ export default function KnowMorePage() {
                         if (activeYogsWithRemedies.length === 0) return null
 
                         return (
-                          <Card className="rounded-[28px] border-amber-100 overflow-hidden shadow-sm bg-white/90">
-                            <div className="border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 flex items-center gap-2">
-                              <Trophy className="w-5 h-5 text-amber-600" />
-                              <h2 className="text-lg font-bold text-slate-800">Yog Remedies</h2>
-                            </div>
-                            <div className="p-6 space-y-5">
-                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                Remedies for your {activeYogsWithRemedies.length} active yog{activeYogsWithRemedies.length !== 1 ? 's' : ''}
-                              </p>
-                              {activeYogsWithRemedies.map((yog, idx) => (
-                                <div key={idx} className="rounded-xl bg-amber-50 border border-amber-100 p-4 space-y-2">
-                                  <p className="text-sm font-semibold text-amber-700 uppercase tracking-wide">
-                                    {yog.name}
-                                  </p>
-                                  <ul className="space-y-1.5 mt-2">
-                                    {yog.remedies.map((remedy, i) => (
-                                      <li key={i} className="flex items-start gap-2 text-base text-amber-900 leading-7">
-                                        <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                                        {remedy}
-                                      </li>
-                                    ))}
-                                  </ul>
+                          <Card className="rounded-[24px] border-amber-100 overflow-hidden shadow-sm bg-white/90">
+                            <div className="p-5 space-y-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="rounded-lg p-1.5 bg-amber-100 shrink-0">
+                                  <Trophy className="w-4 h-4 text-amber-600" />
                                 </div>
-                              ))}
+                                <h2 className="text-sm font-bold text-slate-800">Yog Remedies</h2>
+                                <span className="ml-auto inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 border border-amber-100">
+                                  {activeYogsWithRemedies.length} active yog{activeYogsWithRemedies.length !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {activeYogsWithRemedies.map((yog, idx) => (
+                                  <div key={idx} className="rounded-xl bg-amber-50 border border-amber-100 p-3.5 space-y-2">
+                                    <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">
+                                      {yog.name}
+                                    </p>
+                                    <ul className="space-y-1.5">
+                                      {yog.remedies.map((remedy, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm text-amber-900 leading-6">
+                                          <span className="mt-2 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                                          {remedy}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </Card>
                         )

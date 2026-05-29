@@ -1536,7 +1536,7 @@ export default function PredictionPage() {
                 </div>
               ) : (
                 <div className="p-5 md:p-7 grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="rounded-[24px] border border-violet-100 bg-violet-50/50 p-5 md:p-6 flex flex-col min-h-[240px] shadow-[0_18px_36px_-30px_rgba(124,58,237,0.55)]">
+                  <div className="rounded-[24px] border border-violet-100 bg-violet-50/50 p-5 md:p-6 flex flex-col shadow-[0_18px_36px_-30px_rgba(124,58,237,0.55)]">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-1 h-5 rounded-full bg-violet-500" />
                       <h4 className="font-bold text-slate-800">Prediction</h4>
@@ -1546,7 +1546,7 @@ export default function PredictionPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-[24px] border border-fuchsia-100 bg-fuchsia-50/50 p-5 md:p-6 flex flex-col min-h-[240px] shadow-[0_18px_36px_-30px_rgba(217,70,239,0.45)]">
+                  <div className="rounded-[24px] border border-fuchsia-100 bg-fuchsia-50/50 p-5 md:p-6 flex flex-col shadow-[0_18px_36px_-30px_rgba(217,70,239,0.45)]">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-1 h-5 rounded-full bg-fuchsia-500" />
                       <h4 className="font-bold text-slate-800">Remedy</h4>
