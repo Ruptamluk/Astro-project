@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { loadRazorpayScript, openRazorpayCheckout } from '@/lib/razorpay'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -35,6 +37,8 @@ import {
   Shield,
   Download,
   FileText,
+  Coins,
+  Lock,
 } from 'lucide-react'
 
 interface Prediction {
@@ -1146,6 +1150,8 @@ export default function KnowMorePage() {
   const [userName, setUserName] = useState<string>('')
   const [userLogo, setUserLogo] = useState<string | null>(null)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [reportLogoAccess, setReportLogoAccess] = useState(false)
+  const [isPayingLogo, setIsPayingLogo] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1175,6 +1181,7 @@ export default function KnowMorePage() {
               router.push('/prediction')
               return
             }
+            if (isMounted) setReportLogoAccess(userData.report_logo_access === true)
           } else {
             router.push('/prediction')
             return
@@ -1182,6 +1189,16 @@ export default function KnowMorePage() {
         } catch {
           router.push('/prediction')
           return
+        }
+
+        // Consume one token per browser session (sessionStorage prevents double-consumption)
+        if (!sessionStorage.getItem('km_token_consumed')) {
+          try {
+            await fetch(`${API_BASE_URL}/api/payment/consume-token/${userId}`, { method: 'POST' })
+            sessionStorage.setItem('km_token_consumed', '1')
+          } catch {
+            // Non-fatal — user is already past the access check
+          }
         }
 
         const storedPrediction = localStorage.getItem('prediction')
@@ -1316,6 +1333,74 @@ export default function KnowMorePage() {
     return { ...yog, active }
   })
   const activeYogCount = yogResults.filter((y) => y.active).length
+
+  const handleLogoPayment = async () => {
+    const userId = localStorage.getItem('userId')
+    if (!userId) return
+
+    setIsPayingLogo(true)
+    try {
+      const loaded = await loadRazorpayScript()
+      if (!loaded) {
+        toast.error('Failed to load payment gateway. Please try again.')
+        return
+      }
+
+      const orderRes = await fetch(`${API_BASE_URL}/api/payment/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, payment_type: 'report_logo' }),
+      })
+
+      if (!orderRes.ok) {
+        toast.error('Could not create payment order. Please try again.')
+        return
+      }
+
+      const orderData = await orderRes.json()
+
+      openRazorpayCheckout({
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.order_id,
+        name: 'Astrology App',
+        description: 'Report Logo & Name Unlock',
+        theme: { color: '#7c3aed' },
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch(`${API_BASE_URL}/api/payment/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                user_id: userId,
+                payment_type: 'report_logo',
+              }),
+            })
+
+            if (verifyRes.ok) {
+              toast.success('Logo & Name unlocked!')
+              setReportLogoAccess(true)
+            } else {
+              toast.error('Payment verification failed. Contact support.')
+            }
+          } catch {
+            toast.error('Network error during verification.')
+          }
+        },
+        modal: {
+          ondismiss: () => setIsPayingLogo(false),
+        },
+      })
+    } catch {
+      toast.error('Something went wrong. Please try again.')
+    } finally {
+      setIsPayingLogo(false)
+    }
+  }
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -2061,7 +2146,29 @@ export default function KnowMorePage() {
                           <h2 className="text-lg font-bold text-slate-800">Personalise Your Report</h2>
                         </div>
                         <div className="p-6 space-y-5">
-                          <div className="space-y-2">
+                          {!reportLogoAccess && (
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between gap-4 flex-wrap">
+                              <div className="flex items-center gap-3">
+                                <Lock className="w-5 h-5 text-amber-500 shrink-0" />
+                                <div>
+                                  <p className="text-sm font-semibold text-amber-800">Add Logo &amp; Name to Report</p>
+                                  <p className="text-xs text-amber-600">Unlock to personalise your PDF header with your name and logo</p>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={handleLogoPayment}
+                                disabled={isPayingLogo}
+                                className="shrink-0 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm px-4 py-2 h-auto disabled:opacity-60"
+                              >
+                                {isPayingLogo ? (
+                                  <><Star className="w-4 h-4 mr-1.5 animate-spin" />Processing…</>
+                                ) : (
+                                  <><Coins className="w-4 h-4 mr-1.5" />Unlock — ₹5,000</>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                          <div className={`space-y-2 ${!reportLogoAccess ? 'opacity-40 pointer-events-none select-none' : ''}`}>
                             <label className="text-sm font-semibold text-slate-700" htmlFor="report-name">
                               Your Name <span className="text-slate-400 font-normal">(appears on the report header)</span>
                             </label>
@@ -2071,9 +2178,10 @@ export default function KnowMorePage() {
                               value={userName}
                               onChange={(e) => setUserName(e.target.value)}
                               className="rounded-xl h-11 border-violet-200 focus-visible:ring-violet-400"
+                              disabled={!reportLogoAccess}
                             />
                           </div>
-                          <div className="space-y-2">
+                          <div className={`space-y-2 ${!reportLogoAccess ? 'opacity-40 pointer-events-none select-none' : ''}`}>
                             <label className="text-sm font-semibold text-slate-700" htmlFor="report-logo">
                               Logo or Photo <span className="text-slate-400 font-normal">(optional)</span>
                             </label>
@@ -2091,6 +2199,7 @@ export default function KnowMorePage() {
                                 accept="image/*"
                                 className="sr-only"
                                 onChange={handleLogoUpload}
+                                disabled={!reportLogoAccess}
                               />
                               {userLogo && (
                                 <div className="flex items-center gap-2">
