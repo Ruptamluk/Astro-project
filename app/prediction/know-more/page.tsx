@@ -2027,7 +2027,7 @@ export default function KnowMorePage() {
                                 Year {prediction.personal_year}
                               </span>
                             </div>
-                            <p className="text-sm leading-7 text-slate-700">
+                            <p className="text-sm leading-7 text-slate-700 font-medium">
                               {PERSONAL_YEAR_REMEDIES[prediction.personal_year] ?? 'No remedy available for this personal year.'}
                             </p>
                           </div>
@@ -2081,25 +2081,6 @@ export default function KnowMorePage() {
                         )
                       })()}
 
-                      {/* Switch Word — based on driver number */}
-                      <Card className="rounded-[24px] border-sky-100 overflow-hidden shadow-sm bg-white/90">
-                        <div className="p-5 space-y-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5">
-                              <div className="rounded-lg p-1.5 bg-sky-100 shrink-0">
-                                <Sparkles className="w-4 h-4 text-sky-600" />
-                              </div>
-                              <h2 className="text-sm font-bold text-slate-800">Switch Word</h2>
-                            </div>
-                            <span className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700 border border-sky-100 shrink-0">
-                              Driver {prediction.driver_number}
-                            </span>
-                          </div>
-                          <p className="text-sm leading-7 text-slate-700 font-medium">
-                            {PERSONAL_YEAR_REMEDIES[prediction.driver_number] ?? 'No switch word available.'}
-                          </p>
-                        </div>
-                      </Card>
 
                     </div>
                   ) : item.key === 'report' ? (
@@ -2706,6 +2687,14 @@ export default function KnowMorePage() {
                   )
                 })()}
 
+                {/* Personal Year Remedy — right after Yantra, matching UI layout */}
+                {PERSONAL_YEAR_REMEDIES[prediction.personal_year] && (
+                  <div style={{ background: '#eef2ff', border: '1px solid #a5b4fc', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Personal Year Remedy — Year {prediction.personal_year}</div>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#312e81', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif', letterSpacing: '0.02em' }}>{PERSONAL_YEAR_REMEDIES[prediction.personal_year]}</p>
+                  </div>
+                )}
+
                 {/* Yog Remedies */}
                 {(() => {
                   const activeYogsWithRemedies = yogResults
@@ -2736,14 +2725,6 @@ export default function KnowMorePage() {
                     </div>
                   )
                 })()}
-
-                {/* Switch Word */}
-                {PERSONAL_YEAR_REMEDIES[prediction.driver_number] && (
-                  <div style={{ background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: '8px', padding: '12px 14px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Switch Word — Driver {prediction.driver_number}</div>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#0c4a6e', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif', letterSpacing: '0.02em' }}>{PERSONAL_YEAR_REMEDIES[prediction.driver_number]}</p>
-                  </div>
-                )}
 
               </div>
             </div>
