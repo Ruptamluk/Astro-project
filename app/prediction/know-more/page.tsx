@@ -1417,7 +1417,7 @@ export default function KnowMorePage() {
       icon: Zap,
       value: strengthNumber,
       prediction: prediction.strength_prediction || 'No strength number prediction available yet.',
-      remedy: prediction.strength_remedy || 'No remedy available yet.',
+      remedy: (prediction.strength_remedy && !prediction.strength_remedy.toLowerCase().startsWith('no ')) ? prediction.strength_remedy : '',
     },
     {
       key: 'gochor' as InsightKey,
@@ -1426,7 +1426,7 @@ export default function KnowMorePage() {
       icon: Orbit,
       value: prediction.gochor_number ?? null,
       prediction: prediction.gochor_prediction || 'No gochor prediction available yet.',
-      remedy: prediction.gochor_remedy || 'No gochor remedy available yet.',
+      remedy: (prediction.gochor_remedy && !prediction.gochor_remedy.toLowerCase().startsWith('no ')) ? prediction.gochor_remedy : '',
     },
     {
       key: 'dobChart' as InsightKey,
@@ -2207,7 +2207,7 @@ export default function KnowMorePage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className={`grid grid-cols-1 ${item.remedy ? 'lg:grid-cols-2' : ''} gap-6`}>
                       <Card className="rounded-[28px] border-violet-100 bg-violet-50/60 p-6 md:p-7 shadow-sm">
                         <div className="flex items-center gap-2 mb-4">
                           <div className="w-1.5 h-6 rounded-full bg-violet-500" />
@@ -2218,15 +2218,17 @@ export default function KnowMorePage() {
                         </p>
                       </Card>
 
-                      <Card className="rounded-[28px] border-fuchsia-100 bg-fuchsia-50/60 p-6 md:p-7 shadow-sm">
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="w-1.5 h-6 rounded-full bg-fuchsia-500" />
-                          <h2 className="text-lg font-bold text-slate-800">Remedy</h2>
-                        </div>
-                        <p className="text-base leading-8 whitespace-pre-line text-slate-700">
-                          {item.remedy}
-                        </p>
-                      </Card>
+                      {item.remedy && (
+                        <Card className="rounded-[28px] border-fuchsia-100 bg-fuchsia-50/60 p-6 md:p-7 shadow-sm">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-1.5 h-6 rounded-full bg-fuchsia-500" />
+                            <h2 className="text-lg font-bold text-slate-800">Remedy</h2>
+                          </div>
+                          <p className="text-base leading-8 whitespace-pre-line text-slate-700">
+                            {item.remedy}
+                          </p>
+                        </Card>
+                      )}
                     </div>
                   )}
                 </TabsContent>
