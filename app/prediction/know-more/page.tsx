@@ -68,6 +68,8 @@ interface Prediction {
   antardasha_end?: string
   dasha_analysis?: string
   driver_conductor_remedy?: string
+  name?: string
+  phone?: string
 }
 
 type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas' | 'remedy' | 'report'
@@ -1145,8 +1147,32 @@ export default function KnowMorePage() {
   const [yantraOpen, setYantraOpen] = useState(false)
   const [userName, setUserName] = useState<string>('')
   const [userLogo, setUserLogo] = useState<string | null>(null)
+  const [clientName, setClientName] = useState<string>('')
+  const [clientPhone, setClientPhone] = useState<string>('')
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Try dedicated userInfo key first (set by dob-selection)
+    const info = localStorage.getItem('userInfo')
+    if (info) {
+      try {
+        const parsed = JSON.parse(info)
+        if (parsed.name) setClientName(parsed.name)
+        if (parsed.phone) setClientPhone(parsed.phone)
+        return
+      } catch {}
+    }
+    // Fallback: read name/phone from prediction key (older sessions)
+    const stored = localStorage.getItem('prediction')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        if (parsed.name) setClientName(parsed.name)
+        if (parsed.phone) setClientPhone(parsed.phone)
+      } catch {}
+    }
+  }, [])
 
   useEffect(() => {
     const nextTab = new URLSearchParams(window.location.search).get('tab')
@@ -1217,10 +1243,13 @@ export default function KnowMorePage() {
 
           if (res.ok) {
             const latest = await res.json()
+            const stored = localStorage.getItem('prediction')
+            const storedParsed = stored ? JSON.parse(stored) : {}
+            const merged = { ...latest, name: storedParsed.name, phone: storedParsed.phone }
             if (isMounted) {
-              setPrediction(latest)
+              setPrediction(merged)
             }
-            localStorage.setItem('prediction', JSON.stringify(latest))
+            localStorage.setItem('prediction', JSON.stringify(merged))
           } else {
             console.error('Prediction fetch failed with status:', res.status)
           }
@@ -2051,6 +2080,27 @@ export default function KnowMorePage() {
                           </Card>
                         )
                       })()}
+
+                      {/* Switch Word — based on driver number */}
+                      <Card className="rounded-[24px] border-sky-100 overflow-hidden shadow-sm bg-white/90">
+                        <div className="p-5 space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="rounded-lg p-1.5 bg-sky-100 shrink-0">
+                                <Sparkles className="w-4 h-4 text-sky-600" />
+                              </div>
+                              <h2 className="text-sm font-bold text-slate-800">Switch Word</h2>
+                            </div>
+                            <span className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700 border border-sky-100 shrink-0">
+                              Driver {prediction.driver_number}
+                            </span>
+                          </div>
+                          <p className="text-sm leading-7 text-slate-700 font-medium">
+                            {PERSONAL_YEAR_REMEDIES[prediction.driver_number] ?? 'No switch word available.'}
+                          </p>
+                        </div>
+                      </Card>
+
                     </div>
                   ) : item.key === 'report' ? (
                     <div className="space-y-8 max-w-2xl mx-auto">
@@ -2122,7 +2172,7 @@ export default function KnowMorePage() {
                         <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-inner text-sm text-slate-600 space-y-3">
                           <div className="flex items-center justify-between py-2 border-b border-slate-100">
                             <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Header</span>
-                            <span className="text-slate-700">{userLogo ? 'Logo + ' : ''}{userName || '(Your name)'} — {new Date().toLocaleDateString()}</span>
+                            <span className="text-slate-700">{userLogo ? 'Logo + ' : ''}{userName ? `${userName} · ` : ''}{clientName || '(Client name)'}{clientPhone ? ` · ${clientPhone}` : ''}</span>
                           </div>
                           <div className="flex items-center justify-between py-2 border-b border-slate-100">
                             <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Page 1</span>
@@ -2314,14 +2364,21 @@ export default function KnowMorePage() {
                       </td>
                     )}
                     <td style={{ verticalAlign: 'middle' }}>
-                      {userName && <div style={{ color: '#fff', fontSize: '22px', fontWeight: 700, letterSpacing: '0.01em' }}>{userName}</div>}
-                      <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', marginTop: userName ? '4px' : 0 }}>Numerology Report</div>
+                      <div style={{ color: '#fff', fontSize: userName ? '20px' : '15px', fontWeight: 700, letterSpacing: '0.01em', fontFamily: 'system-ui,sans-serif' }}>
+                        {userName ? `Numerology Report by ${userName}` : 'Numerology Report'}
+                      </div>
                     </td>
                   </tr></tbody></table>
                 </td>
                 <td style={{ verticalAlign: 'middle', textAlign: 'right' }}>
-                  <div style={{ color: '#fff', fontWeight: 700, fontSize: '15px' }}>{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                  <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '13px', marginTop: '4px' }}>Date of Birth: {prediction.dob}</div>
+                  {clientName && (
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '16px', marginBottom: '3px', fontFamily: 'system-ui,sans-serif' }}>{clientName}</div>
+                  )}
+                  {clientPhone && (
+                    <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px', marginBottom: '6px', fontFamily: 'system-ui,sans-serif' }}>{clientPhone}</div>
+                  )}
+                  <div style={{ color: clientName ? 'rgba(255,255,255,0.65)' : '#fff', fontWeight: clientName ? 400 : 700, fontSize: clientName ? '12px' : '15px', fontFamily: 'system-ui,sans-serif' }}>{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '12px', marginTop: '3px', fontFamily: 'system-ui,sans-serif' }}>Date of Birth: {prediction.dob}</div>
                 </td>
               </tr></tbody></table>
             </div>
@@ -2618,7 +2675,7 @@ export default function KnowMorePage() {
                   const yantra = PLANET_YANTRAS[prediction.driver_number]
                   if (!yantra) return null
                   return (
-                    <div style={{ background: '#fdf2f8', border: '1px solid #f9a8d4', borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ background: '#fdf2f8', border: '1px solid #f9a8d4', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#be185d', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '12px' }}>Yantra — {yantra.label}</div>
                       {/* Yantra grid as HTML table */}
                       <table style={{ borderCollapse: 'separate', borderSpacing: '5px', marginBottom: '12px' }}><tbody>
@@ -2646,6 +2703,46 @@ export default function KnowMorePage() {
                     </div>
                   )
                 })()}
+
+                {/* Yog Remedies */}
+                {(() => {
+                  const activeYogsWithRemedies = yogResults
+                    .filter((y) => y.active)
+                    .map((y) => ({
+                      name: y.name,
+                      remedies: yogRemedyData[getYogRemedyKey(y.numbers, y.missingNumbers)],
+                    }))
+                    .filter((y) => y.remedies && y.remedies.length > 0)
+                  if (activeYogsWithRemedies.length === 0) return null
+                  return (
+                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '10px' }}>
+                        Yog Remedies ({activeYogsWithRemedies.length} active yog{activeYogsWithRemedies.length !== 1 ? 's' : ''})
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}><tbody>
+                        {activeYogsWithRemedies.map((yog, idx) => (
+                          <tr key={idx}>
+                            <td style={{ background: '#fff', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 13px', verticalAlign: 'top' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 700, color: '#78350f', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'system-ui,sans-serif', marginBottom: '6px' }}>{yog.name}</div>
+                              {yog.remedies.map((r, i) => (
+                                <p key={i} style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', margin: '0 0 3px 0', fontFamily: 'system-ui,sans-serif', paddingLeft: '12px' }}>• {r}</p>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody></table>
+                    </div>
+                  )
+                })()}
+
+                {/* Switch Word */}
+                {PERSONAL_YEAR_REMEDIES[prediction.driver_number] && (
+                  <div style={{ background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '5px' }}>Switch Word — Driver {prediction.driver_number}</div>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#0c4a6e', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif', letterSpacing: '0.02em' }}>{PERSONAL_YEAR_REMEDIES[prediction.driver_number]}</p>
+                  </div>
+                )}
+
               </div>
             </div>
 
@@ -2655,6 +2752,28 @@ export default function KnowMorePage() {
                 <td style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'system-ui,sans-serif' }}>Generated on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
                 <td style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'system-ui,sans-serif', textAlign: 'right' }}>Numerology Report — Confidential</td>
               </tr></tbody></table>
+            </div>
+
+            {/* ── COMMENTS PAGE (blank, for handwritten notes) ── */}
+            <div style={{ pageBreakBefore: 'always', minHeight: '1050px', background: '#ffffff', padding: '40px 40px 40px' }}>
+              {/* Comment page header */}
+              <div style={{ background: 'linear-gradient(135deg,#7c3aed,#c026d3 55%,#4f46e5)', padding: '22px 32px', borderRadius: '14px', marginBottom: '36px' }}>
+                <div style={{ color: '#fff', fontSize: '20px', fontWeight: 700, letterSpacing: '0.04em', fontFamily: 'system-ui,sans-serif' }}>Comments</div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', marginTop: '4px', fontFamily: 'system-ui,sans-serif' }}>Personal notes &amp; observations</div>
+              </div>
+
+              {/* Ruled lines for writing */}
+              {Array.from({ length: 22 }).map((_, i) => (
+                <div key={i} style={{ borderBottom: '1px solid #e2e8f0', marginBottom: '30px', width: '100%' }} />
+              ))}
+
+              {/* Footer on comment page */}
+              <div style={{ borderTop: '2px solid #ddd6fe', paddingTop: '12px', marginTop: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody><tr>
+                  <td style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'system-ui,sans-serif' }}>{userName || 'Numerology Report'}</td>
+                  <td style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'system-ui,sans-serif', textAlign: 'right' }}>Page — Comments</td>
+                </tr></tbody></table>
+              </div>
             </div>
           </>
         )}
