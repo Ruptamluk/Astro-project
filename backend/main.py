@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import routers
-from routes import auth, predictions
+from routes import auth, predictions, payment
 
 # Database client
 db_client: AsyncIOMotorClient = None
@@ -41,6 +41,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(predictions.router, prefix="/api/predictions", tags=["predictions"])
+app.include_router(payment.router, prefix="/api/payment", tags=["payment"])
 
 @app.get("/")
 async def root():

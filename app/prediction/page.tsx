@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { loadRazorpayScript, openRazorpayCheckout } from '@/lib/razorpay'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -35,6 +37,8 @@ import {
   CheckCircle2,
   XCircle,
   Lock,
+  Coins,
+  Unlock,
 } from 'lucide-react'
 
 interface Prediction {
@@ -671,6 +675,10 @@ export default function PredictionPage() {
   const [openKnowMore, setOpenKnowMore] = useState(false)
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
   const [knowMoreAccess, setKnowMoreAccess] = useState(false)
+  const [knowMoreTokens, setKnowMoreTokens] = useState(0)
+  const [showTokenDialog, setShowTokenDialog] = useState(false)
+  const [selectedPack, setSelectedPack] = useState<'5' | '32' | '100' | '500' | '1000'>('5')
+  const [isPayingToken, setIsPayingToken] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -688,7 +696,10 @@ export default function PredictionPage() {
           const userRes = await fetch(`${API_BASE_URL}/api/auth/user/${userId}`)
           if (userRes.ok) {
             const userData = await userRes.json()
-            if (isMounted) setKnowMoreAccess(userData.know_more_access === true)
+            if (isMounted) {
+              setKnowMoreAccess(userData.know_more_access === true)
+              setKnowMoreTokens(userData.know_more_tokens ?? 0)
+            }
           }
         } catch {
           // access stays false on error
@@ -761,6 +772,84 @@ export default function PredictionPage() {
     localStorage.removeItem('userId')
     localStorage.removeItem('prediction')
     router.push('/')
+  }
+
+  const TOKEN_PACKS = [
+    { id: '5',    tokens: 5,    price: 271,  label: 'Starter' },
+    { id: '32',   tokens: 32,   price: 811,  label: 'Basic' },
+    { id: '100',  tokens: 100,  price: 1801, label: 'Standard' },
+    { id: '500',  tokens: 500,  price: 6301, label: 'Value' },
+    { id: '1000', tokens: 1000, price: 8101, label: 'Mega' },
+  ] as const
+
+  const handleTokenPayment = async () => {
+    const userId = localStorage.getItem('userId')
+    if (!userId) return
+
+    setIsPayingToken(true)
+    try {
+      const loaded = await loadRazorpayScript()
+      if (!loaded) {
+        toast.error('Failed to load payment gateway. Please try again.')
+        return
+      }
+
+      const orderRes = await fetch(`${API_BASE_URL}/api/payment/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, payment_type: 'know_more_token', pack: selectedPack }),
+      })
+
+      if (!orderRes.ok) {
+        toast.error('Could not create payment order. Please try again.')
+        return
+      }
+
+      const orderData = await orderRes.json()
+
+      openRazorpayCheckout({
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.order_id,
+        name: 'Astrology App',
+        description: `Know More — ${TOKEN_PACKS.find(p => p.id === selectedPack)?.tokens} token(s)`,
+        theme: { color: '#7c3aed' },
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch(`${API_BASE_URL}/api/payment/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                user_id: userId,
+                payment_type: 'know_more_token',
+                tokens_to_grant: orderData.tokens_to_grant,
+              }),
+            })
+
+            if (verifyRes.ok) {
+              toast.success('Payment successful! Redirecting…')
+              setShowTokenDialog(false)
+              router.push('/prediction/know-more?tab=strength')
+            } else {
+              toast.error('Payment verification failed. Contact support.')
+            }
+          } catch {
+            toast.error('Network error during verification.')
+          }
+        },
+        modal: {
+          ondismiss: () => setIsPayingToken(false),
+        },
+      })
+    } catch {
+      toast.error('Something went wrong. Please try again.')
+    } finally {
+      setIsPayingToken(false)
+    }
   }
 
   if (loading) {
@@ -1148,25 +1237,32 @@ export default function PredictionPage() {
               )}
 
               <div className="mt-6">
-                {knowMoreAccess ? (
-                  <Button
-                    variant="link"
-                    className="px-0 text-violet-700 text-base font-semibold hover:text-fuchsia-600"
-                    onClick={() => router.push('/prediction/know-more?tab=strength')}
-                  >
-                    Know more
-                  </Button>
+                {knowMoreTokens > 0 ? (
+                  <div className="flex flex-col items-start gap-1">
+                    <Button
+                      variant="link"
+                      className="px-0 text-violet-700 text-base font-semibold hover:text-fuchsia-600 flex items-center gap-1.5"
+                      onClick={() => router.push('/prediction/know-more?tab=strength')}
+                    >
+                      <Unlock className="w-4 h-4" />
+                      Know more
+                    </Button>
+                    <span className="text-xs text-violet-500 pl-0.5 flex items-center gap-1">
+                      <Coins className="w-3 h-3" />
+                      {knowMoreTokens} token{knowMoreTokens !== 1 ? 's' : ''} remaining
+                    </span>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-start gap-1">
                     <Button
                       variant="link"
-                      className="px-0 text-slate-400 text-base font-semibold cursor-not-allowed pointer-events-none flex items-center gap-1.5"
-                      disabled
+                      className="px-0 text-violet-600 text-base font-semibold hover:text-fuchsia-600 flex items-center gap-1.5"
+                      onClick={() => setShowTokenDialog(true)}
                     >
                       <Lock className="w-4 h-4" />
                       Know more
                     </Button>
-                    <span className="text-xs text-slate-400 pl-0.5">Coming Soon</span>
+                    <span className="text-xs text-slate-500 pl-0.5">Buy tokens to unlock</span>
                   </div>
                 )}
               </div>
@@ -1567,6 +1663,63 @@ export default function PredictionPage() {
                 Close
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Token pack purchase dialog */}
+      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
+        <DialogContent className="max-w-md rounded-3xl border-violet-100 bg-white p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl font-bold flex items-center gap-2">
+                <Coins className="w-5 h-5" />
+                Unlock Know More
+              </DialogTitle>
+              <DialogDescription className="text-violet-100 text-sm mt-1">
+                Buy tokens to access deep numerology insights. Each token = 1 session.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              {TOKEN_PACKS.map((pack) => (
+                <button
+                  key={pack.id}
+                  onClick={() => setSelectedPack(pack.id)}
+                  className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                    selectedPack === pack.id
+                      ? 'border-violet-500 bg-violet-50'
+                      : 'border-slate-100 bg-white hover:border-violet-200'
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-slate-500 mb-1">{pack.label}</div>
+                  <div className="text-2xl font-bold text-slate-800">₹{pack.price}</div>
+                  <div className="text-xs text-violet-600 font-medium mt-1">
+                    {pack.tokens} token{pack.tokens !== 1 ? 's' : ''} · ₹{Math.round(pack.price / pack.tokens)}/session
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <Button
+              onClick={handleTokenPayment}
+              disabled={isPayingToken}
+              className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40 disabled:opacity-60"
+            >
+              {isPayingToken ? (
+                <>
+                  <Star className="w-4 h-4 mr-2 animate-spin" />
+                  Processing…
+                </>
+              ) : (
+                <>
+                  <Coins className="w-4 h-4 mr-2" />
+                  Pay ₹{TOKEN_PACKS.find(p => p.id === selectedPack)?.price}
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
