@@ -1157,6 +1157,12 @@ export default function KnowMorePage() {
   const [reportLogoAccess, setReportLogoAccess] = useState(false)
   const [isPayingLogo, setIsPayingLogo] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
+  // Ensures the token spend runs only once per mount (guards against React
+  // StrictMode's double-invoked effect double-charging / racing the spend).
+  const consumeStartedRef = useRef(false)
+  // Carries the viewing-window expiry across StrictMode's double effect pass so
+  // the surviving pass can still schedule auto-logout without re-spending.
+  const viewExpiresRef = useRef<string | null>(null)
 
   useEffect(() => {
     // Try dedicated userInfo key first (set by dob-selection)
@@ -1189,6 +1195,13 @@ export default function KnowMorePage() {
 
   useEffect(() => {
     let isMounted = true
+    let logoutTimer: ReturnType<typeof setTimeout> | undefined
+
+    const logout = () => {
+      localStorage.removeItem('userId')
+      localStorage.removeItem('prediction')
+      router.push('/')
+    }
 
     const loadPrediction = async () => {
       try {
@@ -1199,32 +1212,68 @@ export default function KnowMorePage() {
           return
         }
 
+        // Spend a token at most once per mount. React StrictMode invokes effects
+        // twice in dev; the ref guards only the spend (not the rest of this
+        // effect) so the surviving pass still loads the prediction below.
+        if (!consumeStartedRef.current) {
+          consumeStartedRef.current = true
+
+          // Spending a token is the authoritative gate. The backend atomically
+          // deducts one token (or reuses the active viewing window) and returns
+          // when the 15-minute window expires. No token / no window -> 402.
+          try {
+            const consumeRes = await fetch(
+              `${API_BASE_URL}/api/payment/consume-token/${userId}`,
+              { method: 'POST' }
+            )
+            if (consumeRes.ok) {
+              const consumeData = await consumeRes.json()
+              viewExpiresRef.current = consumeData.expires_at ?? null
+            } else {
+              // 402 (no token) can also happen on a benign race. Only bounce if
+              // the user is genuinely outside an active paid window.
+              let activeWindow = false
+              try {
+                const checkRes = await fetch(`${API_BASE_URL}/api/auth/user/${userId}`)
+                if (checkRes.ok) {
+                  const checkData = await checkRes.json()
+                  const exp = checkData.know_more_view_expires_at
+                  if (exp && new Date(exp).getTime() > Date.now()) {
+                    activeWindow = true
+                    viewExpiresRef.current = exp
+                  }
+                }
+              } catch {
+                /* fall through to redirect */
+              }
+              if (!activeWindow) {
+                consumeStartedRef.current = false
+                router.push('/prediction')
+                return
+              }
+            }
+          } catch {
+            consumeStartedRef.current = false
+            router.push('/prediction')
+            return
+          }
+        }
+
+        // Load report-logo access (no longer gates the page, but drives UI).
         try {
           const userRes = await fetch(`${API_BASE_URL}/api/auth/user/${userId}`)
           if (userRes.ok) {
             const userData = await userRes.json()
-            if (!userData.know_more_access) {
-              router.push('/prediction')
-              return
-            }
             if (isMounted) setReportLogoAccess(userData.report_logo_access === true)
-          } else {
-            router.push('/prediction')
-            return
           }
         } catch {
-          router.push('/prediction')
-          return
+          // Non-fatal — access was already granted by the token spend above.
         }
 
-        // Consume one token per browser session (sessionStorage prevents double-consumption)
-        if (!sessionStorage.getItem('km_token_consumed')) {
-          try {
-            await fetch(`${API_BASE_URL}/api/payment/consume-token/${userId}`, { method: 'POST' })
-            sessionStorage.setItem('km_token_consumed', '1')
-          } catch {
-            // Non-fatal — user is already past the access check
-          }
+        // Auto-logout when the viewing window expires.
+        if (viewExpiresRef.current) {
+          const msLeft = new Date(viewExpiresRef.current).getTime() - Date.now()
+          logoutTimer = setTimeout(logout, Math.max(msLeft, 0))
         }
 
         const storedPrediction = localStorage.getItem('prediction')
@@ -1287,6 +1336,7 @@ export default function KnowMorePage() {
 
     return () => {
       isMounted = false
+      if (logoutTimer) clearTimeout(logoutTimer)
     }
   }, [router])
 

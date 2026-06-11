@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
+from pymongo import ReturnDocument
 import razorpay
 import hmac
 import hashlib
@@ -13,13 +15,28 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
 TOKEN_PACKS = {
-    "1":  (9900,   1),
-    "5":  (30000,  5),
-    "10": (50000, 10),
-    "20": (80000, 20),
+    "5":    (27100,      5),   # ₹271
+    "32":   (81100,     32),   # ₹811
+    "100":  (180100,   100),   # ₹1801
+    "500":  (630100,   500),   # ₹6301
+    "1000": (810100,  1000),   # ₹8101
 }
 
+# How long a single token unlocks the Know More page for (one visit).
+VIEW_WINDOW_SECONDS = 20 * 60  # 20 minutes
+
 REPORT_LOGO_PRICE = 500000  # ₹5000 in paise
+
+
+def iso_utc(dt: datetime) -> str:
+    """Serialize a datetime as an unambiguous UTC ISO string ending in 'Z'.
+
+    Handles both naive (assumed UTC) and tz-aware datetimes so the frontend
+    never receives an invalid string like '...+00:00Z'.
+    """
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt.isoformat() + "Z"
 
 
 class CreateOrderRequest(BaseModel):
@@ -108,15 +125,45 @@ async def consume_token(user_id: str, request: Request):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    tokens = user.get("know_more_tokens", 0)
+    now = datetime.utcnow()
+    expires_at = user.get("know_more_view_expires_at")
+    # Normalize a tz-aware stored value to naive UTC so it can be compared with
+    # the naive utcnow() above without raising TypeError.
+    if expires_at and expires_at.tzinfo is not None:
+        expires_at = expires_at.astimezone(timezone.utc).replace(tzinfo=None)
 
-    if tokens <= 0:
-        raise HTTPException(status_code=402, detail="No tokens available")
+    # Still inside an active viewing window: same visit, do not charge again
+    # (allows refresh / re-entry without spending another token).
+    if expires_at and expires_at > now:
+        return {
+            "tokens_remaining": user.get("know_more_tokens", 0),
+            "expires_at": iso_utc(expires_at),
+        }
 
-    new_tokens = tokens - 1
-    await db.users.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {"know_more_tokens": new_tokens, "know_more_access": new_tokens > 0}},
+    # Otherwise atomically spend one token and open a fresh viewing window.
+    # The know_more_tokens > 0 filter makes the decrement atomic and prevents
+    # double-spend / negative balances under concurrent requests.
+    new_expires_at = now + timedelta(seconds=VIEW_WINDOW_SECONDS)
+    result = await db.users.find_one_and_update(
+        {"_id": ObjectId(user_id), "know_more_tokens": {"$gt": 0}},
+        {
+            "$inc": {"know_more_tokens": -1},
+            "$set": {"know_more_view_expires_at": new_expires_at},
+        },
+        return_document=ReturnDocument.AFTER,
     )
 
-    return {"tokens_remaining": new_tokens}
+    if not result:
+        raise HTTPException(status_code=402, detail="No tokens available")
+
+    new_tokens = result.get("know_more_tokens", 0)
+    # Keep the legacy access flag in sync with the remaining balance.
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"know_more_access": new_tokens > 0}},
+    )
+
+    return {
+        "tokens_remaining": new_tokens,
+        "expires_at": iso_utc(new_expires_at),
+    }

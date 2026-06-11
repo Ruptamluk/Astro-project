@@ -677,7 +677,7 @@ export default function PredictionPage() {
   const [knowMoreAccess, setKnowMoreAccess] = useState(false)
   const [knowMoreTokens, setKnowMoreTokens] = useState(0)
   const [showTokenDialog, setShowTokenDialog] = useState(false)
-  const [selectedPack, setSelectedPack] = useState<'1' | '5' | '10' | '20'>('1')
+  const [selectedPack, setSelectedPack] = useState<'5' | '32' | '100' | '500' | '1000'>('5')
   const [isPayingToken, setIsPayingToken] = useState(false)
 
   useEffect(() => {
@@ -775,10 +775,11 @@ export default function PredictionPage() {
   }
 
   const TOKEN_PACKS = [
-    { id: '1',  tokens: 1,  price: 99,  label: 'Starter' },
-    { id: '5',  tokens: 5,  price: 300, label: 'Basic' },
-    { id: '10', tokens: 10, price: 500, label: 'Standard' },
-    { id: '20', tokens: 20, price: 800, label: 'Value' },
+    { id: '5',    tokens: 5,    price: 271,  label: 'Starter' },
+    { id: '32',   tokens: 32,   price: 811,  label: 'Basic' },
+    { id: '100',  tokens: 100,  price: 1801, label: 'Standard' },
+    { id: '500',  tokens: 500,  price: 6301, label: 'Value' },
+    { id: '1000', tokens: 1000, price: 8101, label: 'Mega' },
   ] as const
 
   const handleTokenPayment = async () => {

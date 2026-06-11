@@ -1,13 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from models import RequestOTPRequest, RegisterRequest, VerifyOTPRequest, User
 from utils import generate_otp, send_otp_via_email, send_otp_via_sms
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 router = APIRouter()
 
 async def get_db(request: Request):
     return request.app.db
+
+
+def _iso_utc(dt):
+    """Serialize a datetime as a UTC ISO string ending in 'Z', or None."""
+    if not dt:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt.isoformat() + "Z"
 
 @router.post("/register")
 async def register(request_data: RegisterRequest, db=Depends(get_db)):
@@ -213,7 +222,10 @@ async def get_user(user_id: str, db=Depends(get_db)):
             "phone_verified": user.get("phone_verified", False),
             "dob": user.get("dob"),
             "zodiac_sign": user.get("zodiac_sign"),
-            "know_more_access": user.get("know_more_access", False)
+            "know_more_access": user.get("know_more_access", False),
+            "know_more_tokens": user.get("know_more_tokens", 0),
+            "know_more_view_expires_at": _iso_utc(user.get("know_more_view_expires_at")),
+            "report_logo_access": user.get("report_logo_access", False),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
