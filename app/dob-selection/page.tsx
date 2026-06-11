@@ -60,6 +60,7 @@ export default function DOBSelectionPage() {
 
       const data = await response.json()
       if (response.ok) {
+        localStorage.setItem('userInfo', JSON.stringify({ name: name.trim(), phone: phone.trim() }))
         localStorage.setItem('prediction', JSON.stringify({ ...data, name: name.trim(), phone: phone.trim() }))
         toast.success('Date submitted! Getting your prediction...')
         router.push('/prediction')
