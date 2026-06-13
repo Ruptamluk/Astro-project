@@ -11,6 +11,7 @@ from utils import (
     calculate_strength_number,
     build_dob_chart,
     calculate_mahadasha_antardasha,
+    reduce_to_single_digit,
 )
 from datetime import datetime
 from bson import ObjectId
@@ -165,8 +166,9 @@ def calculate_gochor(
     current_date: datetime | None = None,
 ) -> int:
     """
-    Gochor = running_age % 9  (0 → 9)
-    running_age = (current_year - birth_year) + 1 if birthday passed this year, else current_year - birth_year
+    Running age = (current_year - birth_year), +1 if birthday already passed this year.
+    Reduce running age to a single digit, then count forward from the Driver number
+    by that amount within the 1-9 cycle (Driver = 1st position).
     """
     try:
         now = current_date or datetime.now()
@@ -174,8 +176,8 @@ def calculate_gochor(
         birth_year, birth_month, birth_day = int(parts[0]), int(parts[1]), int(parts[2])
         birthday_passed = (now.month, now.day) >= (birth_month, birth_day)
         running_age = (now.year - birth_year) + (1 if birthday_passed else 0)
-        remainder = running_age % 9
-        return 9 if remainder == 0 else remainder
+        single_digit_age = reduce_to_single_digit(running_age)
+        return ((driver_number + single_digit_age - 2) % 9) + 1
     except Exception:
         return 9
 
