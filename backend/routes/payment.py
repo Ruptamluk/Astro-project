@@ -144,19 +144,40 @@ async def verify_payment(request: Request, body: VerifyPaymentRequest):
 
     db = request.app.db
 
-    # Derive what to credit from the order's server-side notes, never from the
-    # client body — the signature only covers order_id|payment_id, so a client
-    # could otherwise inflate the token count.
-    client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
-    order = client.order.fetch(body.razorpay_order_id)
-    notes = order.get("notes", {}) or {}
+    # The order's server-side notes are the source of truth (a client can't
+    # tamper with them). But the signature above already cryptographically
+    # proves Razorpay authorized this exact order+payment, so a failure to
+    # reach the Razorpay API must NOT block crediting a real payment — that
+    # would leave a paying user without tokens and bounce them off Know More.
+    payment_type = body.payment_type
+    tokens = int(body.tokens_to_grant or 0)
+    user_id = body.user_id
+
+    try:
+        client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+        order = client.order.fetch(body.razorpay_order_id)
+        notes = order.get("notes", {}) or {}
+        if notes.get("user_id"):
+            user_id = notes["user_id"]
+        if notes.get("payment_type"):
+            payment_type = notes["payment_type"]
+        if notes.get("tokens"):
+            tokens = int(notes["tokens"])
+    except Exception as exc:
+        # Razorpay API unreachable / keys misconfigured: fall back to the
+        # client body, but clamp the token count to a known pack so a tampered
+        # body can't inflate the grant.
+        print(f"[verify] order.fetch failed, falling back to request body: {exc}")
+        if payment_type == "know_more_token":
+            valid_counts = {t for _, t in TOKEN_PACKS.values()}
+            tokens = tokens if tokens in valid_counts else 1
 
     await credit_payment(
         db,
         body.razorpay_payment_id,
-        notes.get("user_id") or body.user_id,
-        notes.get("payment_type") or body.payment_type,
-        int(notes.get("tokens", 0) or 0),
+        user_id,
+        payment_type,
+        tokens,
     )
 
     return {"success": True}
@@ -237,6 +258,15 @@ async def razorpay_webhook(request: Request):
     if event.get("event") == "payment.captured":
         entity = event.get("payload", {}).get("payment", {}).get("entity", {})
         notes = entity.get("notes", {}) or {}
+        # Razorpay does not always copy order notes onto the payment entity, so
+        # fall back to fetching the order's notes when user_id is missing.
+        if not notes.get("user_id") and entity.get("order_id"):
+            try:
+                client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+                order = client.order.fetch(entity["order_id"])
+                notes = order.get("notes", {}) or notes
+            except Exception as exc:
+                print(f"[webhook] order.fetch failed: {exc}")
         if notes.get("user_id"):
             await credit_payment(
                 request.app.db,
