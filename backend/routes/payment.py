@@ -4,9 +4,11 @@ from typing import Optional
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from pymongo import ReturnDocument
+from pymongo.errors import DuplicateKeyError
 import razorpay
 import hmac
 import hashlib
+import json
 import os
 
 router = APIRouter()
@@ -37,6 +39,39 @@ def iso_utc(dt: datetime) -> str:
     if dt.tzinfo is not None:
         dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
     return dt.isoformat() + "Z"
+
+
+async def credit_payment(db, payment_id, user_id, payment_type, tokens) -> bool:
+    """Credit a paid order exactly once.
+
+    Idempotency is enforced by inserting the razorpay payment id as the _id of a
+    `processed_payments` doc — a duplicate insert means it was already credited,
+    so we skip. Safe to call from both /verify and the webhook for the same
+    payment. Returns True if this call performed the credit, False if skipped.
+    """
+    if not payment_id or not user_id:
+        return False
+
+    try:
+        await db.processed_payments.insert_one(
+            {"_id": payment_id, "created_at": datetime.utcnow()}
+        )
+    except DuplicateKeyError:
+        return False  # already credited by an earlier verify/webhook call
+
+    if payment_type == "know_more_token":
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$inc": {"know_more_tokens": max(int(tokens or 0), 1)},
+             "$set": {"know_more_access": True}},
+        )
+    elif payment_type == "report_logo":
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"report_logo_access": True}},
+        )
+
+    return True
 
 
 class CreateOrderRequest(BaseModel):
@@ -75,6 +110,13 @@ async def create_order(body: CreateOrderRequest):
         "amount": amount,
         "currency": "INR",
         "receipt": f"{body.user_id}_{body.payment_type}",
+        # Carried back to us by both /verify (order.fetch) and the webhook, so
+        # crediting is driven by server-side data, never the client.
+        "notes": {
+            "user_id": body.user_id,
+            "payment_type": body.payment_type,
+            "tokens": str(tokens),
+        },
     })
 
     return {
@@ -102,17 +144,20 @@ async def verify_payment(request: Request, body: VerifyPaymentRequest):
 
     db = request.app.db
 
-    if body.payment_type == "know_more_token":
-        tokens = max(body.tokens_to_grant or 1, 1)
-        await db.users.update_one(
-            {"_id": ObjectId(body.user_id)},
-            {"$inc": {"know_more_tokens": tokens}, "$set": {"know_more_access": True}},
-        )
-    elif body.payment_type == "report_logo":
-        await db.users.update_one(
-            {"_id": ObjectId(body.user_id)},
-            {"$set": {"report_logo_access": True}},
-        )
+    # Derive what to credit from the order's server-side notes, never from the
+    # client body — the signature only covers order_id|payment_id, so a client
+    # could otherwise inflate the token count.
+    client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+    order = client.order.fetch(body.razorpay_order_id)
+    notes = order.get("notes", {}) or {}
+
+    await credit_payment(
+        db,
+        body.razorpay_payment_id,
+        notes.get("user_id") or body.user_id,
+        notes.get("payment_type") or body.payment_type,
+        int(notes.get("tokens", 0) or 0),
+    )
 
     return {"success": True}
 
@@ -167,3 +212,40 @@ async def consume_token(user_id: str, request: Request):
         "tokens_remaining": new_tokens,
         "expires_at": iso_utc(new_expires_at),
     }
+
+
+@router.post("/webhook")
+async def razorpay_webhook(request: Request):
+    """Server-to-server confirmation from Razorpay.
+
+    Credits tokens even if the user closed the tab before /verify ran. Idempotent
+    via credit_payment, so it never double-credits alongside the browser callback.
+    """
+    secret = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+    if not secret:
+        raise HTTPException(status_code=500, detail="Webhook secret not configured")
+
+    raw = await request.body()
+    signature = request.headers.get("X-Razorpay-Signature", "")
+    expected = hmac.new(secret.encode("utf-8"), raw, hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(expected, signature):
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+    event = json.loads(raw)
+
+    if event.get("event") == "payment.captured":
+        entity = event.get("payload", {}).get("payment", {}).get("entity", {})
+        notes = entity.get("notes", {}) or {}
+        if notes.get("user_id"):
+            await credit_payment(
+                request.app.db,
+                entity.get("id"),
+                notes.get("user_id"),
+                notes.get("payment_type"),
+                int(notes.get("tokens", 0) or 0),
+            )
+
+    # Always 200 for handled requests so Razorpay marks delivery successful and
+    # stops retrying.
+    return {"status": "ok"}
