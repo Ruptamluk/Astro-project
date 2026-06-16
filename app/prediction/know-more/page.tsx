@@ -1154,6 +1154,7 @@ export default function KnowMorePage() {
   const [clientName, setClientName] = useState<string>('')
   const [clientPhone, setClientPhone] = useState<string>('')
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [isGeneratingDocx, setIsGeneratingDocx] = useState(false)
   const [reportLogoAccess, setReportLogoAccess] = useState(false)
   const [isPayingLogo, setIsPayingLogo] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
@@ -1544,6 +1545,319 @@ export default function KnowMorePage() {
     }
   }
 
+  const handleGenerateDocx = async () => {
+    if (!prediction) return
+    setIsGeneratingDocx(true)
+    try {
+      const {
+        Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+        WidthType, AlignmentType, ShadingType, BorderStyle, ImageRun, VerticalAlign,
+      } = await import('docx')
+
+      const reportDate = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+
+      // ── styling helpers (mirror the on-screen / PDF report) ──
+      type Border = { style: (typeof BorderStyle)[keyof typeof BorderStyle]; size: number; color: string }
+      const HP = (px: number) => Math.round(px * 1.5) // px → half-points (TextRun size)
+      const NONE: Border = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
+      const bd = (color: string, px = 1, dashed = false): Border =>
+        ({ style: dashed ? BorderStyle.DASHED : BorderStyle.SINGLE, size: Math.max(4, Math.round(px * 6)), color })
+      const noTableBorders = { top: NONE, bottom: NONE, left: NONE, right: NONE, insideHorizontal: NONE, insideVertical: NONE }
+      const SHADE = (fill: string) => ({ type: ShadingType.CLEAR, fill, color: 'auto' as const })
+
+      type RunOpts = { c?: string; b?: boolean; i?: boolean; s?: number }
+      const tr = (text: string | number, o: RunOpts = {}) =>
+        new TextRun({ text: String(text), color: o.c, bold: o.b, italics: o.i, size: o.s })
+      // multi-line text → runs separated by soft line breaks
+      const trLines = (text: string, o: RunOpts = {}) =>
+        String(text).split('\n').map((ln, i) => new TextRun({ text: ln, color: o.c, bold: o.b, italics: o.i, size: o.s, break: i > 0 ? 1 : 0 }))
+      const P = (runs: InstanceType<typeof TextRun>[] | InstanceType<typeof TextRun>, opts: Record<string, unknown> = {}) =>
+        new Paragraph({ children: Array.isArray(runs) ? runs : [runs], ...opts })
+      const label = (text: string, color: string) =>
+        P(tr(text.toUpperCase(), { c: color, b: true, s: HP(10) }), { spacing: { after: 50 } })
+      const body = (text: string, color = '475569', s = HP(13)) =>
+        P(trLines(text, { c: color, s }), { spacing: { after: 50 } })
+      const bullets = (items: string[], color = '475569') =>
+        items.map((it) => P(tr(it, { c: color, s: HP(12) }), { bullet: { level: 0 }, spacing: { after: 30 } }))
+
+      const out: (InstanceType<typeof Paragraph> | InstanceType<typeof Table>)[] = []
+      const add = (...els: (InstanceType<typeof Paragraph> | InstanceType<typeof Table>)[]) => { for (const e of els) out.push(e) }
+      const spacer = (after = 90) => new Paragraph({ text: '', spacing: { after } })
+      // a table must be followed by a paragraph or Word merges adjacent tables
+      const addTable = (tbl: InstanceType<typeof Table>) => { out.push(tbl); out.push(spacer()) }
+
+      // section heading with the purple underline used across the report
+      // keepNext keeps the heading on the same page as the block that follows it
+      const section = (text: string) =>
+        new Paragraph({ keepNext: true, spacing: { before: 300, after: 160 }, border: { bottom: { style: BorderStyle.SINGLE, size: 20, color: '7C3AED' } }, children: [tr(text.toUpperCase(), { c: '7C3AED', b: true, s: HP(15) })] })
+      // colored heading bar for sub-sections (Strength, Gochor, DOB, Yogs, Dashas…)
+      const subBar = (text: string, fill = 'EDE9FE', color = '5B21B6') =>
+        new Paragraph({ keepNext: true, shading: SHADE(fill), spacing: { before: 180, after: 90 }, children: [tr(text, { c: color, b: true, s: HP(12) })] })
+
+      // single full-width "card" (colored box with border + padding)
+      const card = (fill: string, border: string, kids: (InstanceType<typeof Paragraph> | InstanceType<typeof Table>)[], bw = 1) =>
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: { top: bd(border, bw), bottom: bd(border, bw), left: bd(border, bw), right: bd(border, bw), insideHorizontal: NONE, insideVertical: NONE },
+          rows: [new TableRow({ children: [new TableCell({ shading: SHADE(fill), margins: { top: 120, bottom: 120, left: 160, right: 160 }, children: kids })] })],
+        })
+      // label + body convenience card (used heavily in Remedies)
+      const remedyCard = (fill: string, border: string, labelText: string, labelColor: string, text: string, textColor: string) =>
+        card(fill, border, [label(labelText, labelColor), body(text, textColor)])
+
+      // a row of equal "stat"/value boxes
+      const box = (fill: string, border: string, kids: InstanceType<typeof Paragraph>[], widthPct: number) =>
+        new TableCell({ width: { size: widthPct, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, shading: SHADE(fill), borders: { top: bd(border), bottom: bd(border), left: bd(border), right: bd(border) }, margins: { top: 110, bottom: 110, left: 110, right: 110 }, children: kids })
+      const boxRow = (cells: InstanceType<typeof TableCell>[]) =>
+        new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: noTableBorders, rows: [new TableRow({ cantSplit: true, children: cells })] })
+      const center = (runs: InstanceType<typeof TextRun>[] | InstanceType<typeof TextRun>, opts: Record<string, unknown> = {}) =>
+        P(runs, { alignment: AlignmentType.CENTER, ...opts })
+
+      // ── HEADER (purple band, white text) ──
+      const headerLeft: InstanceType<typeof Paragraph>[] = []
+      if (userLogo) {
+        try {
+          const [meta, b64] = userLogo.split(',')
+          const mime = /data:(image\/[a-z+]+);/i.exec(meta)?.[1] ?? ''
+          const typeMap: Record<string, 'png' | 'jpg' | 'gif' | 'bmp'> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/gif': 'gif', 'image/bmp': 'bmp' }
+          const imgType = typeMap[mime.toLowerCase()]
+          if (imgType && b64) {
+            const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+            headerLeft.push(new Paragraph({ spacing: { after: 60 }, children: [new ImageRun({ type: imgType, data: bytes, transformation: { width: 52, height: 52 } })] }))
+          }
+        } catch { /* skip logo on failure */ }
+      }
+      headerLeft.push(P(tr(userName ? `Numerology Report by ${userName}` : 'Numerology Report', { c: 'FFFFFF', b: true, s: HP(20) })))
+      const headerRight: InstanceType<typeof Paragraph>[] = []
+      if (clientName) headerRight.push(P(tr(clientName, { c: 'FFFFFF', b: true, s: HP(16) }), { alignment: AlignmentType.RIGHT, spacing: { after: 20 } }))
+      if (clientPhone) headerRight.push(P(tr(clientPhone, { c: 'E9D5FF', s: HP(12) }), { alignment: AlignmentType.RIGHT, spacing: { after: 20 } }))
+      headerRight.push(P(tr(reportDate, { c: 'E9D5FF', s: HP(12) }), { alignment: AlignmentType.RIGHT, spacing: { after: 20 } }))
+      headerRight.push(P(tr(`Date of Birth: ${prediction.dob}`, { c: 'E9D5FF', s: HP(11) }), { alignment: AlignmentType.RIGHT }))
+      addTable(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE }, borders: noTableBorders,
+        rows: [new TableRow({ children: [
+          new TableCell({ width: { size: 55, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, shading: SHADE('7C3AED'), margins: { top: 200, bottom: 200, left: 220, right: 120 }, children: headerLeft }),
+          new TableCell({ width: { size: 45, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, shading: SHADE('7C3AED'), margins: { top: 200, bottom: 200, left: 120, right: 220 }, children: headerRight }),
+        ] })],
+      }))
+
+      // ── PREDICTION SUMMARY ──
+      add(section('Prediction Summary'))
+      const sacred = [
+        { label: 'Driver Number', value: prediction.driver_number, fill: 'F5F3FF', border: 'C4B5FD', color: '7C3AED' },
+        { label: 'Conductor Number', value: prediction.conductor_number, fill: 'FDF4FF', border: 'E879F9', color: 'C026D3' },
+        { label: 'Personal Year', value: prediction.personal_year, fill: 'EEF2FF', border: 'A5B4FC', color: '4F46E5' },
+        { label: 'Lucky Number', value: prediction.lucky_number ?? '—', fill: 'F0FDF4', border: '6EE7B7', color: '059669' },
+      ]
+      addTable(boxRow(sacred.map((s) => box(s.fill, s.border, [
+        center(tr(s.label.toUpperCase(), { c: '64748B', b: true, s: HP(9) }), { spacing: { after: 60 } }),
+        center(tr(s.value, { c: s.color, b: true, s: HP(26) })),
+      ], 25))))
+
+      const luckyText = Array.isArray(prediction.lucky_color) ? prediction.lucky_color.join(', ') : (prediction.lucky_color ?? '—')
+      const colorCells = [box('F0FDF4', '86EFAC', [
+        label(Array.isArray(prediction.lucky_color) ? 'Lucky Colors' : 'Lucky Color', '15803D'),
+        P(tr(luckyText, { c: '166534', b: true, s: HP(14) })),
+      ], prediction.unlucky_color ? 50 : 100)]
+      if (prediction.unlucky_color) {
+        const unluckyText = Array.isArray(prediction.unlucky_color) ? prediction.unlucky_color.join(', ') : prediction.unlucky_color
+        colorCells.push(box('FFF1F2', 'FCA5A5', [
+          label(Array.isArray(prediction.unlucky_color) ? 'Unlucky Colors' : 'Unlucky Color', 'BE123C'),
+          P(tr(unluckyText, { c: '9F1239', b: true, s: HP(14) })),
+        ], 50))
+      }
+      addTable(boxRow(colorCells))
+
+      const charKids = [label('Numerology Characteristics', '5B21B6'),
+        P([tr(`Driver (${prediction.driver_number}): `, { c: '7C3AED', b: true, s: HP(12) }), tr(numberCharacteristics[prediction.driver_number] || '—', { c: '475569', s: HP(13) })], { spacing: { after: 40 } })]
+      if (prediction.driver_number !== prediction.conductor_number) {
+        charKids.push(P([tr(`Conductor (${prediction.conductor_number}): `, { c: 'C026D3', b: true, s: HP(12) }), tr(numberCharacteristics[prediction.conductor_number] || '—', { c: '475569', s: HP(13) })]))
+      }
+      addTable(card('F8F7FF', 'DDD6FE', charKids))
+
+      if (prediction.analysis) {
+        add(subBar('Driver–Conductor Analysis'))
+        if (typeof prediction.analysis === 'object') {
+          if (prediction.analysis.positive) addTable(remedyCard('F0FDF4', '86EFAC', 'Positive', '15803D', prediction.analysis.positive, '166534'))
+          if (prediction.analysis.negative) addTable(remedyCard('FFF1F2', 'FCA5A5', 'Challenges', 'BE123C', prediction.analysis.negative, '9F1239'))
+          if (prediction.analysis.advice) addTable(remedyCard('EFF6FF', 'BFDBFE', 'Advice', '1D4ED8', prediction.analysis.advice, '1E40AF'))
+        } else {
+          addTable(card('FFFFFF', 'DDD6FE', [body(String(prediction.analysis))]))
+        }
+      }
+
+      // ── DEEP INSIGHTS ──
+      add(section('Deep Numerology Insights'))
+
+      {
+        const kids = [P(tr(`Strength Number: ${strengthNumber}`, { c: '5B21B6', b: true, s: HP(13) }), { spacing: { after: 60 } })]
+        if (prediction.strength_prediction) kids.push(body(prediction.strength_prediction))
+        if (prediction.strength_remedy) kids.push(P([tr('Remedy: ', { c: '5B21B6', b: true, s: HP(13) }), tr(prediction.strength_remedy, { c: '475569', s: HP(13) })]))
+        addTable(card('F5F3FF', 'DDD6FE', kids))
+      }
+
+      if (prediction.gochor_number != null) {
+        const kids = [P(tr(`Gochor Number: ${prediction.gochor_number}`, { c: '86198F', b: true, s: HP(13) }), { spacing: { after: 60 } })]
+        if (prediction.gochor_prediction) kids.push(body(prediction.gochor_prediction))
+        if (prediction.gochor_remedy) kids.push(P([tr('Remedy: ', { c: '86198F', b: true, s: HP(13) }), tr(prediction.gochor_remedy, { c: '475569', s: HP(13) })]))
+        addTable(card('FDF4FF', 'F5D0FE', kids))
+      }
+
+      // Vedic DOB Chart
+      add(subBar('Vedic DOB Chart'))
+      const dobGrid = new Table({
+        width: { size: 62, type: WidthType.PERCENTAGE }, borders: noTableBorders,
+        rows: dobChart.map((row, ri) => new TableRow({ children: row.map((c, ci) => {
+          const present = !!c
+          return new TableCell({
+            width: { size: 33, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, shading: SHADE(present ? 'FFFFFF' : 'FAF5FF'),
+            borders: { top: bd(present ? 'C4B5FD' : 'DDD6FE', 2, !present), bottom: bd(present ? 'C4B5FD' : 'DDD6FE', 2, !present), left: bd(present ? 'C4B5FD' : 'DDD6FE', 2, !present), right: bd(present ? 'C4B5FD' : 'DDD6FE', 2, !present) },
+            margins: { top: 80, bottom: 80, left: 40, right: 40 },
+            children: [center(tr(DOB_CHART_LAYOUT[ri][ci], { c: 'A78BFA', b: true, s: HP(9) }), { spacing: { after: 20 } }), center(tr(c || '–', { c: present ? '7C3AED' : 'DDD6FE', b: true, s: HP(18) }))],
+          })
+        }) })),
+      })
+      // Wrap the grid in a single unsplittable row so the whole 3×3 chart stays on one page
+      addTable(new Table({
+        width: { size: 62, type: WidthType.PERCENTAGE }, borders: noTableBorders,
+        rows: [new TableRow({ cantSplit: true, children: [new TableCell({ borders: { top: NONE, bottom: NONE, left: NONE, right: NONE }, margins: { top: 0, bottom: 0, left: 0, right: 0 }, children: [dobGrid, new Paragraph({ text: '' })] })] })],
+      }))
+      addTable(boxRow([
+        box('EDE9FE', 'C4B5FD', [label('Active Cells', '7C3AED'), P(tr(`${presentDobNumbers.size}/9`, { c: '5B21B6', b: true, s: HP(20) }))], 34),
+        box('FFF1F2', 'FECDD3', [label('Missing', 'BE123C'), P(tr(missingDobNumbers.length > 0 ? `${missingDobNumbers.join(', ')} (${missingDobNumbers.length})` : 'None', { c: '9F1239', b: true, s: HP(13) }))], 33),
+        box('FEF3C7', 'FDE68A', [label('Repeated (>2×)', '92400E'), P(tr(repeatedNegativeDobNumbers.length > 0 ? `${repeatedNegativeDobNumbers.join(', ')} (${repeatedNegativeDobNumbers.length})` : 'None', { c: '78350F', b: true, s: HP(13) }))], 33),
+      ]))
+      if (missingDobNumbers.length > 0) {
+        add(subBar('Missing Number Analysis', 'EDE9FE', '5B21B6'))
+        missingDobNumbers.forEach((d) => addTable(card('FFFFFF', 'DDD6FE', [P([tr(`${d}  `, { c: '7C3AED', b: true, s: HP(14) }), tr(missingNumberAnalysis[d] || '—', { c: '475569', s: HP(13) })])])))
+      }
+      if (repeatedNegativeDobNumbers.length > 0) {
+        add(subBar('Negative Repeat Analysis', 'FFF1F2', 'BE123C'))
+        repeatedNegativeDobNumbers.forEach((d) => addTable(card('FFFFFF', 'FECDD3', [P([tr(`${d}  `, { c: 'BE123C', b: true, s: HP(14) }), tr(repeatedNumberNegativeAnalysis[d] || '—', { c: '475569', s: HP(13) })])])))
+      }
+      if (missingDobNumbers.length === 0 && repeatedNegativeDobNumbers.length === 0) {
+        add(P(tr('All numbers present — an exceptionally harmonious chart.', { c: '64748B', i: true, s: HP(13) }), { spacing: { after: 90 } }))
+      }
+
+      // Active Yogs
+      const activeYogs = yogResults.filter((y) => y.active)
+      if (activeYogs.length > 0) {
+        add(subBar(`Active Yogs (${activeYogs.length})`, 'FFFBEB', '92400E'))
+        activeYogs.forEach((yog) => {
+          addTable(card('FFFFFF', 'FDE68A', [
+            P(tr(yog.name, { c: '78350F', b: true, s: HP(13) }), { spacing: { after: 30 } }),
+            P(tr(`Numbers: ${yog.numbers.join(' – ')}${yog.missingNumbers?.length ? ` (missing: ${yog.missingNumbers.join(', ')})` : ''}`, { c: '92400E', s: HP(11) }), { spacing: { after: 60 } }),
+            ...bullets(yog.traits),
+          ]))
+        })
+      }
+
+      // Current Dashas
+      if (prediction.current_mahadasha_number != null) {
+        add(subBar('Current Dashas'))
+        const dashaCells = [box('EDE9FE', 'DDD6FE', [
+          label('Mahadasha', '7C3AED'),
+          P(tr(prediction.current_mahadasha_number, { c: '5B21B6', b: true, s: HP(28) }), { spacing: { after: 20 } }),
+          P(tr(prediction.current_mahadasha_planet ?? '', { c: '5B21B6', b: true, s: HP(13) })),
+          ...(prediction.mahadasha_start ? [P(tr(`${prediction.mahadasha_start} → ${prediction.mahadasha_end}`, { c: '64748B', s: HP(11) }))] : []),
+        ], prediction.current_antardasha_number != null ? 50 : 100)]
+        if (prediction.current_antardasha_number != null) {
+          dashaCells.push(box('FDF4FF', 'F5D0FE', [
+            label('Antardasha', 'C026D3'),
+            P(tr(prediction.current_antardasha_number, { c: '86198F', b: true, s: HP(28) }), { spacing: { after: 20 } }),
+            P(tr(prediction.current_antardasha_planet ?? '', { c: '86198F', b: true, s: HP(13) })),
+            ...(prediction.antardasha_start ? [P(tr(`${prediction.antardasha_start} → ${prediction.antardasha_end}`, { c: '64748B', s: HP(11) }))] : []),
+          ], 50))
+        }
+        addTable(boxRow(dashaCells))
+        if (prediction.dasha_analysis) addTable(card('F5F3FF', 'DDD6FE', [body(prediction.dasha_analysis)]))
+      }
+
+      // ── REMEDIES ──
+      add(section('Remedies'))
+      if (prediction.driver_conductor_remedy) addTable(remedyCard('DCFCE7', '86EFAC', 'Driver-Conductor Remedy', '15803D', prediction.driver_conductor_remedy, '166534'))
+      if (prediction.strength_remedy && prediction.strength_remedy !== 'No remedy available yet.') addTable(remedyCard('EDE9FE', 'C4B5FD', 'Strength Number Remedy', '6D28D9', prediction.strength_remedy, '5B21B6'))
+      if (prediction.gochor_remedy) addTable(remedyCard('FDF4FF', 'E879F9', 'Gochor Remedy', '86198F', prediction.gochor_remedy, '701A75'))
+
+      const mahaMantra = prediction.current_mahadasha_planet ? GAYATRI_MANTRAS[prediction.current_mahadasha_planet] : undefined
+      if (mahaMantra) {
+        addTable(card('F5F3FF', 'DDD6FE', [
+          label(`Mahadasha Remedy — ${mahaMantra.label}`, '6D28D9'),
+          label('Sanskrit Mantra', '7C3AED'),
+          P(trLines(mahaMantra.sanskrit, { c: '4C1D95', i: true, s: HP(13) }), { spacing: { after: 80 } }),
+          label('Transliteration', '7C3AED'),
+          P(trLines(mahaMantra.transliteration, { c: '475569', s: HP(12) }), { spacing: { after: 80 } }),
+          label('Benefits', '059669'),
+          ...bullets(mahaMantra.benefits),
+        ]))
+      }
+
+      if (prediction.antardasha_remedy) addTable(remedyCard('FDF4FF', 'F5D0FE', 'Antardasha Remedy', '86198F', prediction.antardasha_remedy, '701A75'))
+      if (prediction.mahadasha_remedy) addTable(remedyCard('EFF6FF', 'BFDBFE', 'Mahadasha Guidance', '1D4ED8', prediction.mahadasha_remedy, '1E40AF'))
+
+      const yantra = PLANET_YANTRAS[prediction.driver_number]
+      if (yantra) {
+        add(subBar(`Yantra — ${yantra.label}`, 'FDF2F8', 'BE185D'))
+        addTable(new Table({
+          width: { size: 55, type: WidthType.PERCENTAGE }, borders: noTableBorders,
+          rows: yantra.grid.map((row, ri) => new TableRow({ children: row.map((num, ci) => {
+            const top = ri * 3 + ci < 3
+            return new TableCell({ width: { size: 33, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, shading: SHADE(top ? 'DB2777' : 'FFFFFF'), borders: { top: bd(top ? 'BE185D' : 'F9A8D4', top ? 2 : 1), bottom: bd(top ? 'BE185D' : 'F9A8D4', top ? 2 : 1), left: bd(top ? 'BE185D' : 'F9A8D4', top ? 2 : 1), right: bd(top ? 'BE185D' : 'F9A8D4', top ? 2 : 1) }, margins: { top: 100, bottom: 100, left: 40, right: 40 }, children: [center(tr(num, { c: top ? 'FFFFFF' : 'BE185D', b: true, s: HP(15) }))] })
+          }) })),
+        }))
+        addTable(card('FDF2F8', 'F9A8D4', [label('Benefits', '059669'), ...bullets(yantra.benefits), label('How to Use', 'D97706'), ...bullets(yantra.howToUse)]))
+      }
+
+      if (PERSONAL_YEAR_REMEDIES[prediction.personal_year]) {
+        addTable(card('EEF2FF', 'A5B4FC', [label(`Personal Year Remedy — Year ${prediction.personal_year}`, '4338CA'), P(tr(PERSONAL_YEAR_REMEDIES[prediction.personal_year], { c: '312E81', b: true, s: HP(14) }))]))
+      }
+
+      const activeYogsWithRemedies = activeYogs
+        .map((y) => ({ name: y.name, remedies: yogRemedyData[getYogRemedyKey(y.numbers, y.missingNumbers)] }))
+        .filter((y) => y.remedies && y.remedies.length > 0)
+      if (activeYogsWithRemedies.length > 0) {
+        add(subBar(`Yog Remedies (${activeYogsWithRemedies.length} active yog${activeYogsWithRemedies.length !== 1 ? 's' : ''})`, 'FFFBEB', '92400E'))
+        activeYogsWithRemedies.forEach((yog) => {
+          addTable(card('FFFFFF', 'FDE68A', [label(yog.name, '78350F'), ...bullets(yog.remedies)]))
+        })
+      }
+
+      // ── FOOTER ──
+      addTable(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: bd('DDD6FE', 2), bottom: NONE, left: NONE, right: NONE, insideHorizontal: NONE, insideVertical: NONE },
+        rows: [new TableRow({ children: [
+          new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, shading: SHADE('F5F3FF'), margins: { top: 100, bottom: 100, left: 160, right: 80 }, children: [P(tr(`Generated on ${reportDate}`, { c: '94A3B8', s: HP(11) }))] }),
+          new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, shading: SHADE('F5F3FF'), margins: { top: 100, bottom: 100, left: 80, right: 160 }, children: [P(tr('Numerology Report — Confidential', { c: '94A3B8', s: HP(11) }), { alignment: AlignmentType.RIGHT })] }),
+        ] })],
+      }))
+
+      // ── COMMENTS PAGE (page break + ruled lines for handwritten notes) ──
+      out.push(new Paragraph({ pageBreakBefore: true, shading: SHADE('7C3AED'), spacing: { before: 120, after: 60 }, children: [tr('Comments', { c: 'FFFFFF', b: true, s: HP(20) })] }))
+      out.push(P(tr('Personal notes & observations', { c: 'E9D5FF', s: HP(12) }), { shading: SHADE('7C3AED'), spacing: { after: 280 } }))
+      for (let i = 0; i < 22; i++) {
+        out.push(new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: 'E2E8F0' } }, spacing: { after: 260 }, children: [tr('')] }))
+      }
+
+      const doc = new Document({
+        sections: [{ properties: { page: { margin: { top: 720, bottom: 720, left: 720, right: 720 } } }, children: out }],
+      })
+      const blob = await Packer.toBlob(doc)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${userName ? userName.replace(/\s+/g, '_') + '_' : ''}numerology_report.docx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('DOCX generation failed:', err)
+      alert('DOCX generation failed. Please try again.')
+    } finally {
+      setIsGeneratingDocx(false)
+    }
+  }
+
   const insightCards = [
     {
       key: 'strength' as InsightKey,
@@ -1602,7 +1916,7 @@ export default function KnowMorePage() {
     {
       key: 'report' as InsightKey,
       title: 'Download Report',
-      subtitle: 'Generate your PDF report',
+      subtitle: 'Download as PDF or DOCX',
       icon: Download,
       value: null,
       prediction: '',
@@ -2325,8 +2639,8 @@ export default function KnowMorePage() {
                         </div>
                       </Card>
 
-                      {/* Generate button */}
-                      <div className="flex justify-center">
+                      {/* Generate buttons */}
+                      <div className="flex flex-col sm:flex-row justify-center gap-4">
                         <Button
                           onClick={handleGeneratePdf}
                           disabled={isGeneratingPdf}
@@ -2341,6 +2655,24 @@ export default function KnowMorePage() {
                             <>
                               <Download className="w-5 h-5 mr-2" />
                               Generate &amp; Download PDF
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          onClick={handleGenerateDocx}
+                          disabled={isGeneratingDocx}
+                          variant="outline"
+                          className="h-13 px-10 rounded-2xl border-2 border-violet-300 bg-white text-violet-700 hover:bg-violet-50 font-bold text-base shadow-lg shadow-violet-200/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {isGeneratingDocx ? (
+                            <>
+                              <Star className="w-5 h-5 mr-2 animate-spin" />
+                              Generating DOCX…
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-5 h-5 mr-2" />
+                              Download DOCX
                             </>
                           )}
                         </Button>

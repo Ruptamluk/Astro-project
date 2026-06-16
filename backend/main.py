@@ -21,11 +21,11 @@ async def lifespan(app: FastAPI):
     mongodb_url = os.getenv("MONGODB_URL", "mongodb+srv://user:password@cluster.mongodb.net/astrology")
     db_client = AsyncIOMotorClient(mongodb_url)
     app.db = db_client["astrology"]
-    print("✓ Connected to MongoDB")
+    print("[OK] Connected to MongoDB")
     yield
     # Shutdown
     db_client.close()
-    print("✓ MongoDB connection closed")
+    print("[OK] MongoDB connection closed")
 
 app = FastAPI(title="Astrology API", version="1.0.0", lifespan=lifespan)
 

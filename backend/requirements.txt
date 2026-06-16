@@ -1,15 +1,18 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-motor==3.1.1
-pymongo==4.6.0
+fastapi==0.115.6
+# Pinned below 0.42: FastAPI 0.115.x is incompatible with Starlette 1.x
+# (the removed Router on_startup kwarg breaks APIRouter at import time).
+starlette==0.41.3
+uvicorn==0.34.0
+motor==3.7.1
+pymongo==4.16.0
 python-dotenv==1.0.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic==2.13.4
+pydantic-settings==2.13.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-email-validator==2.1.0
+email-validator==2.3.0
 twilio==8.10.0
-aiosmtplib==3.0.1
-python-multipart==0.0.6
+aiosmtplib==5.1.0
+python-multipart==0.0.22
 razorpay==1.4.2
 setuptools<80  # provides pkg_resources (removed in newer setuptools), required by razorpay on Python 3.12
