@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import routers
-from routes import auth, predictions, payment
+from routes import auth, predictions, payment, admin, audit, transactions
+from middleware.audit import AuditMiddleware
 
 # Database client
 db_client: AsyncIOMotorClient = None
@@ -38,10 +39,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Observe-only audit logging (writes to audit_logs; never alters responses).
+app.add_middleware(AuditMiddleware)
+
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(predictions.router, prefix="/api/predictions", tags=["predictions"])
 app.include_router(payment.router, prefix="/api/payment", tags=["payment"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(audit.router, prefix="/api/admin/audit", tags=["audit"])
+app.include_router(transactions.router, prefix="/api/admin/transactions", tags=["transactions"])
 
 @app.get("/")
 async def root():
