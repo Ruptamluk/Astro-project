@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -313,6 +314,14 @@ export default function AuthPage() {
 
           <p className="mt-4 text-center text-xs text-muted-foreground lg:ml-auto lg:w-[460px]">
             Demo Mode: OTPs will be logged to the console
+          </p>
+          <p className="mt-2 text-center text-xs lg:ml-auto lg:w-[460px]">
+            <Link
+              href="/admin/login"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Admin Login
+            </Link>
           </p>
         </div>
       </div>
