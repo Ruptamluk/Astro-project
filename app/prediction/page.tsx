@@ -39,7 +39,9 @@ import {
   Lock,
   Coins,
   Unlock,
+  Download,
 } from 'lucide-react'
+import ReportStudio from '@/components/report/ReportStudio'
 
 interface Prediction {
   driver_number: number
@@ -676,6 +678,8 @@ export default function PredictionPage() {
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
   const [knowMoreAccess, setKnowMoreAccess] = useState(false)
   const [knowMoreTokens, setKnowMoreTokens] = useState(0)
+  const [reportLogoAccess, setReportLogoAccess] = useState(false)
+  const [showArchive, setShowArchive] = useState(false)
   const [showTokenDialog, setShowTokenDialog] = useState(false)
   const [selectedPack, setSelectedPack] = useState<'5' | '32' | '100' | '500' | '1000'>('5')
   const [isPayingToken, setIsPayingToken] = useState(false)
@@ -699,6 +703,7 @@ export default function PredictionPage() {
             if (isMounted) {
               setKnowMoreAccess(userData.know_more_access === true)
               setKnowMoreTokens(userData.know_more_tokens ?? 0)
+              setReportLogoAccess(userData.report_logo_access === true)
             }
           }
         } catch {
@@ -1095,6 +1100,16 @@ export default function PredictionPage() {
                 </div>
               )
             })()}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowArchive(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-violet-300 bg-white/80 text-violet-700 hover:bg-violet-50 transition-colors shadow-sm"
+              >
+                <Download className="w-4 h-4 shrink-0" />
+                Report archive
+              </button>
+            </div>
           </div>
 
           <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
@@ -1720,6 +1735,31 @@ export default function PredictionPage() {
                 </>
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Archive — re-download previously generated report (no token) */}
+      <Dialog open={showArchive} onOpenChange={setShowArchive}>
+        <DialogContent className="w-[96vw] max-w-3xl max-h-[92vh] overflow-y-auto p-0 border border-violet-100 rounded-2xl bg-white">
+          <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl font-bold flex items-center gap-2">
+                <Download className="w-5 h-5" />
+                Report Archive
+              </DialogTitle>
+              <DialogDescription className="text-violet-100 text-sm mt-1">
+                Re-download your numerology report as PDF or DOCX. No Know More token is used.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="p-5 md:p-6">
+            <ReportStudio
+              prediction={prediction}
+              reportLogoAccess={reportLogoAccess}
+              clientName={prediction.name ?? ''}
+              clientPhone={prediction.phone ?? ''}
+            />
           </div>
         </DialogContent>
       </Dialog>
