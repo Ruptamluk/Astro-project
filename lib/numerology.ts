@@ -83,6 +83,283 @@ export const numberCharacteristics: Record<number, string> = {
   9: 'Courage, action, energy, leadership.',
 }
 
+// Per-driver-number deep-dive: ruling planet + strengths, weaknesses,
+// suitable careers and advice. Keyed purely off the driver number (1-9).
+export interface DriverNumberProfile {
+  planet: string
+  strengths: string[]
+  weaknesses: string[]
+  careers: string[]
+  advice: string[]
+}
+
+export const driverNumberProfiles: Record<number, DriverNumberProfile> = {
+  1: {
+    planet: 'Sun',
+    strengths: [
+      'Natural leader — likes to lead, manages teams well and has strong decision-making ability',
+      'Strong willpower and determination — does not give up easily',
+      'Independent personality — prefers making own decisions and working independently',
+      'High ambition — thinks big and aims for higher positions and recognition',
+      'Love for quality and luxury — drawn to branded, high-quality living (Sun = royalty & status)',
+    ],
+    weaknesses: [
+      'Ego may increase when Sun energy is imbalanced',
+      'Can become stubborn',
+      'May ignore others’ opinions',
+      'Can behave in a dominating or authoritarian way',
+    ],
+    careers: [
+      'Business',
+      'Government positions',
+      'Politics',
+      'Administration',
+      'Leadership roles',
+    ],
+    advice: [
+      'Control ego',
+      'Listen to others’ opinions',
+      'Work well with teams',
+      'Develop patience',
+    ],
+  },
+  2: {
+    planet: 'Moon',
+    strengths: [
+      'Emotional and sensitive — a heart-centered thinker who feels others’ pain and happiness',
+      'Caring nature — likes helping others and maintaining harmony (a caregiver personality)',
+      'Creative mind — strong imagination and artistic skills',
+      'Relationship-oriented — feels mentally peaceful when relationships are stable',
+    ],
+    weaknesses: [
+      'Mood swings when Moon energy is unstable',
+      'Overthinking',
+      'Emotional dependency',
+      'Anxiety — can get hurt easily by small things',
+    ],
+    careers: [
+      'Writing',
+      'Art and design',
+      'Counseling',
+      'Psychology',
+      'Hospitality',
+      'Social work',
+    ],
+    advice: [
+      'Maintain emotional balance',
+      'Practice meditation',
+      'Avoid overthinking',
+      'Build self-confidence',
+    ],
+  },
+  3: {
+    planet: 'Jupiter',
+    strengths: [
+      'Knowledge seeker — loves learning and expanding knowledge',
+      'Teacher energy — natural guiding and teaching qualities',
+      'Strong communication — a good speaker and advisor whose words carry logic and wisdom',
+      'Spiritual thinking — inclined toward ethics, religion and philosophy',
+    ],
+    weaknesses: [
+      'Overconfidence when Jupiter energy is imbalanced',
+      'Gives too many lectures / tries to advise everyone',
+      'May appear preachy or overly serious',
+    ],
+    careers: [
+      'Teaching',
+      'Professorship',
+      'Mentoring',
+      'Law',
+      'Motivational speaking',
+      'Spiritual leadership',
+    ],
+    advice: [
+      'Continue learning throughout life',
+      'Avoid arrogance',
+      'Use knowledge positively',
+      'Share wisdom with humility',
+    ],
+  },
+  4: {
+    planet: 'Rahu',
+    strengths: [
+      'Strong manifestation power — works intensely to achieve what they desire',
+      'Strategic thinking — plans several steps ahead',
+      'Highly analytical mind — good at mathematics, logic and problem solving',
+      'Strong finisher — persists until a task is complete',
+      'Organizational ability — a capable organizer, manager and planner',
+    ],
+    weaknesses: [
+      'Ego, overconfidence and stubbornness can create conflicts and obstacles',
+      'Relationship challenges — misunderstandings, emotional distance, unexpected separations',
+      'Financial journey can be unpredictable (though rarely a long-term shortage)',
+      'Questions rules and systems, preferring their own path',
+    ],
+    careers: [
+      'Organizing and management',
+      'Planning and systems',
+      'Strategy and analysis',
+      'Unconventional / self-made ventures',
+    ],
+    advice: [
+      'Respect time and opportunities (the biggest lesson)',
+      'Control ego',
+      'Maintain discipline',
+      'Use analytical power positively',
+      'Stay balanced in relationships',
+    ],
+  },
+  5: {
+    planet: 'Mercury (Budh)',
+    strengths: [
+      'Quick decision-making ability',
+      'Strong communication and persuasion skills',
+      'Highly adaptable',
+      'Good networking ability',
+      'Intelligent and creative thinking',
+    ],
+    weaknesses: [
+      'Lack of discipline',
+      'Can be careless or lazy',
+      'Easily distracted',
+      'Sometimes hides true thoughts — may struggle with consistency',
+    ],
+    careers: [
+      'Marketing',
+      'Sales',
+      'Media and communication',
+      'Business',
+      'Public relations',
+      'Travel-related careers',
+    ],
+    advice: [
+      'Maintain discipline in life',
+      'Focus on completing tasks',
+      'Avoid laziness and distractions',
+      'Use communication positively',
+    ],
+  },
+  6: {
+    planet: 'Venus (Shukra)',
+    strengths: [
+      'Strong relationship-building skills',
+      'Natural charm and attraction',
+      'Artistic and creative talent',
+      'Good social influence',
+      'Connects with people easily',
+    ],
+    weaknesses: [
+      'Ego due to luxury or status',
+      'Risk of addictions',
+      'Overindulgence in comfort',
+      'Emotional dependency',
+    ],
+    careers: [
+      'Fashion and beauty industry',
+      'Entertainment',
+      'Hospitality',
+      'Luxury business',
+      'Arts and design',
+    ],
+    advice: [
+      'Avoid addictions and excess pleasures',
+      'Stay humble and balanced',
+      'Maintain respectful relationships',
+      'Use charm and influence positively',
+    ],
+  },
+  7: {
+    planet: 'Ketu',
+    strengths: [
+      'Strong intuition',
+      'Ability to understand others’ emotions',
+      'Spiritual awareness',
+      'Analytical thinking',
+      'Deep observation skills',
+    ],
+    weaknesses: [
+      'Trusts people too easily',
+      'Can be emotionally vulnerable',
+      'Others may take advantage of their kindness',
+      'Difficulty focusing on their own needs',
+    ],
+    careers: [
+      'Research',
+      'Spiritual or healing fields',
+      'Psychology',
+      'Teaching',
+      'Writing or analysis',
+    ],
+    advice: [
+      'Avoid blind trust in people',
+      'Focus on personal growth',
+      'Maintain emotional boundaries',
+      'Take care of health and routine',
+    ],
+  },
+  8: {
+    planet: 'Saturn (Shani)',
+    strengths: [
+      'Strong determination',
+      'High endurance and patience',
+      'Practical thinking',
+      'Ability to handle responsibilities',
+      'Long-term success mindset',
+    ],
+    weaknesses: [
+      'Emotional expression is difficult',
+      'Can appear cold or distant',
+      'Life may bring early struggles',
+      'Sometimes overly serious',
+    ],
+    careers: [
+      'Administration',
+      'Law and justice system',
+      'Management',
+      'Finance and business',
+      'Government services',
+    ],
+    advice: [
+      'Focus on one task at a time',
+      'Maintain discipline and patience',
+      'Avoid multitasking overload',
+      'Respect workers and people around you',
+      'Stay physically active',
+    ],
+  },
+  9: {
+    planet: 'Mars (Mangal)',
+    strengths: [
+      'Strong willpower',
+      'Natural leadership ability',
+      'Protective nature',
+      'High motivation and enthusiasm',
+      'Ability to fight against challenges',
+    ],
+    weaknesses: [
+      'Short temper',
+      'Impulsive decisions',
+      'Arguments and conflicts',
+      'Ego issues — anger and emotional intensity can strain relationships',
+    ],
+    careers: [
+      'Defense services',
+      'Police',
+      'Sports',
+      'Business leadership',
+      'Politics',
+      'Emergency services',
+    ],
+    advice: [
+      'Control anger and impulsive reactions',
+      'Practice patience and emotional balance',
+      'Use energy for constructive work',
+      'Maintain respectful relationships',
+      'Stay disciplined',
+    ],
+  },
+}
+
 export interface YogDefinition {
   numbers: number[]
   missingNumbers?: number[]

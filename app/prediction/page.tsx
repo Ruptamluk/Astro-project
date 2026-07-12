@@ -42,6 +42,7 @@ import {
   Download,
 } from 'lucide-react'
 import ReportStudio from '@/components/report/ReportStudio'
+import { driverNumberProfiles } from '@/lib/numerology'
 
 interface Prediction {
   driver_number: number
@@ -1197,6 +1198,89 @@ export default function PredictionPage() {
             </div>
           </Card>
 
+
+          {driverNumberProfiles[prediction.driver_number] && (() => {
+            const profile = driverNumberProfiles[prediction.driver_number]
+            const insightBlocks = [
+              {
+                title: 'Strengths',
+                items: profile.strengths,
+                icon: CheckCircle2,
+                border: 'border-emerald-100',
+                bg: 'bg-emerald-50/50',
+                iconColor: 'text-emerald-600',
+                dot: 'bg-emerald-500',
+              },
+              {
+                title: 'Weaknesses',
+                items: profile.weaknesses,
+                icon: XCircle,
+                border: 'border-rose-100',
+                bg: 'bg-rose-50/50',
+                iconColor: 'text-rose-600',
+                dot: 'bg-rose-500',
+              },
+              {
+                title: 'Suitable Careers',
+                items: profile.careers,
+                icon: Briefcase,
+                border: 'border-indigo-100',
+                bg: 'bg-indigo-50/50',
+                iconColor: 'text-indigo-600',
+                dot: 'bg-indigo-500',
+              },
+              {
+                title: 'Advice',
+                items: profile.advice,
+                icon: Sparkles,
+                border: 'border-blue-100',
+                bg: 'bg-blue-50/50',
+                iconColor: 'text-blue-600',
+                dot: 'bg-blue-500',
+              },
+            ]
+            return (
+              <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
+                <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">
+                  <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                    <Star className="w-6 h-6 text-violet-600" />
+                    Driver Number Insights
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Driver <span className="font-semibold text-slate-800">{prediction.driver_number}</span>
+                    {' · '}
+                    <span className="font-semibold text-slate-800">{profile.planet}</span>
+                  </p>
+                </div>
+                <div className="p-6 md:p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {insightBlocks.map((block) => {
+                      const BlockIcon = block.icon
+                      return (
+                        <div
+                          key={block.title}
+                          className={`rounded-2xl border ${block.border} ${block.bg} p-5 shadow-sm flex flex-col gap-3`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <BlockIcon className={`w-5 h-5 ${block.iconColor}`} />
+                            <h4 className="font-bold text-slate-800">{block.title}</h4>
+                          </div>
+                          <ul className="space-y-2">
+                            {block.items.map((item, index) => (
+                              <li key={index} className="flex gap-2.5 text-slate-700 text-sm md:text-base leading-relaxed">
+                                <span className={`mt-2 w-1.5 h-1.5 rounded-full ${block.dot} shrink-0`} />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </Card>
+            )
+          })()}
 
           <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
             <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">

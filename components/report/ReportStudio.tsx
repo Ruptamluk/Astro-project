@@ -9,7 +9,7 @@ import {
   Prediction, numberCharacteristics, missingNumberAnalysis,
   repeatedNumberNegativeAnalysis, yogDefinitions, DOB_CHART_LAYOUT,
   GAYATRI_MANTRAS, PLANET_YANTRAS, PERSONAL_YEAR_REMEDIES, yogRemedyData,
-  getYogRemedyKey, getStrengthNumber,
+  getYogRemedyKey, getStrengthNumber, driverNumberProfiles,
 } from '@/lib/numerology'
 
 interface ReportStudioProps {
@@ -38,6 +38,8 @@ export default function ReportStudio({
 
   const strengthNumber =
     prediction.strength_number ?? getStrengthNumber(prediction.dob, prediction.driver_number)
+
+  const driverProfile = driverNumberProfiles[prediction.driver_number]
 
   const dobChart = prediction.dob_chart ?? [
     ['', '', ''],
@@ -274,6 +276,14 @@ export default function ReportStudio({
         charKids.push(P([tr(`Conductor (${prediction.conductor_number}): `, { c: 'C026D3', b: true, s: HP(12) }), tr(numberCharacteristics[prediction.conductor_number] || '—', { c: '475569', s: HP(13) })]))
       }
       addTable(card('F8F7FF', 'DDD6FE', charKids))
+
+      if (driverProfile) {
+        add(subBar(`Driver Number Insights — ${prediction.driver_number} (${driverProfile.planet})`))
+        addTable(card('F0FDF4', '86EFAC', [label('Strengths', '15803D'), ...bullets(driverProfile.strengths, '166534')]))
+        addTable(card('FFF1F2', 'FCA5A5', [label('Weaknesses', 'BE123C'), ...bullets(driverProfile.weaknesses, '9F1239')]))
+        addTable(card('EEF2FF', 'A5B4FC', [label('Suitable Careers', '4338CA'), ...bullets(driverProfile.careers, '312E81')]))
+        addTable(card('EFF6FF', 'BFDBFE', [label('Advice', '1D4ED8'), ...bullets(driverProfile.advice, '1E40AF')]))
+      }
 
       if (prediction.analysis) {
         add(subBar('Driver–Conductor Analysis'))
@@ -566,7 +576,7 @@ export default function ReportStudio({
                           </div>
                           <div className="flex items-center justify-between py-2 border-b border-slate-100">
                             <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Page 1</span>
-                            <span className="text-slate-700">Driver {prediction.driver_number} · Conductor {prediction.conductor_number} · Year {prediction.personal_year} · Colors · Analysis</span>
+                            <span className="text-slate-700">Driver {prediction.driver_number} · Conductor {prediction.conductor_number} · Year {prediction.personal_year} · Colors · Driver Insights · Analysis</span>
                           </div>
                           <div className="flex items-center justify-between py-2">
                             <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Page 2+</span>
@@ -706,6 +716,43 @@ export default function ReportStudio({
                   )}
                 </tbody></table>
               </div>
+
+              {/* Driver Number Insights */}
+              {driverProfile && (
+                <div style={{ background: '#ffffff', border: '1px solid #ddd6fe', borderRadius: '10px', padding: '14px 18px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '12px' }}>
+                    Driver Number Insights — {prediction.driver_number} ({driverProfile.planet})
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '8px' }}><tbody>
+                    <tr>
+                      {([
+                        { title: 'Strengths', items: driverProfile.strengths, bg: '#f0fdf4', border: '#86efac', label: '#15803d', text: '#166534' },
+                        { title: 'Weaknesses', items: driverProfile.weaknesses, bg: '#fff1f2', border: '#fca5a5', label: '#be123c', text: '#9f1239' },
+                      ] as const).map((block) => (
+                        <td key={block.title} style={{ width: '50%', background: block.bg, border: `1px solid ${block.border}`, borderRadius: '8px', padding: '10px 14px', verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: block.label, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'system-ui,sans-serif', marginBottom: '6px' }}>{block.title}</div>
+                          {block.items.map((item, index) => (
+                            <div key={index} style={{ fontSize: '12px', color: block.text, lineHeight: '1.55', fontFamily: 'system-ui,sans-serif', marginBottom: '3px' }}>• {item}</div>
+                          ))}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      {([
+                        { title: 'Suitable Careers', items: driverProfile.careers, bg: '#eef2ff', border: '#a5b4fc', label: '#4338ca', text: '#312e81' },
+                        { title: 'Advice', items: driverProfile.advice, bg: '#eff6ff', border: '#bfdbfe', label: '#1d4ed8', text: '#1e40af' },
+                      ] as const).map((block) => (
+                        <td key={block.title} style={{ width: '50%', background: block.bg, border: `1px solid ${block.border}`, borderRadius: '8px', padding: '10px 14px', verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: block.label, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'system-ui,sans-serif', marginBottom: '6px' }}>{block.title}</div>
+                          {block.items.map((item, index) => (
+                            <div key={index} style={{ fontSize: '12px', color: block.text, lineHeight: '1.55', fontFamily: 'system-ui,sans-serif', marginBottom: '3px' }}>• {item}</div>
+                          ))}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody></table>
+                </div>
+              )}
 
               {/* Driver-Conductor Analysis */}
               {prediction.analysis && (
