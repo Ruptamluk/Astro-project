@@ -51,6 +51,7 @@ import {
   GAYATRI_MANTRAS,
   PLANET_YANTRAS,
   PERSONAL_YEAR_REMEDIES,
+  CRYSTAL_REMEDIES,
   yogRemedyData,
   getYogRemedyKey,
 } from '@/lib/numerology'
@@ -1056,6 +1057,48 @@ export default function KnowMorePage() {
                         </Card>
 
                       </div>
+
+                      {/* Crystal — full width below grid */}
+                      {missingDobNumbers.length > 0 && (
+                        <Card className="rounded-[24px] border-fuchsia-100 overflow-hidden shadow-sm bg-white/90">
+                          <div className="p-5 space-y-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="rounded-lg p-1.5 bg-fuchsia-100 shrink-0">
+                                <Gem className="w-4 h-4 text-fuchsia-600" />
+                              </div>
+                              <h2 className="text-sm font-bold text-slate-800">Crystal</h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {missingDobNumbers.map((digit) => {
+                                const crystal = CRYSTAL_REMEDIES[digit]
+                                if (!crystal) return null
+                                return (
+                                  <div key={digit} className="rounded-xl bg-fuchsia-50 border border-fuchsia-100 p-3.5 space-y-2.5">
+                                    <p className="text-sm font-bold text-fuchsia-800">{crystal.name}</p>
+                                    <ul className="space-y-1.5">
+                                      {crystal.benefits.map((benefit, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm text-fuchsia-900 leading-6">
+                                          <span className="mt-2 w-1.5 h-1.5 rounded-full bg-fuchsia-400 shrink-0" />
+                                          {benefit}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                    <div className="rounded-lg bg-white border border-fuchsia-100 p-3">
+                                      <p className="text-xs font-bold text-fuchsia-700 uppercase tracking-wide mb-1">
+                                        Crystal Affirmation — Chant it 5 times in the morning
+                                      </p>
+                                      <p className="text-sm italic text-slate-700 leading-6">“{crystal.affirmation}”</p>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                            <p className="text-sm leading-7 text-slate-600 font-medium">
+                              As per your chart, we recommend the above crystals for your progress and stability.
+                            </p>
+                          </div>
+                        </Card>
+                      )}
 
                       {/* Yog Remedies — full width below grid */}
                       {(() => {

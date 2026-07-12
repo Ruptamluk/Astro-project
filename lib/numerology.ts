@@ -59,6 +59,24 @@ export const missingNumberAnalysis: Record<number, string> = {
   9: 'Do not have humanity, do not help others, problem in education.',
 }
 
+export interface CrystalRemedy {
+  name: string
+  benefits: string[]
+  affirmation: string
+}
+
+export const CRYSTAL_REMEDIES: Record<number, CrystalRemedy> = {
+  1: { name: 'Sunstone Crystal / Bracelet', benefits: ['Increases confidence level', 'Improves self-esteem', 'Develops leadership quality'], affirmation: 'I am confident and successful.' },
+  2: { name: 'Moonstone Crystal and Clear Quartz', benefits: ['Emotional balance', 'Good relationships'], affirmation: 'I am calm, loved, and emotionally balanced.' },
+  3: { name: 'Yellow Citrine Crystals', benefits: ['Wisdom', 'Financial growth', 'Spirituality'], affirmation: 'Wisdom and abundance flow to me.' },
+  4: { name: "Smoky Quartz, Tiger's Eye, Labradorite, and Mach Mani", benefits: ['Protection', 'Stability', 'Focus'], affirmation: 'I am protected and stable.' },
+  5: { name: 'Green Aventurine and Peridot', benefits: ['Good communication', 'Good memory', 'Networking'], affirmation: 'I communicate with clarity and confidence.' },
+  6: { name: 'Rose Quartz and Prehnite', benefits: ['Attraction', 'Harmony', 'Luxury'], affirmation: 'Love and harmony surround me.' },
+  7: { name: "Cat's Eye, Lepidolite, and Amethyst", benefits: ['Spirituality', 'Intuition power'], affirmation: 'My intuition guides me wisely.' },
+  8: { name: 'Amethyst, Mach Mani, and Black Tourmaline', benefits: ['Discipline', 'Protection', 'Grounding', 'Patience'], affirmation: 'I am disciplined, grounded, and prosperous.' },
+  9: { name: 'Bloodstone Crystal and Red Jasper Crystal', benefits: ['Harmony', 'Wisdom', 'Knowledge and spiritual growth'], affirmation: 'I act with courage and strength.' },
+}
+
 export const repeatedNumberNegativeAnalysis: Record<number, string> = {
   1: 'Egoistic, dominating, stubborn, self-centered.',
   2: 'Mood swings, oversensitive, dependent.',

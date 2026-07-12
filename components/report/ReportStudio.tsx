@@ -8,7 +8,7 @@ import { FileText, Lock, Star, Coins, Download } from 'lucide-react'
 import {
   Prediction, numberCharacteristics, missingNumberAnalysis,
   repeatedNumberNegativeAnalysis, yogDefinitions, DOB_CHART_LAYOUT,
-  GAYATRI_MANTRAS, PLANET_YANTRAS, PERSONAL_YEAR_REMEDIES, yogRemedyData,
+  GAYATRI_MANTRAS, PLANET_YANTRAS, PERSONAL_YEAR_REMEDIES, CRYSTAL_REMEDIES, yogRemedyData,
   getYogRemedyKey, getStrengthNumber, driverNumberProfiles,
 } from '@/lib/numerology'
 
@@ -430,6 +430,21 @@ export default function ReportStudio({
         activeYogsWithRemedies.forEach((yog) => {
           addTable(card('FFFFFF', 'FDE68A', [label(yog.name, '78350F'), ...bullets(yog.remedies)]))
         })
+      }
+
+      const crystalDigits = missingDobNumbers.filter((d) => CRYSTAL_REMEDIES[d])
+      if (crystalDigits.length > 0) {
+        add(subBar('Crystal', 'FDF4FF', '86198F'))
+        crystalDigits.forEach((digit) => {
+          const c = CRYSTAL_REMEDIES[digit]
+          addTable(card('FDF4FF', 'F0ABFC', [
+            P(tr(c.name, { c: '86198F', b: true, s: HP(13) }), { spacing: { after: 50 } }),
+            ...bullets(c.benefits, '701A75'),
+            label('Crystal Affirmation — Chant it 5 times in the morning', 'A21CAF'),
+            body(`“${c.affirmation}”`, '701A75'),
+          ]))
+        })
+        add(body('As per your chart, we recommend the above crystals for your progress and stability.', '86198F'))
       }
 
       // ── FOOTER ──
@@ -1064,6 +1079,35 @@ export default function ReportStudio({
                           </tr>
                         ))}
                       </tbody></table>
+                    </div>
+                  )
+                })()}
+
+                {/* Crystal */}
+                {(() => {
+                  const crystalDigits = missingDobNumbers.filter((d) => CRYSTAL_REMEDIES[d])
+                  if (crystalDigits.length === 0) return null
+                  return (
+                    <div style={{ background: '#fdf4ff', border: '1px solid #f0abfc', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#86198f', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '10px' }}>Crystal</div>
+                      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}><tbody>
+                        {crystalDigits.map((digit) => {
+                          const c = CRYSTAL_REMEDIES[digit]
+                          return (
+                            <tr key={digit}>
+                              <td style={{ background: '#fff', border: '1px solid #f0abfc', borderRadius: '8px', padding: '10px 13px', verticalAlign: 'top' }}>
+                                <div style={{ fontSize: '13px', fontWeight: 700, color: '#86198f', fontFamily: 'system-ui,sans-serif', marginBottom: '6px' }}>{c.name}</div>
+                                {c.benefits.map((b, i) => (
+                                  <p key={i} style={{ fontSize: '12px', color: '#701a75', lineHeight: '1.6', margin: '0 0 3px 0', fontFamily: 'system-ui,sans-serif', paddingLeft: '12px' }}>• {b}</p>
+                                ))}
+                                <div style={{ fontSize: '10px', fontWeight: 700, color: '#a21caf', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'system-ui,sans-serif', margin: '8px 0 3px 0' }}>Crystal Affirmation — Chant it 5 times in the morning</div>
+                                <p style={{ fontSize: '12px', fontStyle: 'italic', color: '#701a75', lineHeight: '1.6', margin: 0, fontFamily: 'system-ui,sans-serif' }}>“{c.affirmation}”</p>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody></table>
+                      <p style={{ fontSize: '12px', color: '#86198f', lineHeight: '1.6', margin: '4px 0 0 0', fontFamily: 'system-ui,sans-serif' }}>As per your chart, we recommend the above crystals for your progress and stability.</p>
                     </div>
                   )
                 })()}
