@@ -781,7 +781,7 @@ export default function PredictionPage() {
   }
 
   const TOKEN_PACKS = [
-    { id: '1',    tokens: 1,    price: 190,  label: 'Single' },
+    { id: '1',    tokens: 1,    price: 109,  label: 'Single' },
     { id: '5',    tokens: 5,    price: 271,  label: 'Starter' },
     { id: '32',   tokens: 32,   price: 811,  label: 'Basic' },
     { id: '100',  tokens: 100,  price: 1801, label: 'Standard' },

@@ -17,7 +17,7 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
 TOKEN_PACKS = {
-    "1":    (19000,      1),   # ₹190
+    "1":    (10900,      1),   # ₹109
     "5":    (27100,      5),   # ₹271
     "32":   (81100,     32),   # ₹811
     "100":  (180100,   100),   # ₹1801
