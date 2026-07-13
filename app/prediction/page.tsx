@@ -682,7 +682,7 @@ export default function PredictionPage() {
   const [reportLogoAccess, setReportLogoAccess] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
   const [showTokenDialog, setShowTokenDialog] = useState(false)
-  const [selectedPack, setSelectedPack] = useState<'5' | '32' | '100' | '500' | '1000'>('5')
+  const [selectedPack, setSelectedPack] = useState<'1' | '5' | '32' | '100' | '500' | '1000'>('5')
   const [isPayingToken, setIsPayingToken] = useState(false)
 
   useEffect(() => {
@@ -781,6 +781,7 @@ export default function PredictionPage() {
   }
 
   const TOKEN_PACKS = [
+    { id: '1',    tokens: 1,    price: 190,  label: 'Single' },
     { id: '5',    tokens: 5,    price: 271,  label: 'Starter' },
     { id: '32',   tokens: 32,   price: 811,  label: 'Basic' },
     { id: '100',  tokens: 100,  price: 1801, label: 'Standard' },
@@ -1105,7 +1106,9 @@ export default function PredictionPage() {
               <button
                 type="button"
                 onClick={() => setShowArchive(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-violet-300 bg-white/80 text-violet-700 hover:bg-violet-50 transition-colors shadow-sm"
+                disabled={knowMoreTokens === 0}
+                title={knowMoreTokens === 0 ? 'Buy a Know More token to access the report archive' : undefined}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-violet-300 bg-white/80 text-violet-700 hover:bg-violet-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/80"
               >
                 <Download className="w-4 h-4 shrink-0" />
                 Report archive
