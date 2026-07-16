@@ -42,7 +42,7 @@ import {
   Download,
 } from 'lucide-react'
 import ReportStudio from '@/components/report/ReportStudio'
-import { driverNumberProfiles } from '@/lib/numerology'
+import { driverNumberProfiles, conductorNumberProfiles } from '@/lib/numerology'
 
 interface Prediction {
   driver_number: number
@@ -76,6 +76,16 @@ type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+
+interface ArchivedReport {
+  id: string
+  dob: string
+  name: string
+  phone: string
+  prediction: Prediction
+  created_at: string | null
+  updated_at: string | null
+}
 
 const colorMap: Record<string, string> = {
   Red: 'red',
@@ -679,8 +689,12 @@ export default function PredictionPage() {
   const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
   const [knowMoreAccess, setKnowMoreAccess] = useState(false)
   const [knowMoreTokens, setKnowMoreTokens] = useState(0)
+  const [hasPurchasedKnowMore, setHasPurchasedKnowMore] = useState(false)
   const [reportLogoAccess, setReportLogoAccess] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
+  const [archivedReports, setArchivedReports] = useState<ArchivedReport[]>([])
+  const [isLoadingArchive, setIsLoadingArchive] = useState(false)
+  const [selectedReport, setSelectedReport] = useState<ArchivedReport | null>(null)
   const [showTokenDialog, setShowTokenDialog] = useState(false)
   const [selectedPack, setSelectedPack] = useState<'1' | '5' | '32' | '100' | '500' | '1000'>('5')
   const [isPayingToken, setIsPayingToken] = useState(false)
@@ -704,6 +718,7 @@ export default function PredictionPage() {
             if (isMounted) {
               setKnowMoreAccess(userData.know_more_access === true)
               setKnowMoreTokens(userData.know_more_tokens ?? 0)
+              setHasPurchasedKnowMore(userData.has_purchased_know_more === true)
               setReportLogoAccess(userData.report_logo_access === true)
             }
           }
@@ -788,6 +803,29 @@ export default function PredictionPage() {
     { id: '500',  tokens: 500,  price: 6301, label: 'Value' },
     { id: '1000', tokens: 1000, price: 8101, label: 'Mega' },
   ] as const
+
+  // The archive lists reports saved at download time, not the current
+  // `prediction` — checking a new DOB must not rewrite past reports.
+  const openArchive = async () => {
+    setShowArchive(true)
+    setSelectedReport(null)
+
+    const userId = localStorage.getItem('userId')
+    if (!userId) return
+
+    setIsLoadingArchive(true)
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/reports/${userId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setArchivedReports(data.reports ?? [])
+      }
+    } catch (err) {
+      console.error('Failed to load report archive:', err)
+    } finally {
+      setIsLoadingArchive(false)
+    }
+  }
 
   const handleTokenPayment = async () => {
     const userId = localStorage.getItem('userId')
@@ -1102,18 +1140,18 @@ export default function PredictionPage() {
                 </div>
               )
             })()}
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setShowArchive(true)}
-                disabled={knowMoreTokens === 0}
-                title={knowMoreTokens === 0 ? 'Buy a Know More token to access the report archive' : undefined}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-violet-300 bg-white/80 text-violet-700 hover:bg-violet-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/80"
-              >
-                <Download className="w-4 h-4 shrink-0" />
-                Report archive
-              </button>
-            </div>
+            {hasPurchasedKnowMore && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={openArchive}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-violet-300 bg-white/80 text-violet-700 hover:bg-violet-50 transition-colors shadow-sm"
+                >
+                  <Download className="w-4 h-4 shrink-0" />
+                  Report archive
+                </button>
+              </div>
+            )}
           </div>
 
           <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
@@ -1279,6 +1317,37 @@ export default function PredictionPage() {
                         </div>
                       )
                     })}
+                  </div>
+                </div>
+              </Card>
+            )
+          })()}
+
+          {conductorNumberProfiles[prediction.conductor_number] && (() => {
+            const conductorProfile = conductorNumberProfiles[prediction.conductor_number]
+            return (
+              <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
+                <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">
+                  <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-fuchsia-600" />
+                    Conductor Number Insights
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Conductor <span className="font-semibold text-slate-800">{prediction.conductor_number}</span>
+                    {' · '}
+                    <span className="font-semibold text-slate-800">{conductorProfile.planet}</span>
+                  </p>
+                </div>
+                <div className="p-6 md:p-8">
+                  <div className="rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-5 shadow-sm">
+                    <ul className="space-y-3">
+                      {conductorProfile.paragraphs.map((paragraph, index) => (
+                        <li key={index} className="flex gap-2.5 text-slate-700 text-sm md:text-base leading-relaxed">
+                          <span className="mt-2 w-1.5 h-1.5 rounded-full bg-fuchsia-500 shrink-0" />
+                          <span>{paragraph}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               </Card>
@@ -1827,7 +1896,7 @@ export default function PredictionPage() {
       </Dialog>
 
       {/* Report Archive — re-download previously generated report (no token) */}
-      <Dialog open={showArchive} onOpenChange={setShowArchive}>
+      <Dialog open={showArchive && hasPurchasedKnowMore} onOpenChange={setShowArchive}>
         <DialogContent className="w-[96vw] max-w-3xl max-h-[92vh] overflow-y-auto p-0 border border-violet-100 rounded-2xl bg-white">
           <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5">
             <DialogHeader>
@@ -1836,17 +1905,60 @@ export default function PredictionPage() {
                 Report Archive
               </DialogTitle>
               <DialogDescription className="text-violet-100 text-sm mt-1">
-                Re-download your numerology report as PDF or DOCX. No Know More token is used.
+                Re-download a previously generated report as PDF or DOCX. No Know More token is used.
               </DialogDescription>
             </DialogHeader>
           </div>
           <div className="p-5 md:p-6">
-            <ReportStudio
-              prediction={prediction}
-              reportLogoAccess={reportLogoAccess}
-              clientName={prediction.name ?? ''}
-              clientPhone={prediction.phone ?? ''}
-            />
+            {selectedReport ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReport(null)}
+                  className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-violet-700 hover:text-violet-900"
+                >
+                  ← Back to all reports
+                </button>
+                <ReportStudio
+                  prediction={selectedReport.prediction}
+                  reportLogoAccess={reportLogoAccess}
+                  clientName={selectedReport.name}
+                  clientPhone={selectedReport.phone}
+                />
+              </>
+            ) : isLoadingArchive ? (
+              <p className="text-sm text-slate-500 py-8 text-center">Loading your reports…</p>
+            ) : archivedReports.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm font-semibold text-slate-700">No saved reports yet</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  Reports you download from Know More are saved here automatically.
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {archivedReports.map((report) => (
+                  <li key={report.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReport(report)}
+                      className="w-full text-left px-4 py-3 rounded-xl border border-violet-200 bg-white hover:bg-violet-50 transition-colors"
+                    >
+                      <span className="block font-semibold text-slate-800">
+                        {report.name || 'Unnamed'}
+                      </span>
+                      <span className="block text-sm text-slate-500">
+                        DOB {report.dob}
+                        {report.phone ? ` · ${report.phone}` : ''}
+                        {report.updated_at
+                          ? ` · saved ${new Date(report.updated_at).toLocaleDateString()}`
+                          : ''}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </DialogContent>
       </Dialog>

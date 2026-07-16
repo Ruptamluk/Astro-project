@@ -30,6 +30,9 @@ class User(BaseModel):
     know_more_access: bool = False
     know_more_tokens: int = 0
     know_more_view_expires_at: Optional[datetime] = None
+    # Set on the first token credit and never unset, unlike know_more_access
+    # which tracks the current balance.
+    has_purchased_know_more: bool = False
     report_logo_access: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     

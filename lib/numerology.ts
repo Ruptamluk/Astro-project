@@ -378,6 +378,101 @@ export const driverNumberProfiles: Record<number, DriverNumberProfile> = {
   },
 }
 
+// Per-conductor-number deep-dive: ruling planet + the explanation prose.
+// Kept as narrative paragraphs (rather than the driver's bucketed lists)
+// because the source material is written that way. Keyed off the conductor
+// number (1-9).
+export interface ConductorNumberProfile {
+  planet: string
+  paragraphs: string[]
+}
+
+export const conductorNumberProfiles: Record<number, ConductorNumberProfile> = {
+  1: {
+    planet: 'Sun',
+    paragraphs: [
+      'Ruler, team leader, government job and administrative power. They do new things for name and fame. If they receive good guidance, they show their talent.',
+      'They are financially stable and know how to earn and spend money. They are good to their friends and support them. When they become busy in their professional life, they may have fewer friends.',
+      'They do not want to live alone. They can become successful in business and achieve a top position.',
+    ],
+  },
+  2: {
+    planet: 'Moon',
+    paragraphs: [
+      'Good communication skills, good manners and quality speech. They know how to attract people towards them. They do not like taking responsibility. Their mother and wife may remain worried about them.',
+      'They are attracted to the opposite gender and can be argumentative. They may create problems. They are lazy by nature but responsible in social work. They receive respect outside the home.',
+      'They do not like spending their own money and may spend other people’s money. They have many friends from different cultures. They should not make decisions in a hurry. They save money in life.',
+    ],
+  },
+  3: {
+    planet: 'Jupiter',
+    paragraphs: [
+      'Their desires are very high. They do not like remaining in their comfort zone. They have very strong willpower and fight against difficult circumstances.',
+      'They may receive less than what they deserve according to their efforts. When they struggle, their willpower increases, and they become more mature.',
+      'They do not want to do work involving too much heat, but they are hardworking. They can achieve name and fame and are social in life. They receive support from friends and can sometimes be money-minded.',
+      'They generally do not have major health issues, although stomach or digestive problems may occur. They seek perfection in life and provide solutions. They may become irritated by small words or matters.',
+    ],
+  },
+  4: {
+    planet: 'Rahu',
+    paragraphs: [
+      'They are disciplined and cool by nature. Remaining calm helps them improve their lives. They seek perfection and work with great dedication, but people may still doubt them.',
+      'They accept challenges and changes and can undertake new developments easily. They are well-planned, good learners and very lucky. They can judge future situations very well.',
+      'They are expensive by nature, which may sometimes create budget problems. Their blood relatives usually try to support them.',
+    ],
+  },
+  5: {
+    planet: 'Mercury',
+    paragraphs: [
+      'They do not want to continue doing the same kind of work. They frequently change their thought process.',
+      'They sacrifice everything for the people they love; otherwise, they may lose the relationship.',
+      'They do not want to gain knowledge from everyone and always think about doing something big. When they do not receive a proper support system, they may leave their work halfway and may not want to restart it.',
+      'They love travelling and are suited to professional travel. They are always ready to help their friends.',
+      'They may not remain honest in marriage, and dealing with their life partner may also be difficult. They like to show off and spend more money in life.',
+    ],
+  },
+  6: {
+    planet: 'Venus',
+    paragraphs: [
+      'They are very good, friendly and helpful advisers. They have a very strong thought process. They are emotional but can control their emotions.',
+      'They slowly create good plans and impress other people. They are good at business and are especially suited to partnerships.',
+      'They are well-known in their friend circle. They can advise and help other people. They are expensive by nature but receive support from friends.',
+      'They should not believe anyone blindly. Emotional setbacks may occur. They always think about saving money. Their relationships and health need proper care.',
+    ],
+  },
+  7: {
+    planet: 'Ketu',
+    paragraphs: [
+      'Challenges come into their lives frequently. They have strong willpower and are courageous. They accept challenges with a smile and can reach their destination by hook or by crook.',
+      'Disappointments may come, but they do not remain stuck. It may feel as though the universe is testing them. They do not accept interference from others.',
+      'They have good planning abilities and a clear mind. They generally do not have confusion in life. They do not share their sorrow with others.',
+      'Too many challenges make them more mature. Stomach-related health issues may occur. They may experience disappointment from friends.',
+      'After the age of 35, they can achieve financial stability. They should connect with nature. They can have a good career in health-related or education-related jobs.',
+      'They should avoid loneliness. When they remain social, they develop a good network and become popular in their friend circle.',
+    ],
+  },
+  8: {
+    planet: 'Saturn',
+    paragraphs: [
+      'They do not want to take risks or accept work involving major risks and responsibilities. They want a peaceful life.',
+      'They are not secretive, so people should not share important secrets with them. They are self-loving and do not think much about the future. They have a free mind and easily believe other people.',
+      'They show that they are busy, although they may not actually be busy. They always look for shortcuts and may not be interested in mathematics. They easily become irritated with others.',
+      'They are expensive by nature and do not save money. They receive help from good friends. They should not act only according to their emotions and should maintain discipline in life.',
+    ],
+  },
+  9: {
+    planet: 'Mars',
+    paragraphs: [
+      'They have very strong willpower and are courageous. They receive the blessings of the universe but can be argumentative.',
+      'They think logically and do not easily become pressurised. They can achieve name and fame when they continue working hard until they succeed.',
+      'They experience struggles in life. They should not be lazy and must work hard. They are not easily satisfied in life.',
+      'They are humanitarian by nature, easily make friends and are socially active. They can reach the top in any field and enjoy life.',
+      'They may experience blood-pressure or blood-related health issues. Their married life may not always be good.',
+      'They should control their anger and avoid excessive mental stress. They should not become involved in arguments because it is difficult for other people to win an argument against them.',
+    ],
+  },
+}
+
 export interface YogDefinition {
   numbers: number[]
   missingNumbers?: number[]

@@ -167,21 +167,20 @@ async def grant_tokens(body: GrantTokensRequest, admin=Depends(require_admin), d
     expires_at = now + timedelta(seconds=VIEW_WINDOW_SECONDS)
     prev = user.get("know_more_tokens", 0)
 
+    fields = {
+        "know_more_view_expires_at": expires_at,
+        "know_more_access": True,
+    }
+    # A set-to-0 is a revocation, so it must not confer archive access.
+    if body.amount > 0:
+        fields["has_purchased_know_more"] = True
+
     if body.mode == "set":
-        update = {
-            "$set": {
-                "know_more_tokens": body.amount,
-                "know_more_view_expires_at": expires_at,
-                "know_more_access": True,
-            }
-        }
+        update = {"$set": {**fields, "know_more_tokens": body.amount}}
     else:  # add
         update = {
             "$inc": {"know_more_tokens": body.amount},
-            "$set": {
-                "know_more_view_expires_at": expires_at,
-                "know_more_access": True,
-            },
+            "$set": fields,
         }
 
     await db.users.update_one({"_id": user["_id"]}, update)

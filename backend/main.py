@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import routers
-from routes import auth, predictions, payment, admin, audit, transactions
+from routes import auth, predictions, payment, admin, audit, transactions, reports
 from middleware.audit import AuditMiddleware
 
 # Database client
@@ -46,6 +46,7 @@ app.add_middleware(AuditMiddleware)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(predictions.router, prefix="/api/predictions", tags=["predictions"])
 app.include_router(payment.router, prefix="/api/payment", tags=["payment"])
+app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(audit.router, prefix="/api/admin/audit", tags=["audit"])
 app.include_router(transactions.router, prefix="/api/admin/transactions", tags=["transactions"])

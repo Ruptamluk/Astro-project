@@ -64,7 +64,7 @@ async def credit_payment(db, payment_id, user_id, payment_type, tokens) -> bool:
         await db.users.update_one(
             {"_id": ObjectId(user_id)},
             {"$inc": {"know_more_tokens": max(int(tokens or 0), 1)},
-             "$set": {"know_more_access": True}},
+             "$set": {"know_more_access": True, "has_purchased_know_more": True}},
         )
     elif payment_type == "report_logo":
         await db.users.update_one(

@@ -9,7 +9,7 @@ import {
   Prediction, numberCharacteristics, missingNumberAnalysis,
   repeatedNumberNegativeAnalysis, yogDefinitions, DOB_CHART_LAYOUT,
   GAYATRI_MANTRAS, PLANET_YANTRAS, PERSONAL_YEAR_REMEDIES, CRYSTAL_REMEDIES, yogRemedyData,
-  getYogRemedyKey, getStrengthNumber, driverNumberProfiles,
+  getYogRemedyKey, getStrengthNumber, driverNumberProfiles, conductorNumberProfiles,
 } from '@/lib/numerology'
 
 interface ReportStudioProps {
@@ -20,6 +20,9 @@ interface ReportStudioProps {
   /** When provided, renders the paid logo-unlock CTA (Know More). Omit on the archive. */
   onUnlockLogo?: () => void
   isUnlockingLogo?: boolean
+  /** Called after a report is successfully generated, to archive it. Omit on the
+   *  archive itself so a re-download doesn't re-save what it just read. */
+  onArchive?: () => void
 }
 
 export default function ReportStudio({
@@ -29,6 +32,7 @@ export default function ReportStudio({
   clientPhone = '',
   onUnlockLogo,
   isUnlockingLogo = false,
+  onArchive,
 }: ReportStudioProps) {
   const [userName, setUserName] = useState<string>('')
   const [userLogo, setUserLogo] = useState<string | null>(null)
@@ -40,6 +44,8 @@ export default function ReportStudio({
     prediction.strength_number ?? getStrengthNumber(prediction.dob, prediction.driver_number)
 
   const driverProfile = driverNumberProfiles[prediction.driver_number]
+
+  const conductorProfile = conductorNumberProfiles[prediction.conductor_number]
 
   const dobChart = prediction.dob_chart ?? [
     ['', '', ''],
@@ -139,6 +145,7 @@ export default function ReportStudio({
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, imgHeightMm)
 
       pdf.save(`${userName ? userName.replace(/\s+/g, '_') + '_' : ''}numerology_report.pdf`)
+      onArchive?.()
     } catch (err) {
       console.error('PDF generation failed:', err)
       alert('PDF generation failed. Please try again.')
@@ -283,6 +290,14 @@ export default function ReportStudio({
         addTable(card('FFF1F2', 'FCA5A5', [label('Weaknesses', 'BE123C'), ...bullets(driverProfile.weaknesses, '9F1239')]))
         addTable(card('EEF2FF', 'A5B4FC', [label('Suitable Careers', '4338CA'), ...bullets(driverProfile.careers, '312E81')]))
         addTable(card('EFF6FF', 'BFDBFE', [label('Advice', '1D4ED8'), ...bullets(driverProfile.advice, '1E40AF')]))
+      }
+
+      if (conductorProfile) {
+        add(subBar(`Conductor Number Insights — ${prediction.conductor_number} (${conductorProfile.planet})`))
+        addTable(card('FDF4FF', 'E879F9', [
+          label('Overview', 'C026D3'),
+          ...bullets(conductorProfile.paragraphs, '86198F'),
+        ]))
       }
 
       if (prediction.analysis) {
@@ -475,6 +490,7 @@ export default function ReportStudio({
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
+      onArchive?.()
     } catch (err) {
       console.error('DOCX generation failed:', err)
       alert('DOCX generation failed. Please try again.')
@@ -766,6 +782,31 @@ export default function ReportStudio({
                       ))}
                     </tr>
                   </tbody></table>
+                </div>
+              )}
+
+              {/* Conductor Number Insights */}
+              {conductorProfile && (
+                <div style={{ background: '#ffffff', border: '1px solid #ddd6fe', borderRadius: '10px', padding: '14px 18px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '12px' }}>
+                    Conductor Number Insights — {prediction.conductor_number} ({conductorProfile.planet})
+                  </div>
+                  <div style={{ background: '#fdf4ff', border: '1px solid #e879f9', borderRadius: '8px', padding: '10px 14px' }}>
+                    {conductorProfile.paragraphs.map((paragraph, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          fontSize: '12px',
+                          color: '#86198f',
+                          lineHeight: '1.55',
+                          fontFamily: 'system-ui,sans-serif',
+                          marginBottom: index === conductorProfile.paragraphs.length - 1 ? 0 : '6px',
+                        }}
+                      >
+                        • {paragraph}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

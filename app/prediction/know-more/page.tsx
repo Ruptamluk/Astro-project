@@ -363,6 +363,29 @@ export default function KnowMorePage() {
   })
   const activeYogCount = yogResults.filter((y) => y.active).length
 
+  // Save the generated report so it stays available in the Report Archive even
+  // after the user checks a different DOB (which overwrites `prediction`).
+  const handleArchiveReport = async () => {
+    const userId = localStorage.getItem('userId')
+    if (!userId || !prediction) return
+
+    try {
+      await fetch(`${API_BASE_URL}/api/reports/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dob: prediction.dob,
+          name: clientName || prediction.name || '',
+          phone: clientPhone || prediction.phone || '',
+          prediction,
+        }),
+      })
+    } catch (err) {
+      // Archiving is best-effort: the user already has their download.
+      console.error('Failed to archive report:', err)
+    }
+  }
+
   const handleLogoPayment = async () => {
     const userId = localStorage.getItem('userId')
     if (!userId) return
@@ -1156,6 +1179,7 @@ export default function KnowMorePage() {
                         clientPhone={clientPhone}
                         onUnlockLogo={handleLogoPayment}
                         isUnlockingLogo={isPayingLogo}
+                        onArchive={handleArchiveReport}
                       />
                   ) : (
                     <div className={`grid grid-cols-1 ${item.remedy ? 'lg:grid-cols-2' : ''} gap-6`}>

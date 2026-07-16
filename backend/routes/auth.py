@@ -225,6 +225,7 @@ async def get_user(user_id: str, db=Depends(get_db)):
             "know_more_access": user.get("know_more_access", False),
             "know_more_tokens": user.get("know_more_tokens", 0),
             "know_more_view_expires_at": _iso_utc(user.get("know_more_view_expires_at")),
+            "has_purchased_know_more": user.get("has_purchased_know_more", False),
             "report_logo_access": user.get("report_logo_access", False),
         }
     except Exception as e:
