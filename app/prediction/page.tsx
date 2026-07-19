@@ -42,7 +42,6 @@ import {
   Download,
 } from 'lucide-react'
 import ReportStudio from '@/components/report/ReportStudio'
-import { driverNumberProfiles, conductorNumberProfiles } from '@/lib/numerology'
 
 interface Prediction {
   driver_number: number
@@ -878,7 +877,7 @@ export default function PredictionPage() {
             if (verifyRes.ok) {
               toast.success('Payment successful! Redirecting…')
               setShowTokenDialog(false)
-              router.push('/prediction/know-more?tab=strength')
+              router.push('/prediction/know-more?tab=driver')
             } else {
               toast.error('Payment verification failed. Contact support.')
             }
@@ -1240,120 +1239,6 @@ export default function PredictionPage() {
           </Card>
 
 
-          {driverNumberProfiles[prediction.driver_number] && (() => {
-            const profile = driverNumberProfiles[prediction.driver_number]
-            const insightBlocks = [
-              {
-                title: 'Strengths',
-                items: profile.strengths,
-                icon: CheckCircle2,
-                border: 'border-emerald-100',
-                bg: 'bg-emerald-50/50',
-                iconColor: 'text-emerald-600',
-                dot: 'bg-emerald-500',
-              },
-              {
-                title: 'Weaknesses',
-                items: profile.weaknesses,
-                icon: XCircle,
-                border: 'border-rose-100',
-                bg: 'bg-rose-50/50',
-                iconColor: 'text-rose-600',
-                dot: 'bg-rose-500',
-              },
-              {
-                title: 'Suitable Careers',
-                items: profile.careers,
-                icon: Briefcase,
-                border: 'border-indigo-100',
-                bg: 'bg-indigo-50/50',
-                iconColor: 'text-indigo-600',
-                dot: 'bg-indigo-500',
-              },
-              {
-                title: 'Advice',
-                items: profile.advice,
-                icon: Sparkles,
-                border: 'border-blue-100',
-                bg: 'bg-blue-50/50',
-                iconColor: 'text-blue-600',
-                dot: 'bg-blue-500',
-              },
-            ]
-            return (
-              <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
-                <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">
-                  <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <Star className="w-6 h-6 text-violet-600" />
-                    Driver Number Insights
-                  </h2>
-                  <p className="text-sm text-slate-600 mt-1">
-                    Driver <span className="font-semibold text-slate-800">{prediction.driver_number}</span>
-                    {' · '}
-                    <span className="font-semibold text-slate-800">{profile.planet}</span>
-                  </p>
-                </div>
-                <div className="p-6 md:p-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {insightBlocks.map((block) => {
-                      const BlockIcon = block.icon
-                      return (
-                        <div
-                          key={block.title}
-                          className={`rounded-2xl border ${block.border} ${block.bg} p-5 shadow-sm flex flex-col gap-3`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <BlockIcon className={`w-5 h-5 ${block.iconColor}`} />
-                            <h4 className="font-bold text-slate-800">{block.title}</h4>
-                          </div>
-                          <ul className="space-y-2">
-                            {block.items.map((item, index) => (
-                              <li key={index} className="flex gap-2.5 text-slate-700 text-sm md:text-base leading-relaxed">
-                                <span className={`mt-2 w-1.5 h-1.5 rounded-full ${block.dot} shrink-0`} />
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </Card>
-            )
-          })()}
-
-          {conductorNumberProfiles[prediction.conductor_number] && (() => {
-            const conductorProfile = conductorNumberProfiles[prediction.conductor_number]
-            return (
-              <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
-                <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">
-                  <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <Sparkles className="w-6 h-6 text-fuchsia-600" />
-                    Conductor Number Insights
-                  </h2>
-                  <p className="text-sm text-slate-600 mt-1">
-                    Conductor <span className="font-semibold text-slate-800">{prediction.conductor_number}</span>
-                    {' · '}
-                    <span className="font-semibold text-slate-800">{conductorProfile.planet}</span>
-                  </p>
-                </div>
-                <div className="p-6 md:p-8">
-                  <div className="rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-5 shadow-sm">
-                    <ul className="space-y-3">
-                      {conductorProfile.paragraphs.map((paragraph, index) => (
-                        <li key={index} className="flex gap-2.5 text-slate-700 text-sm md:text-base leading-relaxed">
-                          <span className="mt-2 w-1.5 h-1.5 rounded-full bg-fuchsia-500 shrink-0" />
-                          <span>{paragraph}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </Card>
-            )
-          })()}
-
           <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
             <div className="bg-gradient-to-r from-violet-200/70 via-fuchsia-200/60 to-indigo-200/70 px-6 md:px-8 py-5 border-b border-violet-200/60">
               <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -1413,7 +1298,7 @@ export default function PredictionPage() {
                     <Button
                       variant="link"
                       className="px-0 text-violet-700 text-base font-semibold hover:text-fuchsia-600 flex items-center gap-1.5"
-                      onClick={() => router.push('/prediction/know-more?tab=strength')}
+                      onClick={() => router.push('/prediction/know-more?tab=driver')}
                     >
                       <Unlock className="w-4 h-4" />
                       Know more
@@ -1840,8 +1725,8 @@ export default function PredictionPage() {
 
       {/* Token pack purchase dialog */}
       <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
-        <DialogContent className="max-w-md rounded-3xl border-violet-100 bg-white p-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5">
+        <DialogContent className="max-w-md rounded-3xl border-violet-100 bg-white p-0 overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5 shrink-0">
             <DialogHeader>
               <DialogTitle className="text-white text-xl font-bold flex items-center gap-2">
                 <Coins className="w-5 h-5" />
@@ -1853,27 +1738,50 @@ export default function PredictionPage() {
             </DialogHeader>
           </div>
 
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="flex-1 overflow-y-auto p-5 space-y-3">
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-3.5 py-2.5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-violet-700 mb-1.5">
+                What you&apos;ll unlock
+              </p>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                {[
+                  'Driver & Conductor Number deep-dive',
+                  'Strength Number & Gochor insights',
+                  'Vedic DOB Chart & YOG analysis',
+                  'Mahadasha / Antardasha periods',
+                  'Personalised remedies, mantras & yantras',
+                  'Downloadable PDF / DOCX report',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-start gap-1.5 text-xs text-slate-700 leading-snug">
+                    <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
               {TOKEN_PACKS.map((pack) => (
                 <button
                   key={pack.id}
                   onClick={() => setSelectedPack(pack.id)}
-                  className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                  className={`rounded-xl border-2 px-2.5 py-2 text-left transition-all ${
                     selectedPack === pack.id
                       ? 'border-violet-500 bg-violet-50'
                       : 'border-slate-100 bg-white hover:border-violet-200'
                   }`}
                 >
-                  <div className="text-sm font-semibold text-slate-500 mb-1">{pack.label}</div>
-                  <div className="text-2xl font-bold text-slate-800">₹{pack.price}</div>
-                  <div className="text-xs text-violet-600 font-medium mt-1">
-                    {pack.tokens} token{pack.tokens !== 1 ? 's' : ''} · ₹{Math.round(pack.price / pack.tokens)}/session
+                  <div className="text-[11px] font-semibold text-slate-500 truncate">{pack.label}</div>
+                  <div className="text-lg font-bold text-slate-800 leading-tight">₹{pack.price}</div>
+                  <div className="text-[10px] text-violet-600 font-medium mt-0.5 leading-tight">
+                    {pack.tokens} token{pack.tokens !== 1 ? 's' : ''}<br />₹{Math.round(pack.price / pack.tokens)}/session
                   </div>
                 </button>
               ))}
             </div>
+          </div>
 
+          <div className="shrink-0 border-t border-slate-100 p-6 pt-4">
             <Button
               onClick={handleTokenPayment}
               disabled={isPayingToken}

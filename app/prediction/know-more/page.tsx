@@ -54,16 +54,20 @@ import {
   CRYSTAL_REMEDIES,
   yogRemedyData,
   getYogRemedyKey,
+  driverNumberProfiles,
+  conductorNumberProfiles,
 } from '@/lib/numerology'
 
 
-type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas' | 'remedy' | 'report'
+type InsightKey = 'driver' | 'conductor' | 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas' | 'remedy' | 'report'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
 function isInsightKey(value: string | null): value is InsightKey {
-  return value === 'strength' ||
+  return value === 'driver' ||
+    value === 'conductor' ||
+    value === 'strength' ||
     value === 'gochor' ||
     value === 'mahadasha' ||
     value === 'antardasha' ||
@@ -100,7 +104,7 @@ export default function KnowMorePage() {
   const router = useRouter()
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeInsight, setActiveInsight] = useState<InsightKey>('strength')
+  const [activeInsight, setActiveInsight] = useState<InsightKey>('driver')
   const [mantraOpen, setMantraOpen] = useState<string | null>(null)
   const [yantraOpen, setYantraOpen] = useState(false)
   const [clientName, setClientName] = useState<string>('')
@@ -457,6 +461,24 @@ export default function KnowMorePage() {
 
   const insightCards = [
     {
+      key: 'driver' as InsightKey,
+      title: 'Driver Number',
+      subtitle: 'Core identity insights',
+      icon: Star,
+      value: prediction.driver_number,
+      prediction: '',
+      remedy: '',
+    },
+    {
+      key: 'conductor' as InsightKey,
+      title: 'Conductor Number',
+      subtitle: 'Outer expression insights',
+      icon: Sparkles,
+      value: prediction.conductor_number,
+      prediction: '',
+      remedy: '',
+    },
+    {
       key: 'strength' as InsightKey,
       title: 'Strength Number',
       subtitle: 'Inner vibrational force',
@@ -596,7 +618,96 @@ export default function KnowMorePage() {
 
               {insightCards.map((item) => (
                 <TabsContent key={item.key} value={item.key}>
-                  {item.key === 'dashas' ? (
+                  {item.key === 'driver' ? (
+                    driverNumberProfiles[prediction.driver_number] ? (() => {
+                      const profile = driverNumberProfiles[prediction.driver_number]
+                      const insightBlocks = [
+                        { title: 'Strengths', items: profile.strengths, icon: CheckCircle2, border: 'border-emerald-100', bg: 'bg-emerald-50/50', iconColor: 'text-emerald-600', dot: 'bg-emerald-500' },
+                        { title: 'Weaknesses', items: profile.weaknesses, icon: XCircle, border: 'border-rose-100', bg: 'bg-rose-50/50', iconColor: 'text-rose-600', dot: 'bg-rose-500' },
+                        { title: 'Suitable Careers', items: profile.careers, icon: Briefcase, border: 'border-indigo-100', bg: 'bg-indigo-50/50', iconColor: 'text-indigo-600', dot: 'bg-indigo-500' },
+                        { title: 'Advice', items: profile.advice, icon: Sparkles, border: 'border-blue-100', bg: 'bg-blue-50/50', iconColor: 'text-blue-600', dot: 'bg-blue-500' },
+                      ]
+                      return (
+                        <Card className="rounded-[28px] border-violet-100 bg-white/90 overflow-hidden shadow-sm">
+                          <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-fuchsia-50 px-5 py-4 flex items-center gap-2">
+                            <Star className="w-5 h-5 text-violet-600" />
+                            <div>
+                              <h2 className="text-lg font-bold text-slate-800">Driver Number Insights</h2>
+                              <p className="text-sm text-slate-600">
+                                Driver <span className="font-semibold text-slate-800">{prediction.driver_number}</span>
+                                {' · '}
+                                <span className="font-semibold text-slate-800">{profile.planet}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {insightBlocks.map((block) => {
+                                const BlockIcon = block.icon
+                                return (
+                                  <div key={block.title} className={`rounded-2xl border ${block.border} ${block.bg} p-5 shadow-sm flex flex-col gap-3`}>
+                                    <div className="flex items-center gap-2">
+                                      <BlockIcon className={`w-5 h-5 ${block.iconColor}`} />
+                                      <h4 className="font-bold text-slate-800">{block.title}</h4>
+                                    </div>
+                                    <ul className="space-y-2">
+                                      {block.items.map((entry, index) => (
+                                        <li key={index} className="flex gap-2.5 text-slate-700 text-sm md:text-base leading-relaxed">
+                                          <span className={`mt-2 w-1.5 h-1.5 rounded-full ${block.dot} shrink-0`} />
+                                          <span>{entry}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </Card>
+                      )
+                    })() : (
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-8 text-center">
+                        <Star className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500">No driver number insights available for this number.</p>
+                      </div>
+                    )
+                  ) : item.key === 'conductor' ? (
+                    conductorNumberProfiles[prediction.conductor_number] ? (() => {
+                      const conductorProfile = conductorNumberProfiles[prediction.conductor_number]
+                      return (
+                        <Card className="rounded-[28px] border-fuchsia-100 bg-white/90 overflow-hidden shadow-sm">
+                          <div className="border-b border-fuchsia-100 bg-gradient-to-r from-fuchsia-50 to-pink-50 px-5 py-4 flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-fuchsia-600" />
+                            <div>
+                              <h2 className="text-lg font-bold text-slate-800">Conductor Number Insights</h2>
+                              <p className="text-sm text-slate-600">
+                                Conductor <span className="font-semibold text-slate-800">{prediction.conductor_number}</span>
+                                {' · '}
+                                <span className="font-semibold text-slate-800">{conductorProfile.planet}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="p-6">
+                            <div className="rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-5 shadow-sm">
+                              <ul className="space-y-3">
+                                {conductorProfile.paragraphs.map((paragraph, index) => (
+                                  <li key={index} className="flex gap-2.5 text-slate-700 text-sm md:text-base leading-relaxed">
+                                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-fuchsia-500 shrink-0" />
+                                    <span>{paragraph}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </Card>
+                      )
+                    })() : (
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-8 text-center">
+                        <Sparkles className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500">No conductor number insights available for this number.</p>
+                      </div>
+                    )
+                  ) : item.key === 'dashas' ? (
                     <div className="space-y-6">
                       {prediction.current_mahadasha_number ? (
                         <>
