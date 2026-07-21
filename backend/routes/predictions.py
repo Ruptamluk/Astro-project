@@ -11,6 +11,7 @@ from utils import (
     calculate_strength_number,
     build_dob_chart,
     calculate_mahadasha_antardasha,
+    calculate_dasha_timeline,
     reduce_to_single_digit,
 )
 from datetime import datetime
@@ -112,6 +113,39 @@ async def get_dasha_analysis(
         return ""
 
     return str(doc.get("analysis", "")).strip()
+
+
+async def attach_dasha_analyses(db, timeline: list[dict]) -> list[dict]:
+    """
+    Fill in each timeline entry's `analysis` in one query instead of one per period.
+    Hits the (mahadasha_number, antardasha_number) index on `dasha_analysis`.
+    """
+    if not timeline:
+        return timeline
+
+    pairs = {
+        (entry["mahadasha_number"], entry["antardasha_number"])
+        for entry in timeline
+    }
+    cursor = db["dasha_analysis"].find(
+        {
+            "$or": [
+                {"mahadasha_number": maha, "antardasha_number": antar}
+                for maha, antar in pairs
+            ]
+        }
+    )
+    lookup = {
+        (doc.get("mahadasha_number"), doc.get("antardasha_number")):
+            str(doc.get("analysis", "")).strip()
+        async for doc in cursor
+    }
+
+    for entry in timeline:
+        key = (entry["mahadasha_number"], entry["antardasha_number"])
+        entry["analysis"] = lookup.get(key, "")
+
+    return timeline
 
 
 def get_lucky_numbers(driver: int, conductor: int):
@@ -293,6 +327,10 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             dasha_info.get("current_mahadasha_number"),
             dasha_info.get("current_antardasha_number"),
         )
+        dasha_timeline = await attach_dasha_analyses(
+            db,
+            calculate_dasha_timeline(request_data.dob, driver_number),
+        )
 
         await users_collection.update_one(
             {"_id": user_obj_id},
@@ -356,6 +394,7 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
             "antardasha_start": dasha_info.get("antardasha_start", ""),
             "antardasha_end": dasha_info.get("antardasha_end", ""),
             "dasha_analysis": dasha_analysis,
+            "dasha_timeline": dasha_timeline,
         }
 
     except HTTPException:
@@ -402,8 +441,13 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
 
         # Always recalculate Dashas on-the-fly so they reflect today's date
         dasha_info: dict = {}
+        dasha_timeline: list = []
         if user.get("dob") and driver_number:
             dasha_info = calculate_mahadasha_antardasha(user.get("dob"), driver_number)
+            dasha_timeline = await attach_dasha_analyses(
+                db,
+                calculate_dasha_timeline(user.get("dob"), driver_number),
+            )
         dasha_analysis = await get_dasha_analysis(
             db,
             dasha_info.get("current_mahadasha_number"),
@@ -449,6 +493,7 @@ async def get_prediction(user_id: str, db=Depends(get_db)):
             "antardasha_start": dasha_info.get("antardasha_start", ""),
             "antardasha_end": dasha_info.get("antardasha_end", ""),
             "dasha_analysis": dasha_analysis,
+            "dasha_timeline": dasha_timeline,
         }
 
     except HTTPException:

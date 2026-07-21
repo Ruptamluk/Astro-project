@@ -10,6 +10,7 @@ import {
   repeatedNumberNegativeAnalysis, yogDefinitions, DOB_CHART_LAYOUT,
   GAYATRI_MANTRAS, PLANET_YANTRAS, PERSONAL_YEAR_REMEDIES, CRYSTAL_REMEDIES, yogRemedyData,
   getYogRemedyKey, getStrengthNumber, driverNumberProfiles, conductorNumberProfiles,
+  PLANET_DESCRIPTIONS,
 } from '@/lib/numerology'
 
 interface ReportStudioProps {
@@ -396,6 +397,24 @@ export default function ReportStudio({
         }
         addTable(boxRow(dashaCells))
         if (prediction.dasha_analysis) addTable(card('F5F3FF', 'DDD6FE', [body(prediction.dasha_analysis)]))
+      }
+
+      // Next 12 Months — one card per upcoming Antardasha
+      if (prediction.dasha_timeline?.length) {
+        add(subBar('Next 12 Months', 'E0E7FF', '4338CA'))
+        for (const period of prediction.dasha_timeline) {
+          const heading = [
+            tr(`${period.antardasha_number}  ${period.antardasha_planet} Antardasha`, { c: '312E81', b: true, s: HP(13) }),
+            tr(`   ·  in ${period.mahadasha_planet} Mahadasha`, { c: '64748B', s: HP(11) }),
+            ...(period.is_current ? [tr('   [NOW]', { c: '7C3AED', b: true, s: HP(10) })] : []),
+          ]
+          const text = period.analysis || PLANET_DESCRIPTIONS[period.antardasha_number] || ''
+          addTable(card(period.is_current ? 'E0E7FF' : 'FFFFFF', 'C7D2FE', [
+            P(heading, { spacing: { after: 40 } }),
+            P(tr(`${period.start} → ${period.end}`, { c: '64748B', s: HP(11) }), { spacing: { after: text ? 60 : 0 } }),
+            ...(text ? [body(text, '475569', HP(12))] : []),
+          ]))
+        }
       }
 
       // ── REMEDIES ──
@@ -976,6 +995,38 @@ export default function ReportStudio({
                     )}
                   </tr></tbody></table>
                   {prediction.dasha_analysis && <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', margin: 0, fontFamily: 'system-ui,sans-serif' }}>{prediction.dasha_analysis}</p>}
+                </div>
+              )}
+
+              {/* ── NEXT 12 MONTHS ── */}
+              {prediction.dasha_timeline && prediction.dasha_timeline.length > 0 && (
+                <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '10px', padding: '16px 18px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#4338ca', fontFamily: 'system-ui,sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px', borderBottom: '1px solid #c7d2fe', paddingBottom: '8px' }}>Next 12 Months</div>
+                  {prediction.dasha_timeline.map((period) => (
+                    <div
+                      key={`${period.mahadasha_number}-${period.antardasha_number}-${period.start}`}
+                      style={{ background: period.is_current ? '#e0e7ff' : '#ffffff', border: '1px solid #c7d2fe', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}
+                    >
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody><tr>
+                        <td style={{ width: '38px', verticalAlign: 'top' }}>
+                          <div style={{ width: '30px', height: '30px', borderRadius: '6px', background: period.is_current ? '#7c3aed' : '#94a3b8', color: '#ffffff', fontSize: '15px', fontWeight: 800, fontFamily: 'system-ui,sans-serif', textAlign: 'center', lineHeight: '30px' }}>{period.antardasha_number}</div>
+                        </td>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#312e81', fontFamily: 'system-ui,sans-serif' }}>
+                            {period.antardasha_planet} Antardasha
+                            <span style={{ fontWeight: 500, color: '#64748b' }}> · in {period.mahadasha_planet} Mahadasha</span>
+                            {period.is_current && <span style={{ marginLeft: '6px', background: '#7c3aed', color: '#ffffff', fontSize: '9px', fontWeight: 700, borderRadius: '20px', padding: '2px 7px', letterSpacing: '0.06em' }}>NOW</span>}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'system-ui,sans-serif', marginTop: '3px' }}>{period.start} → {period.end}</div>
+                        </td>
+                      </tr></tbody></table>
+                      {(period.analysis || PLANET_DESCRIPTIONS[period.antardasha_number]) && (
+                        <p style={{ fontSize: '12px', color: '#475569', lineHeight: '1.65', margin: '7px 0 0 0', fontFamily: 'system-ui,sans-serif' }}>
+                          {period.analysis || PLANET_DESCRIPTIONS[period.antardasha_number]}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 

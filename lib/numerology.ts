@@ -6,6 +6,34 @@ import {
   Sword, Zap, XCircle, Trophy, Sparkles, MoonStar, Orbit, Clock3,
 } from 'lucide-react'
 
+// Fallback blurb for a dasha period when the DB has no analysis for that combo.
+export const PLANET_DESCRIPTIONS: Record<number, string> = {
+  1: 'Sun brings authority, vitality, career growth, and government-related opportunities during this period.',
+  2: 'Moon heightens emotions, intuition, mental sensitivity, and matters related to home and family.',
+  3: 'Jupiter brings wisdom, expansion, spiritual growth, higher education, and abundance.',
+  4: 'Rahu amplifies desires, foreign influences, technology gains, and karmic lessons to learn.',
+  5: 'Mercury sharpens intellect, communication skills, business acumen, and analytical ability.',
+  6: 'Venus brings love, luxury, comfort, artistic pursuits, and harmony in relationships.',
+  7: 'Ketu promotes spiritual detachment, inner wisdom, mystical insights, and past-life themes.',
+  8: 'Saturn enforces discipline, karmic accountability, hard work, and long-term rewards.',
+  9: 'Mars energises action, courage, ambition, physical strength, and competitive spirit.',
+}
+
+// One Antardasha period in the rolling 12-month timeline returned by the backend.
+// Dates are astrological (360-day year), matching the current-dasha fields below.
+export interface DashaTimelineEntry {
+  mahadasha_number: number
+  mahadasha_planet: string
+  mahadasha_start: string
+  mahadasha_end: string
+  antardasha_number: number
+  antardasha_planet: string
+  start: string
+  end: string
+  is_current: boolean
+  analysis?: string
+}
+
 export interface Prediction {
   driver_number: number
   conductor_number: number
@@ -36,6 +64,7 @@ export interface Prediction {
   antardasha_start?: string
   antardasha_end?: string
   dasha_analysis?: string
+  dasha_timeline?: DashaTimelineEntry[]
   driver_conductor_remedy?: string
   name?: string
   phone?: string

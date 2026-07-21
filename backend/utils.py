@@ -396,6 +396,43 @@ MAHADASHA_YEARS: dict[int, int] = {
 
 CYCLE_ORDER: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
+# One full mega-cycle: the nine Mahadashas last 1+2+...+9 = 45 astrological years.
+MEGA_CYCLE_DAYS = 16200
+
+
+def _date_to_abs(Y: int, M: int, D: int) -> int:
+    """Absolute day index in the 360-day astrological calendar (30 days/month)."""
+    return Y * 360 + (M - 1) * 30 + (D - 1)
+
+
+def _abs_to_date(absolute_days: int) -> str:
+    Y = absolute_days // 360
+    rem = absolute_days % 360
+    M = (rem // 30) + 1
+    D = (rem % 30) + 1
+    return f"{Y:04d}-{M:02d}-{D:02d}"
+
+
+def _build_maha_cycle(driver_number: int) -> list[int]:
+    """Mahadasha order: starts at the driver number and ascends cyclically through 1-9."""
+    return [((driver_number - 1 + i) % 9) + 1 for i in range(9)]
+
+
+def _parse_dob(dob_str: str) -> tuple[int, int, int] | None:
+    try:
+        y, m, d = map(int, dob_str.split('-'))
+        return y, m, d
+    except (ValueError, AttributeError):
+        return None
+
+
+def _today_parts(current_date=None) -> tuple[int, int, int]:
+    import datetime
+
+    now = current_date or datetime.datetime.now()
+    return now.year, now.month, now.day
+
+
 def calculate_mahadasha_antardasha(dob_str: str, driver_number: int, current_date=None) -> dict:
     """
     Calculate the current Mahadasha and Antardasha using the exact proprietary numerology calendar system:
@@ -405,48 +442,27 @@ def calculate_mahadasha_antardasha(dob_str: str, driver_number: int, current_dat
     - Antardasha `A` inside Mahadasha `M` lasts `M * A / 45` years (`M * A * 8` days).
     - Calculations rely on exactly 360 days per year and 30 days per month arithmetic.
     """
-    import datetime
-
-    # Parse DOB
-    try:
-        y_dob, m_dob, d_dob = map(int, dob_str.split('-'))
-    except ValueError:
+    parsed = _parse_dob(dob_str)
+    if parsed is None:
         return {}
-        
-    if current_date is None:
-        current_date_obj = datetime.datetime.now()
-        current_y, current_m, current_d = current_date_obj.year, current_date_obj.month, current_date_obj.day
-    else:
-        current_y, current_m, current_d = current_date.year, current_date.month, current_date.day
+    y_dob, m_dob, d_dob = parsed
 
-    # Helpers for absolute 360-day astrological calendar conversion
-    def date_to_abs(Y, M, D):
-        return Y * 360 + (M - 1) * 30 + (D - 1)
-        
-    def abs_to_date(absolute_days):
-        Y = absolute_days // 360
-        rem = absolute_days % 360
-        M = (rem // 30) + 1
-        D = (rem % 30) + 1
-        return f"{Y:04d}-{M:02d}-{D:02d}"
+    current_y, current_m, current_d = _today_parts(current_date)
 
-    abs_dob = date_to_abs(y_dob, m_dob, d_dob)
-    abs_now = date_to_abs(current_y, current_m, current_d)
+    abs_dob = _date_to_abs(y_dob, m_dob, d_dob)
+    abs_now = _date_to_abs(current_y, current_m, current_d)
 
     # Cycle of Mahadashas starts with the driver number
-    cycle_order = [((driver_number - 1 + i) % 9) + 1 for i in range(9)]
-    
+    cycle_order = _build_maha_cycle(driver_number)
+
     current_abs = abs_dob
-    
+
     # 45 Astrological years = 16200 days per full mega-cycle
     # Fast forward into the current 45-year block
-    while abs_now >= current_abs + 16200:
-        current_abs += 16200
+    while abs_now >= current_abs + MEGA_CYCLE_DAYS:
+        current_abs += MEGA_CYCLE_DAYS
 
-    planets = {
-        1: "Sun", 2: "Moon", 3: "Jupiter", 4: "Rahu", 5: "Mercury",
-        6: "Venus", 7: "Ketu", 8: "Saturn", 9: "Mars"
-    }
+    planets = PLANET_NAMES
 
     # Determine Mahadasha
     for m in cycle_order:
@@ -470,12 +486,12 @@ def calculate_mahadasha_antardasha(dob_str: str, driver_number: int, current_dat
                     return {
                         "current_mahadasha_number": maha_num,
                         "current_mahadasha_planet": planets.get(maha_num, ""),
-                        "mahadasha_start": abs_to_date(maha_start_abs),
-                        "mahadasha_end": abs_to_date(maha_end_abs),
+                        "mahadasha_start": _abs_to_date(maha_start_abs),
+                        "mahadasha_end": _abs_to_date(maha_end_abs),
                         "current_antardasha_number": a,
                         "current_antardasha_planet": planets.get(a, ""),
-                        "antardasha_start": abs_to_date(antar_abs),
-                        "antardasha_end": abs_to_date(new_antar_abs),
+                        "antardasha_start": _abs_to_date(antar_abs),
+                        "antardasha_end": _abs_to_date(new_antar_abs),
                     }
                 antar_abs = new_antar_abs
             break
@@ -493,3 +509,70 @@ def calculate_mahadasha_antardasha(dob_str: str, driver_number: int, current_dat
         "antardasha_start": dob_str,
         "antardasha_end": dob_str,
     }
+
+
+def calculate_dasha_timeline(
+    dob_str: str,
+    driver_number: int,
+    months: int = 12,
+    current_date=None,
+) -> list[dict]:
+    """
+    Every Antardasha overlapping the window that starts today and runs `months` ahead.
+
+    Same calendar as `calculate_mahadasha_antardasha` (360-day years, 30-day months), so
+    the entry covering today carries exactly the dates that function reports. The walk
+    continues past the end of a Mahadasha — and past the 45-year mega-cycle boundary —
+    because a short Mahadasha (e.g. Sun, 1 year) can be outlived by the window itself.
+
+    The window is strict, so a long Antardasha can be the only entry: inside a Mars
+    Mahadasha, `A=9` alone runs 648 days and fills the whole year on its own.
+    """
+    parsed = _parse_dob(dob_str)
+    if parsed is None or not driver_number:
+        return []
+
+    abs_dob = _date_to_abs(*parsed)
+    abs_now = _date_to_abs(*_today_parts(current_date))
+    window_end = abs_now + months * 30
+
+    cycle_order = _build_maha_cycle(driver_number)
+
+    current_abs = abs_dob
+    while abs_now >= current_abs + MEGA_CYCLE_DAYS:
+        current_abs += MEGA_CYCLE_DAYS
+
+    timeline: list[dict] = []
+
+    # The Mahadasha cycle repeats identically every mega-cycle, so walking it twice
+    # covers any window far longer than we ask for while bounding the loop.
+    for m in cycle_order * 2:
+        maha_start_abs = current_abs
+        maha_end_abs = current_abs + m * 360
+        current_abs = maha_end_abs
+
+        if maha_end_abs <= abs_now:
+            continue
+        if maha_start_abs >= window_end:
+            break
+
+        antar_abs = maha_start_abs
+        for a in [((m - 1 + i) % 9) + 1 for i in range(9)]:
+            antar_end_abs = antar_abs + m * a * 8  # M * A * 8 days
+
+            if antar_end_abs > abs_now and antar_abs < window_end:
+                timeline.append({
+                    "mahadasha_number": m,
+                    "mahadasha_planet": PLANET_NAMES.get(m, ""),
+                    "mahadasha_start": _abs_to_date(maha_start_abs),
+                    "mahadasha_end": _abs_to_date(maha_end_abs),
+                    "antardasha_number": a,
+                    "antardasha_planet": PLANET_NAMES.get(a, ""),
+                    "start": _abs_to_date(antar_abs),
+                    "end": _abs_to_date(antar_end_abs),
+                    "is_current": antar_abs <= abs_now < antar_end_abs,
+                })
+
+            antar_abs = antar_end_abs
+
+    return timeline

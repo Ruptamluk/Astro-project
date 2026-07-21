@@ -56,6 +56,7 @@ import {
   getYogRemedyKey,
   driverNumberProfiles,
   conductorNumberProfiles,
+  PLANET_DESCRIPTIONS,
 } from '@/lib/numerology'
 
 
@@ -79,18 +80,6 @@ function isInsightKey(value: string | null): value is InsightKey {
 }
 
 // ── Dasha helpers ──────────────────────────────────────────────────────────
-
-const PLANET_DESCRIPTIONS: Record<number, string> = {
-  1: 'Sun brings authority, vitality, career growth, and government-related opportunities during this period.',
-  2: 'Moon heightens emotions, intuition, mental sensitivity, and matters related to home and family.',
-  3: 'Jupiter brings wisdom, expansion, spiritual growth, higher education, and abundance.',
-  4: 'Rahu amplifies desires, foreign influences, technology gains, and karmic lessons to learn.',
-  5: 'Mercury sharpens intellect, communication skills, business acumen, and analytical ability.',
-  6: 'Venus brings love, luxury, comfort, artistic pursuits, and harmony in relationships.',
-  7: 'Ketu promotes spiritual detachment, inner wisdom, mystical insights, and past-life themes.',
-  8: 'Saturn enforces discipline, karmic accountability, hard work, and long-term rewards.',
-  9: 'Mars energises action, courage, ambition, physical strength, and competitive spirit.',
-}
 
 function calculateProgress(startDate: string, endDate: string): number {
   const start = new Date(startDate).getTime()
@@ -830,6 +819,70 @@ export default function KnowMorePage() {
                               Align your actions with these planetary vibrations for the best results.
                             </p>
                           </Card>
+
+                          {/* ── Next 12 months ── */}
+                          {prediction.dasha_timeline && prediction.dasha_timeline.length > 0 && (
+                            <Card className="rounded-[28px] border-indigo-100 overflow-hidden shadow-sm bg-white/90">
+                              <div className="border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-4 flex items-center gap-2">
+                                <Clock3 className="w-5 h-5 text-indigo-600" />
+                                <h2 className="text-lg font-bold text-slate-800">Next 12 Months</h2>
+                              </div>
+                              <div className="divide-y divide-slate-100">
+                                {prediction.dasha_timeline.map((period) => (
+                                  <div
+                                    key={`${period.mahadasha_number}-${period.antardasha_number}-${period.start}`}
+                                    className={`flex gap-4 p-5 ${period.is_current ? 'bg-violet-50/40 border-l-4 border-l-violet-500' : 'border-l-4 border-l-transparent'}`}
+                                  >
+                                    <div
+                                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${
+                                        period.is_current
+                                          ? 'bg-gradient-to-br from-fuchsia-500 to-pink-700'
+                                          : 'bg-gradient-to-br from-slate-300 to-slate-400'
+                                      }`}
+                                    >
+                                      <span className="text-xl font-bold text-white">{period.antardasha_number}</span>
+                                    </div>
+
+                                    <div className="min-w-0 flex-1 space-y-2">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="font-bold text-slate-800">
+                                          {period.antardasha_planet} Antardasha
+                                        </p>
+                                        {period.is_current && (
+                                          <span className="inline-flex items-center rounded-full bg-violet-600 px-2.5 py-0.5 text-[11px] font-bold text-white">
+                                            NOW
+                                          </span>
+                                        )}
+                                        <span className="text-xs text-slate-500">
+                                          in {period.mahadasha_planet} Mahadasha
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <span className="font-semibold text-slate-800">{period.start}</span>
+                                        <span className="text-slate-400">→</span>
+                                        <span className="font-semibold text-slate-800">{period.end}</span>
+                                      </div>
+
+                                      {period.is_current && (
+                                        <div className="h-2 rounded-full bg-violet-100 overflow-hidden max-w-sm">
+                                          <div
+                                            className="h-2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-600"
+                                            style={{ width: `${calculateProgress(period.start, period.end)}%` }}
+                                          />
+                                        </div>
+                                      )}
+
+                                      <p className="text-sm leading-7 text-slate-600">
+                                        {period.analysis || PLANET_DESCRIPTIONS[period.antardasha_number] || ''}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </Card>
+                          )}
 
                           <Card className="rounded-[28px] border-amber-100 overflow-hidden shadow-sm bg-white/90">
                             <div className="border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 flex items-center gap-2">
