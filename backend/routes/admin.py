@@ -49,6 +49,16 @@ def iso_utc(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat() + "Z"
 
 
+# Mirrors is_free_user in routes/auth.py — kept local per this module's
+# no-import-side-effects rule. Users predating free access have no user_type.
+FREE_USER_TYPE = "free"
+REGISTERED_USER_TYPE = "registered"
+
+
+def is_free_user(user) -> bool:
+    return bool(user) and user.get("user_type") == FREE_USER_TYPE
+
+
 def email_query(email: str) -> dict:
     """Case-insensitive exact email match (registration stores email as-given)."""
     return {"email": {"$regex": f"^{re.escape(email.strip())}$", "$options": "i"}}
@@ -162,6 +172,12 @@ async def grant_tokens(body: GrantTokensRequest, admin=Depends(require_admin), d
     user = await db.users.find_one(email_query(body.email))
     if not user:
         raise HTTPException(status_code=404, detail="No account found for that email")
+    if is_free_user(user):
+        raise HTTPException(
+            status_code=400,
+            detail="That email belongs to a free user, who cannot spend tokens. "
+                   "Ask them to register first.",
+        )
 
     now = datetime.utcnow()
     expires_at = now + timedelta(seconds=VIEW_WINDOW_SECONDS)
@@ -213,6 +229,12 @@ async def grant_report_logo(body: GrantReportLogoRequest, admin=Depends(require_
     user = await db.users.find_one(email_query(body.email))
     if not user:
         raise HTTPException(status_code=404, detail="No account found for that email")
+    if is_free_user(user):
+        raise HTTPException(
+            status_code=400,
+            detail="That email belongs to a free user, who cannot generate reports. "
+                   "Ask them to register first.",
+        )
 
     now = datetime.utcnow()
     prev = bool(user.get("report_logo_access", False))
@@ -284,6 +306,7 @@ async def list_users(
             "name": u.get("name"),
             "email": u.get("email"),
             "phone": u.get("phone"),
+            "user_type": u.get("user_type", REGISTERED_USER_TYPE),
             "created_at": iso_utc(u.get("created_at")),
             "last_login_at": iso_utc(last_login),
             "know_more_tokens": u.get("know_more_tokens", 0),
@@ -353,6 +376,7 @@ async def user_activity(user_id: str, admin=Depends(require_admin), db=Depends(g
             "name": user.get("name"),
             "email": user.get("email"),
             "phone": user.get("phone"),
+            "user_type": user.get("user_type", REGISTERED_USER_TYPE),
             "know_more_tokens": user.get("know_more_tokens", 0),
             "report_logo_access": bool(user.get("report_logo_access", False)),
         },

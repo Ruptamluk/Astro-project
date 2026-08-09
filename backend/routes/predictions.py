@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from models import DOBSubmitRequest
+from routes.auth import is_free_user
 import json
 import os
 from utils import (
@@ -235,7 +236,9 @@ async def submit_dob(user_id: str, request_data: DOBSubmitRequest, db=Depends(ge
         email_verified = user.get("email_verified", False)
         phone_verified = user.get("phone_verified", False)
 
-        if not (email_verified or phone_verified):
+        # Free users are unverified by design (no OTP), and the prediction is the
+        # only thing they're entitled to — so OTP verification isn't required.
+        if not (email_verified or phone_verified or is_free_user(user)):
             raise HTTPException(
                 status_code=403,
                 detail="Email or phone must be verified before submitting DOB"

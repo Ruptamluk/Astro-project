@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Mail, Phone } from 'lucide-react'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { format } from 'date-fns'
+import { CalendarIcon, Mail, Phone, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AuthPage() {
@@ -21,6 +24,8 @@ export default function AuthPage() {
   const [step, setStep] = useState<'request' | 'verify'>('request')
   const [otp, setOtp] = useState('')
   const [contactMethod, setContactMethod] = useState<'email' | 'phone'>('email')
+  const [dob, setDob] = useState<Date | undefined>(undefined)
+  const [dobOpen, setDobOpen] = useState(false)
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
@@ -29,6 +34,8 @@ export default function AuthPage() {
     setEmail('')
     setPhone('')
     setOtp('')
+    setDob(undefined)
+    setDobOpen(false)
   }
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
@@ -105,6 +112,73 @@ export default function AuthPage() {
     }
   }
 
+  // Free access skips OTP entirely: we create the free user, then reuse the
+  // normal submit-dob path so the prediction page gets exactly the data it
+  // would have received from /dob-selection.
+  const handleFreeAccess = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) { toast.error('Please enter your name'); return }
+    if (!email.trim()) { toast.error('Please enter your email'); return }
+    if (!phone.trim()) { toast.error('Please enter your mobile number'); return }
+    if (!dob) { toast.error('Please select your date of birth'); return }
+
+    setLoading(true)
+    try {
+      const formattedDob = format(dob, 'yyyy-MM-dd')
+      const response = await fetch(`${BACKEND_URL}/api/auth/free-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          dob: formattedDob,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        toast.error(data.detail || 'Could not start free access')
+        if (response.status === 409) {
+          handleTabChange('login')
+        }
+        return
+      }
+
+      const userId = data.user.id
+      localStorage.setItem('userId', userId)
+      localStorage.setItem('userType', 'free')
+
+      const predRes = await fetch(
+        `${BACKEND_URL}/api/predictions/submit-dob/${userId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dob: formattedDob }),
+        }
+      )
+
+      const predData = await predRes.json()
+      if (!predRes.ok) {
+        toast.error(predData.detail || 'Failed to generate your prediction')
+        return
+      }
+
+      localStorage.setItem('userInfo', JSON.stringify({ name: name.trim(), phone: phone.trim() }))
+      localStorage.setItem(
+        'prediction',
+        JSON.stringify({ ...predData, name: name.trim(), phone: phone.trim() })
+      )
+      toast.success('Free access granted! Getting your prediction...')
+      router.push('/prediction')
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error('Could not start free access')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 px-4 py-6 sm:px-6 sm:py-8">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -134,9 +208,10 @@ export default function AuthPage() {
             <div>
               <Card className="border-primary/20 bg-card/70 shadow-2xl backdrop-blur-xl lg:h-full">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 rounded-t-lg">
+                  <TabsList className="grid w-full grid-cols-3 rounded-t-lg">
                     <TabsTrigger value="login">Login</TabsTrigger>
                     <TabsTrigger value="register">Register</TabsTrigger>
+                    <TabsTrigger value="free">Use as Free</TabsTrigger>
                   </TabsList>
 
                   <div className="p-4 sm:p-6">
@@ -304,6 +379,86 @@ export default function AuthPage() {
                             </form>
                           </>
                         )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="free" className="space-y-6">
+                      <div className="space-y-4">
+                        <form onSubmit={handleFreeAccess} className="space-y-4">
+                          <Input
+                            type="text"
+                            placeholder="Enter your name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="bg-input"
+                          />
+                          <Input
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="bg-input"
+                          />
+                          <Input
+                            type="tel"
+                            placeholder="Enter your mobile number"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="bg-input"
+                          />
+                          <Popover open={dobOpen} onOpenChange={setDobOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className={`w-full justify-start gap-2 bg-input font-normal ${
+                                  dob ? '' : 'text-muted-foreground'
+                                }`}
+                              >
+                                <CalendarIcon className="h-4 w-4 shrink-0" />
+                                {dob ? format(dob, 'MMMM d, yyyy') : 'Select your date of birth'}
+                              </Button>
+                            </PopoverTrigger>
+                            {/* Cap to the space the viewport actually has, so a
+                                short window never clips the month header. */}
+                            <PopoverContent
+                              className="w-auto max-h-[var(--radix-popover-content-available-height)] overflow-y-auto p-2"
+                              align="start"
+                              collisionPadding={12}
+                            >
+                              <Calendar
+                                mode="single"
+                                selected={dob}
+                                onSelect={(selected) => {
+                                  setDob(selected)
+                                  if (selected) setDobOpen(false)
+                                }}
+                                defaultMonth={dob ?? new Date(1995, 0)}
+                                disabled={(dateObj) =>
+                                  dateObj > new Date() || dateObj < new Date('1900-01-01')
+                                }
+                                captionLayout="dropdown"
+                                fromYear={1900}
+                                toYear={new Date().getFullYear()}
+                                className="bg-transparent p-0"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <Button
+                            type="submit"
+                            className="w-full bg-primary hover:bg-primary/90"
+                            disabled={loading}
+                          >
+                            {loading ? (
+                              <>
+                                <Sparkles className="mr-2 h-4 w-4 animate-spin" />
+                                Setting up...
+                              </>
+                            ) : (
+                              'Continue as Free User'
+                            )}
+                          </Button>
+                        </form>
                       </div>
                     </TabsContent>
                   </div>

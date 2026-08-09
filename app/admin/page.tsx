@@ -280,6 +280,7 @@ export default function AdminPage() {
                     <TableRow>
                       <TableHead>Email</TableHead>
                       <TableHead>Phone</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>Joined</TableHead>
                       <TableHead>Last login</TableHead>
                       <TableHead className="text-right">Tokens</TableHead>
@@ -289,13 +290,18 @@ export default function AdminPage() {
                   </TableHeader>
                   <TableBody>
                     {loadingUsers ? (
-                      <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">Loading…</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="py-8 text-center text-muted-foreground">Loading…</TableCell></TableRow>
                     ) : users.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">No users</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="py-8 text-center text-muted-foreground">No users</TableCell></TableRow>
                     ) : users.map((u) => (
                       <TableRow key={u.id} className="cursor-pointer" onClick={() => openActivity(u)}>
                         <TableCell className="font-medium">{u.email || '—'}</TableCell>
                         <TableCell>{u.phone || '—'}</TableCell>
+                        <TableCell>
+                          {u.user_type === 'free'
+                            ? <Badge variant="outline">Free</Badge>
+                            : <Badge>Registered</Badge>}
+                        </TableCell>
                         <TableCell>{fmt(u.created_at)}</TableCell>
                         <TableCell>{fmt(u.last_login_at)}</TableCell>
                         <TableCell className="text-right">{u.know_more_tokens}</TableCell>

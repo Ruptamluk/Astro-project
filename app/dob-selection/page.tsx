@@ -280,6 +280,7 @@ export default function DOBSelectionPage() {
                 variant="ghost"
                 onClick={() => {
                   localStorage.removeItem('userId')
+                  localStorage.removeItem('userType')
                   router.push('/')
                 }}
                 className="w-full text-slate-500 hover:text-slate-800 hover:bg-black/5 rounded-xl text-sm font-medium"

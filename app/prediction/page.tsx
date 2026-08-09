@@ -694,6 +694,8 @@ export default function PredictionPage() {
   const [archivedReports, setArchivedReports] = useState<ArchivedReport[]>([])
   const [isLoadingArchive, setIsLoadingArchive] = useState(false)
   const [selectedReport, setSelectedReport] = useState<ArchivedReport | null>(null)
+  const [isFreeUser, setIsFreeUser] = useState(false)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [showTokenDialog, setShowTokenDialog] = useState(false)
   const [selectedPack, setSelectedPack] = useState<'1' | '5' | '32' | '100' | '500' | '1000'>('5')
   const [isPayingToken, setIsPayingToken] = useState(false)
@@ -714,7 +716,11 @@ export default function PredictionPage() {
           const userRes = await fetch(`${API_BASE_URL}/api/auth/user/${userId}`)
           if (userRes.ok) {
             const userData = await userRes.json()
+            // The server value is authoritative; localStorage is only a hint.
+            const free = userData.user_type === 'free'
+            localStorage.setItem('userType', free ? 'free' : 'registered')
             if (isMounted) {
+              setIsFreeUser(free)
               setKnowMoreAccess(userData.know_more_access === true)
               setKnowMoreTokens(userData.know_more_tokens ?? 0)
               setHasPurchasedKnowMore(userData.has_purchased_know_more === true)
@@ -790,7 +796,17 @@ export default function PredictionPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('userId')
+    localStorage.removeItem('userType')
     localStorage.removeItem('prediction')
+    router.push('/')
+  }
+
+  // Free users register from a clean slate, so drop the free session first.
+  const goToRegistration = () => {
+    localStorage.removeItem('userId')
+    localStorage.removeItem('userType')
+    localStorage.removeItem('prediction')
+    localStorage.removeItem('userInfo')
     router.push('/')
   }
 
@@ -1139,7 +1155,7 @@ export default function PredictionPage() {
                 </div>
               )
             })()}
-            {hasPurchasedKnowMore && (
+            {hasPurchasedKnowMore && !isFreeUser && (
               <div className="mt-4">
                 <button
                   type="button"
@@ -1293,7 +1309,21 @@ export default function PredictionPage() {
               )}
 
               <div className="mt-6">
-                {knowMoreTokens > 0 ? (
+                {isFreeUser ? (
+                  <div className="flex flex-col items-start gap-1">
+                    <Button
+                      variant="link"
+                      className="px-0 text-violet-600 text-base font-semibold hover:text-fuchsia-600 flex items-center gap-1.5"
+                      onClick={() => setShowUpgradeDialog(true)}
+                    >
+                      <Lock className="w-4 h-4" />
+                      Know more
+                    </Button>
+                    <span className="text-xs text-slate-500 pl-0.5">
+                      Register to unlock Know More
+                    </span>
+                  </div>
+                ) : knowMoreTokens > 0 ? (
                   <div className="flex flex-col items-start gap-1">
                     <Button
                       variant="link"
@@ -1723,6 +1753,64 @@ export default function PredictionPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Free user hitting a registered-only feature */}
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent className="max-w-md rounded-3xl border-violet-100 bg-white p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl font-bold flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Register to unlock Know More
+              </DialogTitle>
+              <DialogDescription className="text-violet-100 text-sm mt-1">
+                You&apos;re using free access, which includes your prediction only.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="p-5 space-y-4">
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-3.5 py-2.5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-violet-700 mb-1.5">
+                What a registered account adds
+              </p>
+              <ul className="space-y-1">
+                {[
+                  'Driver & Conductor Number deep-dive',
+                  'Strength Number & Gochor insights',
+                  'Vedic DOB Chart, YOG & Dasha periods',
+                  'Personalised remedies, mantras & yantras',
+                  'Downloadable PDF / DOCX reports & archive',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-start gap-1.5 text-xs text-slate-700 leading-snug">
+                    <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Register with the same email and your details carry over — you&apos;ll just need to
+              verify with an OTP.
+            </p>
+
+            <Button
+              onClick={goToRegistration}
+              className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40"
+            >
+              Register now
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setShowUpgradeDialog(false)}
+              className="w-full text-slate-500 hover:text-slate-800"
+            >
+              Not now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Token pack purchase dialog */}
       <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
         <DialogContent className="max-w-md rounded-3xl border-violet-100 bg-white p-0 overflow-hidden max-h-[90vh] flex flex-col">
@@ -1804,7 +1892,7 @@ export default function PredictionPage() {
       </Dialog>
 
       {/* Report Archive — re-download previously generated report (no token) */}
-      <Dialog open={showArchive && hasPurchasedKnowMore} onOpenChange={setShowArchive}>
+      <Dialog open={showArchive && hasPurchasedKnowMore && !isFreeUser} onOpenChange={setShowArchive}>
         <DialogContent className="w-[96vw] max-w-3xl max-h-[92vh] overflow-y-auto p-0 border border-violet-100 rounded-2xl bg-white">
           <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5">
             <DialogHeader>

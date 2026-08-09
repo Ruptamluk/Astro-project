@@ -1,10 +1,27 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from models import RequestOTPRequest, RegisterRequest, VerifyOTPRequest, User
+from models import RequestOTPRequest, RegisterRequest, VerifyOTPRequest, FreeAccessRequest, User
 from utils import generate_otp, send_otp_via_email, send_otp_via_sms
 from datetime import datetime, timedelta, timezone
 import os
 
 router = APIRouter()
+
+FREE_USER_TYPE = "free"
+REGISTERED_USER_TYPE = "registered"
+
+# Shared message so every gated endpoint gives the frontend the same prompt.
+FREE_USER_BLOCKED_DETAIL = (
+    "This feature is available to registered users only. Please register to continue."
+)
+
+
+def is_free_user(user) -> bool:
+    """True for users created through the 'Use as Free' flow.
+
+    Documents predating free access have no user_type and are registered users.
+    """
+    return bool(user) and user.get("user_type") == FREE_USER_TYPE
+
 
 async def get_db(request: Request):
     return request.app.db
@@ -28,7 +45,9 @@ async def register(request_data: RegisterRequest, db=Depends(get_db)):
     existing_user = await users_collection.find_one({
         "$or": [{"email": request_data.email}, {"phone": request_data.phone}]
     })
-    if existing_user:
+    # A free user registering is an upgrade of their existing record (same _id,
+    # so their DOB and prediction history survive) — only a real account blocks.
+    if existing_user and not is_free_user(existing_user):
         raise HTTPException(status_code=409, detail="User already registered. Please login instead.")
 
     # Generate OTP
@@ -76,7 +95,13 @@ async def login(request_data: RequestOTPRequest, db=Depends(get_db)):
     user = await users_collection.find_one(query)
     if not user:
         raise HTTPException(status_code=404, detail="User not found. Please register first.")
-    
+
+    if is_free_user(user):
+        raise HTTPException(
+            status_code=404,
+            detail="You're using free access. Please register to unlock full features.",
+        )
+
     # Generate and send OTP
     otp = await generate_otp()
     expires_at = datetime.utcnow() + timedelta(minutes=10)
@@ -167,6 +192,7 @@ async def verify_otp(request_data: VerifyOTPRequest, db=Depends(get_db)):
             "phone_verified": bool(request_data.phone),
             "dob": None,
             "zodiac_sign": None,
+            "user_type": REGISTERED_USER_TYPE,
             "created_at": datetime.utcnow()
         }
         result = await users_collection.insert_one(user_data)
@@ -178,6 +204,15 @@ async def verify_otp(request_data: VerifyOTPRequest, db=Depends(get_db)):
             update_data["email_verified"] = True
         if request_data.phone:
             update_data["phone_verified"] = True
+
+        if is_free_user(user):
+            # Upgrade in place: same _id, so the DOB and predictions captured
+            # during free access carry over to the registered account.
+            update_data["user_type"] = REGISTERED_USER_TYPE
+            if otp_record.get("name") and not user.get("name"):
+                update_data["name"] = otp_record["name"]
+            if otp_record.get("phone") and not user.get("phone"):
+                update_data["phone"] = otp_record["phone"]
 
         if update_data:
             await users_collection.update_one(
@@ -197,8 +232,73 @@ async def verify_otp(request_data: VerifyOTPRequest, db=Depends(get_db)):
             "email_verified": user.get("email_verified", False),
             "phone_verified": user.get("phone_verified", False),
             "dob": user.get("dob"),
-            "zodiac_sign": user.get("zodiac_sign")
+            "zodiac_sign": user.get("zodiac_sign"),
+            "user_type": user.get("user_type", REGISTERED_USER_TYPE)
         }
+    }
+
+@router.post("/free-access")
+async def free_access(request_data: FreeAccessRequest, db=Depends(get_db)):
+    """Create (or reuse) a free user from the 'Use as Free' form.
+
+    No OTP is sent — free access is deliberately unverified. The record lives in
+    the same `users` collection as registered users so the existing prediction
+    endpoints keep working, and is marked with user_type='free' so every paid
+    feature can reject it.
+    """
+    users_collection = db["users"]
+
+    existing_user = await users_collection.find_one({
+        "$or": [{"email": request_data.email}, {"phone": request_data.phone}]
+    })
+
+    if existing_user and not is_free_user(existing_user):
+        raise HTTPException(
+            status_code=409,
+            detail="This email or phone is already registered. Please login instead.",
+        )
+
+    if existing_user:
+        # Returning free visitor: refresh their details, keep the same _id.
+        await users_collection.update_one(
+            {"_id": existing_user["_id"]},
+            {"$set": {
+                "name": request_data.name,
+                "email": request_data.email,
+                "phone": request_data.phone,
+                "dob": request_data.dob,
+            }},
+        )
+        user = await users_collection.find_one({"_id": existing_user["_id"]})
+    else:
+        user_data = {
+            "name": request_data.name,
+            "email": request_data.email,
+            "phone": request_data.phone,
+            "email_verified": False,
+            "phone_verified": False,
+            "dob": request_data.dob,
+            "zodiac_sign": None,
+            "user_type": FREE_USER_TYPE,
+            "created_at": datetime.utcnow(),
+        }
+        result = await users_collection.insert_one(user_data)
+        user = await users_collection.find_one({"_id": result.inserted_id})
+
+    return {
+        "success": True,
+        "message": "Free access granted",
+        "user": {
+            "id": str(user["_id"]),
+            "name": user.get("name"),
+            "email": user.get("email"),
+            "phone": user.get("phone"),
+            "email_verified": user.get("email_verified", False),
+            "phone_verified": user.get("phone_verified", False),
+            "dob": user.get("dob"),
+            "zodiac_sign": user.get("zodiac_sign"),
+            "user_type": user.get("user_type", FREE_USER_TYPE),
+        },
     }
 
 @router.get("/user/{user_id}")
@@ -222,6 +322,7 @@ async def get_user(user_id: str, db=Depends(get_db)):
             "phone_verified": user.get("phone_verified", False),
             "dob": user.get("dob"),
             "zodiac_sign": user.get("zodiac_sign"),
+            "user_type": user.get("user_type", REGISTERED_USER_TYPE),
             "know_more_access": user.get("know_more_access", False),
             "know_more_tokens": user.get("know_more_tokens", 0),
             "know_more_view_expires_at": _iso_utc(user.get("know_more_view_expires_at")),

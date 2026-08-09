@@ -142,6 +142,7 @@ export default function KnowMorePage() {
 
     const logout = () => {
       localStorage.removeItem('userId')
+      localStorage.removeItem('userType')
       localStorage.removeItem('prediction')
       router.push('/')
     }
@@ -153,6 +154,23 @@ export default function KnowMorePage() {
         if (!userId) {
           router.push('/')
           return
+        }
+
+        // Know More is a registered-user feature — bounce free users before any
+        // token spend is attempted.
+        try {
+          const tierRes = await fetch(`${API_BASE_URL}/api/auth/user/${userId}`)
+          if (tierRes.ok) {
+            const tierData = await tierRes.json()
+            if (tierData.user_type === 'free') {
+              localStorage.setItem('userType', 'free')
+              toast.error('Register to access Know More')
+              router.push('/prediction')
+              return
+            }
+          }
+        } catch {
+          // Network error: fall through — consume-token is the real gate.
         }
 
         // Spend a token at most once per mount. React StrictMode invokes effects
@@ -172,6 +190,12 @@ export default function KnowMorePage() {
             if (consumeRes.ok) {
               const consumeData = await consumeRes.json()
               viewExpiresRef.current = consumeData.expires_at ?? null
+            } else if (consumeRes.status === 403) {
+              // Hard tier denial (free user) — no race to re-check.
+              consumeStartedRef.current = false
+              toast.error('Register to access Know More')
+              router.push('/prediction')
+              return
             } else {
               // 402 (no token) can also happen on a benign race. Only bounce if
               // the user is genuinely outside an active paid window.

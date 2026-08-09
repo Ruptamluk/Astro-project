@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
+from routes.auth import is_free_user, FREE_USER_BLOCKED_DETAIL
 import razorpay
 import hmac
 import hashlib
@@ -91,7 +92,16 @@ class VerifyPaymentRequest(BaseModel):
 
 
 @router.post("/create-order")
-async def create_order(body: CreateOrderRequest):
+async def create_order(body: CreateOrderRequest, request: Request):
+    # Free users must register before they can buy anything. Checked ahead of the
+    # gateway config so the denial is the same regardless of Razorpay setup.
+    try:
+        buyer = await request.app.db.users.find_one({"_id": ObjectId(body.user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    if is_free_user(buyer):
+        raise HTTPException(status_code=403, detail=FREE_USER_BLOCKED_DETAIL)
+
     if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
         raise HTTPException(status_code=500, detail="Razorpay keys not configured")
 
@@ -191,6 +201,10 @@ async def consume_token(user_id: str, request: Request):
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Checked before the decrement so a free user can never spend a token.
+    if is_free_user(user):
+        raise HTTPException(status_code=403, detail=FREE_USER_BLOCKED_DETAIL)
 
     now = datetime.utcnow()
     expires_at = user.get("know_more_view_expires_at")

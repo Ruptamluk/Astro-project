@@ -66,6 +66,8 @@ export interface AdminUser {
   name: string | null
   email: string | null
   phone: string | null
+  // 'free' = created through "Use as Free"; 'registered' = OTP-verified account.
+  user_type: string
   created_at: string | null
   last_login_at: string | null
   know_more_tokens: number

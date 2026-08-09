@@ -4,11 +4,20 @@ from typing import Optional, Any, Dict
 from datetime import datetime
 from bson import ObjectId
 
+from routes.auth import is_free_user, FREE_USER_BLOCKED_DETAIL
+
 router = APIRouter()
 
 
 async def get_db(request: Request):
     return request.app.db
+
+
+async def _reject_free_user(db, user_obj_id: ObjectId) -> None:
+    """Reports are a registered-user feature — free users get a 403."""
+    user = await db.users.find_one({"_id": user_obj_id})
+    if is_free_user(user):
+        raise HTTPException(status_code=403, detail=FREE_USER_BLOCKED_DETAIL)
 
 # Cap what we hand back so a heavy user can't blow up the archive dialog.
 MAX_ARCHIVE_ENTRIES = 100
@@ -41,6 +50,8 @@ async def save_report(user_id: str, body: SaveReportRequest, db=Depends(get_db))
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid user ID format")
 
+    await _reject_free_user(db, user_obj_id)
+
     if not body.dob:
         raise HTTPException(status_code=400, detail="dob is required")
 
@@ -71,6 +82,8 @@ async def list_reports(user_id: str, db=Depends(get_db)):
         user_obj_id = ObjectId(user_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    await _reject_free_user(db, user_obj_id)
 
     cursor = (
         db.reports.find({"user_id": str(user_obj_id)})

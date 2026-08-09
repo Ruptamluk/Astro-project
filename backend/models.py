@@ -20,6 +20,12 @@ class LoginRequest(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
 
+class FreeAccessRequest(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str
+    dob: str  # Format: YYYY-MM-DD
+
 class User(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     name: Optional[str] = None
@@ -27,6 +33,9 @@ class User(BaseModel):
     phone: Optional[str] = None
     dob: Optional[str] = None
     zodiac_sign: Optional[str] = None
+    # "registered" (OTP-verified account) or "free" (Use as Free, unverified).
+    # Absent on documents created before free access existed -> treat as registered.
+    user_type: str = "registered"
     know_more_access: bool = False
     know_more_tokens: int = 0
     know_more_view_expires_at: Optional[datetime] = None
