@@ -10,7 +10,7 @@ import {
   repeatedNumberNegativeAnalysis, yogDefinitions, DOB_CHART_LAYOUT,
   GAYATRI_MANTRAS, PLANET_YANTRAS, PERSONAL_YEAR_REMEDIES, CRYSTAL_REMEDIES, yogRemedyData,
   getYogRemedyKey, getStrengthNumber, driverNumberProfiles, conductorNumberProfiles,
-  PLANET_DESCRIPTIONS,
+  PLANET_DESCRIPTIONS, YOG_DETAIL_SECTIONS,
 } from '@/lib/numerology'
 
 interface ReportStudioProps {
@@ -370,10 +370,24 @@ export default function ReportStudio({
       if (activeYogs.length > 0) {
         add(subBar(`Active Yogs (${activeYogs.length})`, 'FFFBEB', '92400E'))
         activeYogs.forEach((yog) => {
+          // full write-up sections, present only on the main Vedic yogs
+          const detailBlocks: InstanceType<typeof Paragraph>[] = []
+          if (yog.detail) {
+            if (yog.detail.intro) detailBlocks.push(body(yog.detail.intro, '475569', HP(12)))
+            YOG_DETAIL_SECTIONS.forEach(({ key, title }) => {
+              const items = yog.detail?.[key]
+              if (!Array.isArray(items) || items.length === 0) return
+              detailBlocks.push(label(title, '92400E'), ...bullets(items))
+            })
+            if (yog.detail.summary) {
+              detailBlocks.push(label('Summary', '92400E'), P(trLines(yog.detail.summary, { c: '475569', i: true, s: HP(12) }), { spacing: { after: 50 } }))
+            }
+          }
           addTable(card('FFFFFF', 'FDE68A', [
             P(tr(yog.name, { c: '78350F', b: true, s: HP(13) }), { spacing: { after: 30 } }),
             P(tr(`Numbers: ${yog.numbers.join(' – ')}${yog.missingNumbers?.length ? ` (missing: ${yog.missingNumbers.join(', ')})` : ''}`, { c: '92400E', s: HP(11) }), { spacing: { after: 60 } }),
             ...bullets(yog.traits),
+            ...detailBlocks,
           ]))
         })
       }
@@ -967,6 +981,33 @@ export default function ReportStudio({
                               <tr key={ti}><td style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif', paddingLeft: '14px', paddingBottom: '2px', verticalAlign: 'top' }}>• {t}</td></tr>
                             ))}
                           </tbody></table>
+
+                          {/* full write-up — present only on the main Vedic yogs */}
+                          {yog.detail && (
+                            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px' }}><tbody>
+                              {yog.detail.intro && (
+                                <tr><td style={{ fontSize: '12px', color: '#475569', lineHeight: '1.7', fontFamily: 'system-ui,sans-serif', paddingBottom: '8px' }}>{yog.detail.intro}</td></tr>
+                              )}
+                              {YOG_DETAIL_SECTIONS.map(({ key, title }) => {
+                                const items = yog.detail?.[key]
+                                if (!Array.isArray(items) || items.length === 0) return null
+                                return (
+                                  <tr key={key}><td style={{ paddingBottom: '8px' }}>
+                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>{title}</div>
+                                    {items.map((item, ii) => (
+                                      <div key={ii} style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', fontFamily: 'system-ui,sans-serif', paddingLeft: '14px', paddingBottom: '2px' }}>• {item}</div>
+                                    ))}
+                                  </td></tr>
+                                )
+                              })}
+                              {yog.detail.summary && (
+                                <tr><td style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '8px 10px' }}>
+                                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '4px' }}>Summary</div>
+                                  <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.7', fontFamily: 'system-ui,sans-serif' }}>{yog.detail.summary}</div>
+                                </td></tr>
+                              )}
+                            </tbody></table>
+                          )}
                         </td>
                       </tr>
                     ))}

@@ -39,12 +39,15 @@ import {
   FileText,
   Coins,
   Lock,
+  ChevronDown,
 } from 'lucide-react'
 import ReportStudio from '@/components/report/ReportStudio'
+import type { YogDetail } from '@/lib/numerology'
 import {
   Prediction,
   getStrengthNumber,
   yogDefinitions,
+  YOG_DETAIL_SECTIONS,
   DOB_CHART_LAYOUT,
   missingNumberAnalysis,
   repeatedNumberNegativeAnalysis,
@@ -87,6 +90,64 @@ function calculateProgress(startDate: string, endDate: string): number {
   const now   = Date.now()
   if (end <= start) return 0
   return Math.min(Math.max(((now - start) / (end - start)) * 100, 0), 100)
+}
+
+function YogFullAnalysis({ detail, wide }: { detail: YogDetail; wide: boolean }) {
+  const [open, setOpen] = useState(false)
+
+  // The sections flow into balanced columns so the expanded card stays short
+  // instead of becoming one very long scroll. A full-width card fits three.
+  const columnClass = wide
+    ? 'md:columns-2 xl:columns-3'
+    : 'lg:columns-2'
+
+  return (
+    <div className="mt-4 border-t border-slate-100 pt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between gap-2 rounded-xl bg-violet-50/70 px-3 py-2 text-left text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100/70"
+      >
+        {open ? 'Hide full analysis' : 'Read full analysis'}
+        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-4">
+          {detail.intro && (
+            <p className="text-sm leading-7 text-slate-600">{detail.intro}</p>
+          )}
+
+          <div className={`columns-1 gap-x-8 ${columnClass}`}>
+            {YOG_DETAIL_SECTIONS.map(({ key, title }) => {
+              const items = detail[key]
+              if (!Array.isArray(items) || items.length === 0) return null
+              return (
+                <div key={key} className="break-inside-avoid mb-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-500">{title}</p>
+                  <ul className="mt-1.5 space-y-1.5">
+                    {items.map((item, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+
+          {detail.summary && (
+            <div className="rounded-xl border border-violet-100 bg-violet-50/50 px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-500">Summary</p>
+              <p className="mt-1 text-sm leading-7 text-slate-600">{detail.summary}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function KnowMorePage() {
@@ -950,7 +1011,7 @@ export default function KnowMorePage() {
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className={`grid grid-cols-1 gap-4 ${activeYogCount > 1 ? 'md:grid-cols-2' : ''}`}>
                         {yogResults.filter((yog) => yog.active).map((yog, index) => {
                           const YogIcon = yog.icon
                           return (
@@ -989,6 +1050,8 @@ export default function KnowMorePage() {
                                   </li>
                                 ))}
                               </ul>
+
+                              {yog.detail && <YogFullAnalysis detail={yog.detail} wide={activeYogCount === 1} />}
                             </Card>
                           )
                         })}
