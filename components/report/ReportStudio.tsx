@@ -11,6 +11,7 @@ import {
   GAYATRI_MANTRAS, PLANET_YANTRAS, PERSONAL_YEAR_REMEDIES, CRYSTAL_REMEDIES, yogRemedyData,
   getYogRemedyKey, getStrengthNumber, driverNumberProfiles, conductorNumberProfiles,
   PLANET_DESCRIPTIONS, YOG_DETAIL_SECTIONS,
+  MONTHLY_PREDICTIONS, PERSONAL_YEAR_REMEDY_MONTHS, getPersonalYearForYear, getPersonalMonth,
 } from '@/lib/numerology'
 
 interface ReportStudioProps {
@@ -83,6 +84,46 @@ export default function ReportStudio({
     (digit) => (dobNumberCounts[digit] ?? 0) > 2
   )
 
+  // Monthly Prediction — the same rolling 12-month window the Know More tab
+  // shows, flattened for a static report. The Personal Year is recomputed per
+  // month so the window stays correct across the calendar-year rollover.
+  const monthlyTimeline = (() => {
+    const now = new Date()
+    return Array.from({ length: 12 }, (_, offset) => {
+      const date = new Date(now.getFullYear(), now.getMonth() + offset, 1)
+      const personalYear =
+        date.getFullYear() === now.getFullYear()
+          ? prediction.personal_year
+          : getPersonalYearForYear(prediction.dob, date.getFullYear())
+      const personalMonth = getPersonalMonth(personalYear, date.getMonth() + 1)
+      return {
+        label: `${date.toLocaleString('en-US', { month: 'long' })} ${date.getFullYear()}`,
+        personalYear,
+        personalMonth,
+        characteristics: MONTHLY_PREDICTIONS[personalYear]?.[personalMonth]?.characteristics ?? [],
+      }
+    })
+  })()
+
+  const monthlyMonths = monthlyTimeline.filter((month) => month.characteristics.length > 0)
+
+  // One remedy block per distinct Personal Year in that window (the window can
+  // span two personal years). Remedies follow the Personal Year alone.
+  const monthlyRemedyGroups = Array.from(
+    new Set(monthlyTimeline.map((month) => month.personalYear))
+  )
+    .map((personalYear) => ({
+      personalYear,
+      remedies: Array.from(
+        new Set(
+          (PERSONAL_YEAR_REMEDY_MONTHS[personalYear] ?? []).flatMap(
+            (pm) => MONTHLY_PREDICTIONS[personalYear]?.[pm]?.remedy ?? []
+          )
+        )
+      ),
+    }))
+    .filter((group) => group.remedies.length > 0)
+
   const yogResults = yogDefinitions.map((yog) => {
     const active =
       yog.numbers.every((n) => presentDobNumbers.has(n)) &&
@@ -119,6 +160,38 @@ export default function ReportStudio({
       await new Promise((r) => requestAnimationFrame(r))
       await new Promise((r) => setTimeout(r, 300))
 
+      const pdfW = 210 // A4 width in mm
+      const pdfH = 297 // A4 height in mm
+
+      // ── Work out where page breaks are allowed to fall ──────────────────
+      // Walk the laid-out report and collect "atomic" blocks: the shallowest
+      // elements that still fit on one page. Anything taller is broken down
+      // into its children. Cutting only at a block's top edge is what keeps
+      // cards, tables and charts whole instead of slicing them mid-way.
+      type Measured = { blocks: { top: number; bottom: number }[]; width: number; height: number }
+      const measure = (root: HTMLElement): Measured => {
+        const rootRect = root.getBoundingClientRect()
+        const pageH = (rootRect.width * pdfH) / pdfW
+        const blocks: { top: number; bottom: number }[] = []
+        const walk = (node: Element) => {
+          for (const child of Array.from(node.children)) {
+            const r = child.getBoundingClientRect()
+            if (r.height <= 0) continue
+            if (r.height > pageH && child.children.length > 0) {
+              walk(child) // too tall to keep whole — look one level deeper
+            } else {
+              blocks.push({ top: r.top - rootRect.top, bottom: r.bottom - rootRect.top })
+            }
+          }
+        }
+        walk(root)
+        return { blocks, width: rootRect.width || 794, height: rootRect.height }
+      }
+
+      // Measured against the live DOM; replaced below by a measurement of the
+      // clone html2canvas actually rasterises, which is the layout that counts.
+      let measured = measure(el)
+
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
@@ -132,18 +205,112 @@ export default function ReportStudio({
           // Strip all stylesheets — they contain lab() colors html2canvas can't parse.
           // The report div uses only inline styles so nothing is lost.
           clonedDoc.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => el.remove())
+          // Measure HERE, not on the live DOM: dropping the stylesheets also drops
+          // Tailwind's preflight, so the clone's paragraphs, lists and headings get
+          // their browser-default margins back and lay out taller. Measuring the
+          // live DOM instead leaves every offset drifting further down the report.
+          const root = clonedDoc.querySelector('[data-report-root]')
+          if (root instanceof HTMLElement && root.getBoundingClientRect().height > 0) {
+            measured = measure(root)
+          }
         },
       })
 
       // Hide again
       el.style.display = 'none'
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95)
-      const pdfW = 210  // A4 width in mm
-      const imgHeightMm = (canvas.height * pdfW) / canvas.width
-      // Single custom-height page — avoids cutting sections across page boundaries
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfW, imgHeightMm] })
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, imgHeightMm)
+      const pxPerMm = canvas.width / pdfW
+      const pageHpx = Math.floor(pdfH * pxPerMm)
+
+      // Map the measured blocks onto canvas pixels. The vertical scale is taken
+      // from the captured height rather than assumed, so any residual difference
+      // between measurement and capture cannot accumulate down the report.
+      const s = canvas.width / measured.width
+      const sy = measured.height > 0 ? canvas.height / measured.height : s
+      const edges = measured.blocks.map((b) => ({ top: b.top * sy, bottom: b.bottom * sy }))
+
+      // Last resort when no block edge fits: cut on a row of flat colour (a gap
+      // between blocks) rather than straight through a line of text.
+      const ctx = canvas.getContext('2d')
+      const flatRowAbove = (top: number, limit: number) => {
+        const from = Math.max(top + 1, limit - Math.floor(pageHpx * 0.2))
+        const span = limit - from
+        if (!ctx || span <= 0) return limit
+        let data: Uint8ClampedArray
+        try {
+          data = ctx.getImageData(0, from, canvas.width, span).data
+        } catch {
+          return limit // tainted canvas — keep the hard boundary
+        }
+        const rowBytes = canvas.width * 4
+        for (let y = span - 1; y >= 0; y--) {
+          const off = y * rowBytes
+          const r = data[off], g = data[off + 1], b = data[off + 2]
+          let flat = true
+          for (let x = 16; x < rowBytes; x += 16) {
+            if (
+              Math.abs(data[off + x] - r) > 6 ||
+              Math.abs(data[off + x + 1] - g) > 6 ||
+              Math.abs(data[off + x + 2] - b) > 6
+            ) {
+              flat = false
+              break
+            }
+          }
+          if (flat) return from + y
+        }
+        return limit
+      }
+
+      // The last block edge that still fits on the page becomes the cut.
+      const findBreak = (top: number, limit: number) => {
+        const floor = top + pageHpx * 0.25 // never make an almost-empty page
+        let idx = -1
+        for (let i = 0; i < edges.length; i++) {
+          if (edges[i].top > floor && edges[i].top <= limit) idx = i
+        }
+        if (idx <= 0) return flatRowAbove(top, limit)
+        // Don't strand a lone heading at the foot of a page: if the block above
+        // the cut is short and sits tight against the one below, move it over too.
+        const prev = edges[idx - 1]
+        if (
+          prev.bottom - prev.top < 60 * sy &&
+          edges[idx].top - prev.bottom < 28 * sy &&
+          prev.top > floor
+        ) {
+          return prev.top
+        }
+        return edges[idx].top
+      }
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const slice = document.createElement('canvas')
+      const sliceCtx = slice.getContext('2d')
+      let top = 0
+      let first = true
+
+      while (top < canvas.height) {
+        const bottom =
+          top + pageHpx >= canvas.height
+            ? canvas.height
+            : Math.round(findBreak(top, top + pageHpx))
+        const sliceH = bottom - top
+        if (sliceH <= 0) break
+
+        slice.width = canvas.width
+        slice.height = sliceH
+        if (sliceCtx) {
+          sliceCtx.fillStyle = '#ffffff'
+          sliceCtx.fillRect(0, 0, slice.width, slice.height)
+          sliceCtx.drawImage(canvas, 0, top, canvas.width, sliceH, 0, 0, canvas.width, sliceH)
+        }
+
+        if (!first) pdf.addPage()
+        first = false
+        pdf.addImage(slice.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdfW, sliceH / pxPerMm)
+
+        top = bottom
+      }
 
       pdf.save(`${userName ? userName.replace(/\s+/g, '_') + '_' : ''}numerology_report.pdf`)
       onArchive?.()
@@ -431,6 +598,31 @@ export default function ReportStudio({
         }
       }
 
+      // ── MONTHLY PREDICTION (ACCORDING TO PERSONAL YEAR) ──
+      if (monthlyMonths.length > 0 || monthlyRemedyGroups.length > 0) {
+        add(section('Monthly Prediction (According to Personal Year)'))
+
+        if (monthlyMonths.length > 0) {
+          add(subBar('Characteristics', 'F5F3FF', '5B21B6'))
+          monthlyMonths.forEach((month) => {
+            addTable(card('F8F7FF', 'DDD6FE', [
+              label(`${month.label} — Personal Year ${month.personalYear} · Personal Month ${month.personalMonth}`, '5B21B6'),
+              ...bullets(month.characteristics, '4C1D95'),
+            ]))
+          })
+        }
+
+        if (monthlyRemedyGroups.length > 0) {
+          add(subBar('Remedy', 'FDF4FF', '86198F'))
+          monthlyRemedyGroups.forEach((group) => {
+            addTable(card('FDF4FF', 'F0ABFC', [
+              label(`Personal Year ${group.personalYear}`, '86198F'),
+              ...bullets(group.remedies, '701A75'),
+            ]))
+          })
+        }
+      }
+
       // ── REMEDIES ──
       add(section('Remedies'))
       if (prediction.driver_conductor_remedy) addTable(remedyCard('DCFCE7', '86EFAC', 'Driver-Conductor Remedy', '15803D', prediction.driver_conductor_remedy, '166534'))
@@ -644,7 +836,7 @@ export default function ReportStudio({
                           </div>
                           <div className="flex items-center justify-between py-2">
                             <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Page 2+</span>
-                            <span className="text-slate-700">Strength {strengthNumber} · Gochor · DOB Chart · {activeYogCount} Yog{activeYogCount !== 1 ? 's' : ''} · Dashas · Remedies</span>
+                            <span className="text-slate-700">Strength {strengthNumber} · Gochor · DOB Chart · {activeYogCount} Yog{activeYogCount !== 1 ? 's' : ''} · Dashas · Monthly Prediction · Remedies</span>
                           </div>
                         </div>
                       </Card>
@@ -691,6 +883,7 @@ export default function ReportStudio({
 
       <div
         ref={reportRef}
+        data-report-root=""
         style={{
           display: 'none',
           position: 'absolute',
@@ -1068,6 +1261,51 @@ export default function ReportStudio({
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* ── MONTHLY PREDICTION (ACCORDING TO PERSONAL YEAR) ── */}
+              {(monthlyMonths.length > 0 || monthlyRemedyGroups.length > 0) && (
+                <div style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: '10px', padding: '16px 18px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#5b21b6', fontFamily: 'system-ui,sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px', borderBottom: '1px solid #ede9fe', paddingBottom: '8px' }}>Monthly Prediction (According to Personal Year)</div>
+
+                  {monthlyMonths.length > 0 && (
+                    <>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', marginBottom: '8px' }}>1. Characteristics</div>
+                      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', marginBottom: '6px' }}><tbody>
+                        {monthlyMonths.map((month) => (
+                          <tr key={month.label}>
+                            <td style={{ background: '#ffffff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '10px 13px', verticalAlign: 'top' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'system-ui,sans-serif', marginBottom: '6px' }}>
+                                {month.label} — Personal Year {month.personalYear} · Personal Month {month.personalMonth}
+                              </div>
+                              {month.characteristics.map((line, i) => (
+                                <p key={i} style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', margin: '0 0 3px 0', fontFamily: 'system-ui,sans-serif', paddingLeft: '12px' }}>• {line}</p>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody></table>
+                    </>
+                  )}
+
+                  {monthlyRemedyGroups.length > 0 && (
+                    <>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#86198f', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui,sans-serif', margin: '12px 0 8px' }}>2. Remedy</div>
+                      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}><tbody>
+                        {monthlyRemedyGroups.map((group) => (
+                          <tr key={group.personalYear}>
+                            <td style={{ background: '#fdf4ff', border: '1px solid #f0abfc', borderRadius: '8px', padding: '10px 13px', verticalAlign: 'top' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 700, color: '#86198f', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'system-ui,sans-serif', marginBottom: '6px' }}>Personal Year {group.personalYear}</div>
+                              {group.remedies.map((line, i) => (
+                                <p key={i} style={{ fontSize: '12px', color: '#701a75', lineHeight: '1.6', margin: '0 0 3px 0', fontFamily: 'system-ui,sans-serif', paddingLeft: '12px' }}>• {line}</p>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody></table>
+                    </>
+                  )}
                 </div>
               )}
 

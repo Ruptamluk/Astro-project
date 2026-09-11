@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import {
   ArrowLeft,
   CalendarDays,
+  CalendarRange,
   Clock3,
   MoonStar,
   Orbit,
@@ -54,6 +55,10 @@ import {
   GAYATRI_MANTRAS,
   PLANET_YANTRAS,
   PERSONAL_YEAR_REMEDIES,
+  MONTHLY_PREDICTIONS,
+  PERSONAL_YEAR_REMEDY_MONTHS,
+  getPersonalYearForYear,
+  getPersonalMonth,
   CRYSTAL_REMEDIES,
   yogRemedyData,
   getYogRemedyKey,
@@ -63,7 +68,7 @@ import {
 } from '@/lib/numerology'
 
 
-type InsightKey = 'driver' | 'conductor' | 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas' | 'remedy' | 'report'
+type InsightKey = 'driver' | 'conductor' | 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart' | 'yog' | 'dashas' | 'monthly' | 'remedy' | 'report'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -78,6 +83,7 @@ function isInsightKey(value: string | null): value is InsightKey {
     value === 'dobChart' ||
     value === 'yog' ||
     value === 'dashas' ||
+    value === 'monthly' ||
     value === 'remedy' ||
     value === 'report'
 }
@@ -156,6 +162,9 @@ export default function KnowMorePage() {
   const [loading, setLoading] = useState(true)
   const [activeInsight, setActiveInsight] = useState<InsightKey>('driver')
   const [mantraOpen, setMantraOpen] = useState<string | null>(null)
+  // Index into the rolling 12-month window shown in the Monthly Prediction tab.
+  // 0 is the current month, which is what the tab opens on.
+  const [monthlyIndex, setMonthlyIndex] = useState(0)
   const [yantraOpen, setYantraOpen] = useState(false)
   const [clientName, setClientName] = useState<string>('')
   const [clientPhone, setClientPhone] = useState<string>('')
@@ -433,6 +442,41 @@ export default function KnowMorePage() {
     (digit) => (dobNumberCounts[digit] ?? 0) > 2
   )
 
+  // Rolling 12-month window starting at the current month. The Personal Year is
+  // recomputed per month so the window stays correct across the calendar-year
+  // boundary, where the Personal Year itself rolls over.
+  const monthlyTimeline = (() => {
+    const now = new Date()
+    return Array.from({ length: 12 }, (_, offset) => {
+      const date = new Date(now.getFullYear(), now.getMonth() + offset, 1)
+      const personalYear =
+        date.getFullYear() === now.getFullYear()
+          ? prediction.personal_year
+          : getPersonalYearForYear(prediction.dob, date.getFullYear())
+      return {
+        label: date.toLocaleString('en-US', { month: 'short' }),
+        fullLabel: date.toLocaleString('en-US', { month: 'long' }),
+        year: date.getFullYear(),
+        personalYear,
+        personalMonth: getPersonalMonth(personalYear, date.getMonth() + 1),
+      }
+    })
+  })()
+
+  const selectedMonth = monthlyTimeline[monthlyIndex] ?? monthlyTimeline[0]
+  const selectedMonthly =
+    MONTHLY_PREDICTIONS[selectedMonth.personalYear]?.[selectedMonth.personalMonth]
+  // The Remedy section follows the Personal Year alone — never the month the
+  // user happens to be in. The mapped months are merged into one list (their
+  // remedies can overlap, so identical lines are collapsed).
+  const personalYearRemedies = Array.from(
+    new Set(
+      (PERSONAL_YEAR_REMEDY_MONTHS[selectedMonth.personalYear] ?? []).flatMap(
+        (pm) => MONTHLY_PREDICTIONS[selectedMonth.personalYear]?.[pm]?.remedy ?? []
+      )
+    )
+  )
+
   const yogResults = yogDefinitions.map((yog) => {
     const active =
       yog.numbers.every((n) => presentDobNumbers.has(n)) &&
@@ -593,6 +637,15 @@ export default function KnowMorePage() {
       title: 'Dashas',
       subtitle: 'Current planetary periods',
       icon: CalendarDays,
+      value: null,
+      prediction: '',
+      remedy: '',
+    },
+    {
+      key: 'monthly' as InsightKey,
+      title: 'Monthly Prediction',
+      subtitle: 'Characteristics & remedy for your personal month',
+      icon: CalendarRange,
       value: null,
       prediction: '',
       remedy: '',
@@ -1212,6 +1265,117 @@ export default function KnowMorePage() {
                               </p>
                             </div>
                           )}
+                        </Card>
+                      </div>
+                    </div>
+                  ) : item.key === 'monthly' ? (
+                    <div className="space-y-4">
+                      {/* Month picker — rolling 12 months from the current one */}
+                      <Card className="gap-0 py-0 rounded-[28px] border-violet-100 bg-white/90 overflow-hidden shadow-sm">
+                        <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-indigo-50 px-5 py-4 flex flex-wrap items-center gap-3">
+                          <CalendarRange className="w-5 h-5 text-violet-600" />
+                          <div className="mr-auto">
+                            <h2 className="text-lg font-bold text-slate-800">
+                              Monthly Prediction (According to Personal Year)
+                            </h2>
+                            <p className="text-sm text-slate-500">
+                              {selectedMonth.fullLabel} {selectedMonth.year}
+                            </p>
+                          </div>
+                          {/* <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 border border-indigo-100">
+                            Personal Year {selectedMonth.personalYear}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 border border-violet-100">
+                            Personal Month {selectedMonth.personalMonth}
+                          </span> */}
+                        </div>
+
+                        <div className="overflow-x-auto p-4">
+                          <div className="flex w-max min-w-full gap-2">
+                            {monthlyTimeline.map((month, index) => {
+                              const active = index === monthlyIndex
+                              return (
+                                <button
+                                  key={`${month.year}-${month.label}`}
+                                  type="button"
+                                  onClick={() => setMonthlyIndex(index)}
+                                  className={`shrink-0 rounded-2xl border px-3.5 py-2.5 text-center transition-colors ${
+                                    active
+                                      ? 'border-violet-300 bg-violet-600 text-white shadow-[0_12px_28px_-18px_rgba(124,58,237,0.9)]'
+                                      : 'border-violet-100 bg-white text-slate-600 hover:bg-violet-50'
+                                  }`}
+                                >
+                                  <p className="text-sm font-semibold leading-5">{month.label}</p>
+                                  <p className={`text-[11px] leading-4 ${active ? 'text-violet-100' : 'text-slate-400'}`}>
+                                    {month.year}
+                                  </p>
+                                  {/* <p className={`mt-1 text-xs font-bold leading-4 ${active ? 'text-white' : 'text-violet-600'}`}>
+                                    PM {month.personalMonth}
+                                  </p> */}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </Card>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-4">
+                        {/* 1. Characteristics */}
+                        <Card className="gap-0 py-0 rounded-[28px] border-violet-100 bg-white/90 overflow-hidden shadow-sm">
+                          <div className="border-b border-violet-100 bg-violet-50/70 px-5 py-4 flex items-center gap-2.5">
+                            <div className="rounded-lg p-1.5 bg-violet-100 shrink-0">
+                              <Eye className="w-4 h-4 text-violet-600" />
+                            </div>
+                            <h3 className="text-sm font-bold text-slate-800">1. Characteristics</h3>
+                            {/* <span className="ml-auto inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-violet-700 border border-violet-100">
+                              PY {selectedMonth.personalYear} · PM {selectedMonth.personalMonth}
+                            </span> */}
+                          </div>
+                          <div className="p-5">
+                            {selectedMonthly && selectedMonthly.characteristics.length > 0 ? (
+                              <ul className="space-y-2">
+                                {selectedMonthly.characteristics.map((line, i) => (
+                                  <li key={i} className="flex items-start gap-2 text-sm leading-7 text-slate-700">
+                                    <span className="mt-3 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                                    {line}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm leading-7 text-slate-600">
+                                No characteristics available for this combination.
+                              </p>
+                            )}
+                          </div>
+                        </Card>
+
+                        {/* 2. Remedy — driven by the Personal Year mapping */}
+                        <Card className="gap-0 py-0 rounded-[28px] border-fuchsia-100 bg-white/90 overflow-hidden shadow-sm">
+                          <div className="border-b border-fuchsia-100 bg-fuchsia-50/70 px-5 py-4 flex items-center gap-2.5">
+                            <div className="rounded-lg p-1.5 bg-fuchsia-100 shrink-0">
+                              <Shield className="w-4 h-4 text-fuchsia-600" />
+                            </div>
+                            <h3 className="text-sm font-bold text-slate-800">2. Remedy</h3>
+                            {/* <span className="ml-auto inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-fuchsia-700 border border-fuchsia-100">
+                              Personal Year {selectedMonth.personalYear}
+                            </span> */}
+                          </div>
+                          <div className="p-5">
+                            {personalYearRemedies.length > 0 ? (
+                              <ul className="space-y-2">
+                                {personalYearRemedies.map((line, i) => (
+                                  <li key={i} className="flex items-start gap-2 text-sm leading-7 text-slate-700">
+                                    <span className="mt-3 w-1.5 h-1.5 rounded-full bg-fuchsia-400 shrink-0" />
+                                    {line}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm leading-7 text-slate-600">
+                                No remedy available for this personal year.
+                              </p>
+                            )}
+                          </div>
                         </Card>
                       </div>
                     </div>

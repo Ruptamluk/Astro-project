@@ -1124,14 +1124,14 @@ export default function PredictionPage() {
               const nameNumber = calculateNameNumber(prediction.name!)
               const isCompatible = [1, 3, 5, 6].includes(nameNumber)
               return (
-                <div className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${
+                <div className={`mt-3 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full text-base md:text-lg font-bold border-2 shadow-sm ${
                   isCompatible
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : 'bg-rose-50 text-rose-800 border-rose-300'
                 }`}>
                   {isCompatible
-                    ? <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    : <XCircle className="w-4 h-4 shrink-0" />}
+                    ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 shrink-0" strokeWidth={2.5} />
+                    : <XCircle className="w-5 h-5 md:w-6 md:h-6 shrink-0" strokeWidth={2.5} />}
                   {isCompatible
                     ? 'Your name is compatible with dob'
                     : 'Your name is not compatible with dob'}
@@ -1145,14 +1145,14 @@ export default function PredictionPage() {
               const phoneNumber = reduceToSingleDigit(phoneTotal)
               const isCompatible = [1, 3, 5, 6].includes(phoneNumber)
               return (
-                <div className={`mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${
+                <div className={`mt-2 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full text-base md:text-lg font-bold border-2 shadow-sm ${
                   isCompatible
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : 'bg-rose-50 text-rose-800 border-rose-300'
                 }`}>
                   {isCompatible
-                    ? <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    : <XCircle className="w-4 h-4 shrink-0" />}
+                    ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 shrink-0" strokeWidth={2.5} />
+                    : <XCircle className="w-5 h-5 md:w-6 md:h-6 shrink-0" strokeWidth={2.5} />}
                   {isCompatible
                     ? 'Your phone number is compatible with dob'
                     : 'Your phone number is not compatible with dob'}

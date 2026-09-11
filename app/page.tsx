@@ -14,6 +14,30 @@ import { format } from 'date-fns'
 import { CalendarIcon, Mail, Phone, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
+const CONTACT_NUMBERS = ['9639251155', '8016624561']
+
+function ContactBlock() {
+  return (
+    <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-4 text-center">
+      <p className="text-sm font-semibold uppercase tracking-wide text-primary">
+        Contact Gochar Gguru
+      </p>
+      <div className="mt-3 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-6">
+        {CONTACT_NUMBERS.map((num) => (
+          <a
+            key={num}
+            href={`tel:+91${num}`}
+            className="inline-flex items-center gap-2 text-base font-semibold text-foreground hover:text-primary"
+          >
+            <Phone className="h-4 w-4 text-primary" />
+            {num}
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function AuthPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('login')
@@ -306,6 +330,8 @@ export default function AuthPage() {
                           </>
                         )}
                       </div>
+
+                      <ContactBlock />
                     </TabsContent>
 
                     <TabsContent value="register" className="space-y-6">
@@ -380,6 +406,8 @@ export default function AuthPage() {
                           </>
                         )}
                       </div>
+
+                      <ContactBlock />
                     </TabsContent>
 
                     <TabsContent value="free" className="space-y-6">
@@ -460,6 +488,8 @@ export default function AuthPage() {
                           </Button>
                         </form>
                       </div>
+
+                      <ContactBlock />
                     </TabsContent>
                   </div>
                 </Tabs>

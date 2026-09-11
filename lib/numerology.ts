@@ -2058,3 +2058,954 @@ export const PLANET_YANTRAS: Record<number, PlanetYantra> = {
     howToUse: ['Worship on Tuesday','Use red ink or copper plate','Keep in south direction'],
   },
 }
+
+// ── Monthly Prediction (Personal Year x Personal Month) ────────────────────
+//
+// Source: the "MONTH PREDICTION — Reorganized Notes" material, covering all
+// nine Personal Years against all nine Personal Months. Each entry holds the
+// characteristics of that month plus the remedy prescribed for the pair.
+
+export interface MonthlyPrediction {
+  characteristics: string[]
+  remedy: string[]
+}
+
+export const MONTHLY_PREDICTIONS: Record<number, Record<number, MonthlyPrediction>> = {
+  1: {
+    1: {
+      characteristics: [
+        'Rude communication.',
+        'Do not go into arguments.',
+        'Dominating nature.',
+        'Follow discipline.',
+        'Success can come in life.',
+        'If you become self-centric, you may face loss in life.',
+        'Maintain a good relationship with your spouse.',
+        'Maintain a good relationship with your father and family.',
+      ],
+      remedy: ['Do not hurry in life.', 'Sun remedy.'],
+    },
+    2: {
+      characteristics: [
+        'Relationship issues with spouse may arise.',
+        'Do not criticize others or your spouse.',
+        'Mental stability needs attention.',
+        'Maintain a good relationship with parents.',
+        'Do not take unnecessary risks.',
+        'Emotional breakdown may occur.',
+        'Maintain a good relationship with family.',
+        'Universal support may help your work when your belief system is strong.',
+      ],
+      remedy: ['Go for meditation.'],
+    },
+    3: {
+      characteristics: [
+        'Very good time to do social work.',
+        'Your fame, name and reputation may increase.',
+        'Good for health.',
+        'Growth in professional life.',
+        'Do not get into arguments with office colleagues; otherwise negativity may come.',
+      ],
+      remedy: ['Respect your Guru.', 'Read a spiritual book.'],
+    },
+    4: {
+      characteristics: [
+        'Your relationship may improve.',
+        'Mental disturbance may occur.',
+        'Success in professional life.',
+        'Do not create a virtual world; keep realistic goals.',
+        'Do not make very big plans.',
+        'You need to control your emotions.',
+        'Finances may be good.',
+      ],
+      remedy: ['Sun remedy.'],
+    },
+    5: {
+      characteristics: [
+        'Communication may improve.',
+        'Your reputation may also increase.',
+        'Follow the advice of well-wishers if you want something new in life.',
+        'Take advice before acting.',
+        'Control your decisions; otherwise they may harm you or someone close to you.',
+        'Do not be in a hurry in life.',
+      ],
+      remedy: ['Rahu Ji Puja.'],
+    },
+    6: {
+      characteristics: [
+        'Be aware in matters involving the opposite gender and maintain good relations.',
+        'Support may come in professional life.',
+        'Problems may arise if you have a bad relationship with the opposite gender.',
+        'Respect your spouse.',
+      ],
+      remedy: ['Laxmi Narayan Puja.'],
+    },
+    7: {
+      characteristics: [
+        'Think twice before taking a decision that brings major change in life.',
+        'Do not invest anywhere without proper consideration.',
+        'Increase your spirituality.',
+        'Control your emotions.',
+        'Do not interfere in another person\'s life, and do not allow unnecessary interference in your own life.',
+        'Take care of your health.',
+      ],
+      remedy: ['Read a spiritual book.'],
+    },
+    8: {
+      characteristics: [
+        'You may feel lazy.',
+        'Follow a timetable.',
+        'Do not become aggressive in life.',
+        'Do not take unwanted responsibilities.',
+        'Do not go into arguments.',
+        'Focus more on your professional work.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+    9: {
+      characteristics: [
+        'Good for professional life.',
+        'Not very good for personal life.',
+        'You may become arrogant.',
+        'Dominating nature may appear.',
+        'Control your anger.',
+        'Success in professional life.',
+        'Maintain a good relationship with the opposite gender.',
+      ],
+      remedy: ['Sun Puja.'],
+    },
+  },
+  2: {
+    1: {
+      characteristics: [
+        'High confidence level.',
+        'Emotions may be weak.',
+        'Maintain good communication and healthy relationships.',
+        'Take proper sleep.',
+        'Do not travel excessively.',
+        'Maintain good relationships in professional life.',
+      ],
+      remedy: ['Laxmi Narayan Puja.', 'Offer a rose.'],
+    },
+    2: {
+      characteristics: [
+        'You may get hurt by small words.',
+        'Maintain a good relationship with your mother and spouse.',
+        'Do meditation regularly.',
+        'Do not take new steps in life.',
+        'Stay cool and calm.',
+      ],
+      remedy: ['Offer milk to Shiv Ji.'],
+    },
+    3: {
+      characteristics: [
+        'Professional life may be good.',
+        'Your network may increase.',
+        'Take decisions after discussion with a well-wisher.',
+      ],
+      remedy: ['Respect your Guru.', 'Offer banana to Narayan or Guru.', 'Offer chana to a banana tree.'],
+    },
+    4: {
+      characteristics: [
+        'Depression may arise from words.',
+        'Issues may be created in the family.',
+        'Do not hurt anyone\'s feelings.',
+        'Control your imagination.',
+        'Do not take new steps.',
+        'An enemy may hurt you.',
+      ],
+      remedy: ['Durga Kavach chanting.'],
+    },
+    5: {
+      characteristics: [
+        'Spend time with family members.',
+        'Maintain a good relationship with everyone.',
+        'Respect your parents.',
+        'Be active in life.',
+      ],
+      remedy: ['Offer green items.'],
+    },
+    6: {
+      characteristics: [
+        'Planning for new purchases may arise.',
+        'Maintain a good relationship with your spouse.',
+        'Maintain a good relationship with the opposite gender.',
+        'Professional life requires discipline.',
+        'Be limited and careful in relationships.',
+      ],
+      remedy: ['Maa Laxmi Puja.', 'Radha-Krishna Puja.'],
+    },
+    7: {
+      characteristics: [
+        'Health issues may occur if you do not follow a routine in life.',
+        'Disappointment may arise in relationships.',
+        'Professional life may receive support.',
+        'Do not become overly emotionally attached.',
+        'Take help from someone close if needed.',
+        'Do not waste your time.',
+        'Respect your mother.',
+      ],
+      remedy: ['Fish remedy.'],
+    },
+    8: {
+      characteristics: [
+        'Be professional in life.',
+        'Follow discipline and a daily routine.',
+        'Mental stress may occur.',
+        'Do physical exercise.',
+        'Stay away from deep water.',
+      ],
+      remedy: ['Offer Panchamrit to Shiv Ji.'],
+    },
+    9: {
+      characteristics: [
+        'Do not go into arguments.',
+        'Emotional problems may occur in life.',
+        'Do not hurt anyone.',
+        'Maintain good communication.',
+        'Professional life may receive support.',
+        'Sudden profit may occur.',
+        'Energy will be under control.',
+      ],
+      remedy: ['Hanuman Ji Puja.', 'Shiv Ji Puja.'],
+    },
+  },
+  3: {
+    1: {
+      characteristics: [
+        'Connect socially with people.',
+        'A good adviser may be available during this time.',
+        'Work on your growth.',
+        'Personal life may get hurt.',
+        'Financial growth may occur.',
+        'Participate in religious activities.',
+      ],
+      remedy: ['Vishnu Sahasranama chanting.'],
+    },
+    2: {
+      characteristics: [
+        'Maintain a good family relationship, especially with children.',
+        'Do not take new steps.',
+        'Control your emotions.',
+        'Do not build too many new relationships.',
+      ],
+      remedy: ['Chandra Shekhar Ashtakam chanting.'],
+    },
+    3: {
+      characteristics: [
+        'Growth in life.',
+        'Financially strong period.',
+        'Social name and fame may increase.',
+        'Your decisions may support you.',
+        'Do social activities.',
+        'Do not have ego in life.',
+      ],
+      remedy: ['Laxmi Narayan: offer a rose.', 'Banana tree Puja.'],
+    },
+    4: {
+      characteristics: [
+        'Think twice before starting something.',
+        'Be disciplined in life.',
+        'Do not share your plan.',
+        'Sudden gain may occur in professional life.',
+        'Problems may arise in family life.',
+      ],
+      remedy: ['Read a spiritual book.'],
+    },
+    5: {
+      characteristics: [
+        'Social name and fame may increase.',
+        'Family relationships need to be maintained.',
+        'Increase your network.',
+        'Read documents properly before signing.',
+        'Spend time with family.',
+        'Respect your Guru.',
+      ],
+      remedy: ['Ganesh Ji Puja.', 'Maa Tulsi Puja.'],
+    },
+    6: {
+      characteristics: [
+        'Maintain your relationships.',
+        'Do not hurt anyone.',
+        'Maintain good communication.',
+        'Professional growth may occur.',
+        'Improve your skills.',
+        'Do not overdo multitasking.',
+        'Work on your inner self/body.',
+      ],
+      remedy: ['Laxmi Narayan Puja.', 'Kumar Mahesh Stotra chanting.'],
+    },
+    7: {
+      characteristics: [
+        'Do not take a big financial decision.',
+        'Good time to learn new things.',
+        'Professional life may receive support.',
+        'Control your emotions.',
+        'Do not interfere in other people\'s personal life.',
+        'Value your time.',
+        'Social name and fame may increase.',
+      ],
+      remedy: ['Read a spiritual book.', 'Go to a temple.', 'Offer food to birds.'],
+    },
+    8: {
+      characteristics: [
+        'Professional support may be available.',
+        'Maintain a good relationship with children.',
+        'Do not dominate anyone.',
+        'Control your communication.',
+        'Believe in your skills.',
+      ],
+      remedy: ['Offer a Deepak at a Peepal tree.', 'Aditya Hridaya chanting.'],
+    },
+    9: {
+      characteristics: [
+        'Success in professional life.',
+        'Make a plan and execute it.',
+        'Name and fame may increase in life.',
+        'People may respect your decisions.',
+        'Maintain a good relationship with the opposite gender.',
+        'Do not keep ego in life.',
+        'Do physical exercise.',
+      ],
+      remedy: ['Hanuman Chalisa chanting.'],
+    },
+  },
+  4: {
+    1: {
+      characteristics: [
+        'Overconfidence can create problems in life.',
+        'Avoid arguments in personal and family life.',
+        'Spend time on your professional life.',
+        'Maintain proper sleeping time.',
+        'Avoid long travel.',
+      ],
+      remedy: ['Sun remedy.'],
+    },
+    2: {
+      characteristics: [
+        'Emotional imbalance may be high.',
+        'Do not expect too much from anyone.',
+        'Mental stress needs to be controlled.',
+        'Do not sleep late at night.',
+        'Respect your spouse and mother.',
+      ],
+      remedy: ['Do meditation.', 'Visit a Shiv temple.'],
+    },
+    3: {
+      characteristics: [
+        'Respect a noble person in your life.',
+        'Do not take quick decisions in life.',
+        'Do not become overconfident.',
+        'Do not take big financial decisions.',
+        'Do not become lazy in life.',
+        'Involve yourself in social work.',
+        'Maintain a good relationship with friends.',
+      ],
+      remedy: ['Sun remedy.'],
+    },
+    4: {
+      characteristics: [
+        'Anger issues may arise.',
+        'Dominating nature may appear.',
+        'Follow discipline.',
+        'Avoid long travelling.',
+        'Sudden gain may come in professional life.',
+      ],
+      remedy: ['Khatu Shyam Ji Puja.', 'Durga Mata Puja.'],
+    },
+    5: {
+      characteristics: [
+        'Financial condition may be good.',
+        'Maintain your communication.',
+        'Do not be lazy in life.',
+        'Do not take quick decisions.',
+      ],
+      remedy: ['Rahu Ji Puja.'],
+    },
+    6: {
+      characteristics: [
+        'Maintain a good relationship with the opposite gender.',
+        'Do not make unnecessary expenses.',
+        'Do not show off.',
+        'Do not share your secret planning.',
+        'Maintain your outlook.',
+        'Sudden gain may come in your life.',
+      ],
+      remedy: ['Laxmi Narayan Puja.'],
+    },
+    7: {
+      characteristics: [
+        'Do not insult anyone.',
+        'Follow discipline.',
+        'Do not take big decisions in professional life.',
+        'Emotional stress may occur in life.',
+        'Sudden gain may come in life.',
+        'Do not do wrong to your body.',
+      ],
+      remedy: ['Maa Durga Ji Puja.'],
+    },
+    8: {
+      characteristics: [
+        'Respect your elders and parents.',
+        'Be polite in life.',
+        'Follow discipline.',
+        'Do not be lazy in life.',
+        'Success may come in professional life.',
+        'Travelling may increase.',
+        'Work hard.',
+        'Do physical exercise.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+    9: {
+      characteristics: [
+        'Anger issues may arise.',
+        'Maintain a good relationship with your spouse.',
+        'Do not hurt your spouse\'s feelings.',
+        'Follow discipline.',
+        'Participate in social activities.',
+        'Energy may remain under control.',
+        'Do future planning.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+  },
+  5: {
+    1: {
+      characteristics: [
+        'New beginnings and new growth may come.',
+        'Maintain balance in life.',
+        'Your decisions may support you.',
+        'Control your communication.',
+        'Increase your networking.',
+        'Increase your patience level.',
+      ],
+      remedy: ['Sun remedy.'],
+    },
+    2: {
+      characteristics: [
+        'Control your mood swings.',
+        'Respect your mother and spouse.',
+        'Spend time with your family.',
+        'Bring balance into your family life.',
+        'Universal support may be available.',
+        'Sudden gain may come in your life.',
+      ],
+      remedy: ['Krishna Ji Puja.'],
+    },
+    3: {
+      characteristics: [
+        'Respect your Guru.',
+        'Increase your knowledge.',
+        'Financial growth may occur.',
+        'Avoid negative persons or company.',
+        'Do not become overconfident in life.',
+        'Believe in yourself.',
+      ],
+      remedy: ['Sun remedy.', 'Bishnu Ji Puja.'],
+    },
+    4: {
+      characteristics: [
+        'Do not take big financial decisions.',
+        'Avoid long travel during this time.',
+        'Reputation needs to be considered during this time.',
+        'Respect the opposite gender.',
+        'Stay away from enemies.',
+      ],
+      remedy: ['Ganesh Ji Puja.', 'Khatu Shyam Ji Puja.'],
+    },
+    5: {
+      characteristics: [
+        'Think twice before you speak.',
+        'Do not hurry in your life.',
+        'Growth may come in professional and personal life.',
+        'Do not be lazy in your life.',
+      ],
+      remedy: ['Ganesh Ji Puja.'],
+    },
+    6: {
+      characteristics: [
+        'Name, fame and prosperity may come in life.',
+        'Financial status may be good.',
+        'Do not be extravagant in your life.',
+        'Respect the opposite gender.',
+        'Prefer short travel.',
+        'Emotional weakness may arise from family matters.',
+      ],
+      remedy: ['Laxmi Narayan Puja.'],
+    },
+    7: {
+      characteristics: [
+        'Follow discipline in your life.',
+        'Support may come in your professional life.',
+        'Universal support may be available.',
+        'Sudden gain may occur.',
+        'Personal-life issues may arise.',
+      ],
+      remedy: ['Ganesh Ji Puja.'],
+    },
+    8: {
+      characteristics: [
+        'Family issues may arise.',
+        'Support may come in professional life.',
+        'Maintain your communication.',
+        'Spend quality time with children.',
+        'Follow discipline in life.',
+        'Do not be lazy in life.',
+      ],
+      remedy: ['Sun remedy.'],
+    },
+    9: {
+      characteristics: [
+        'High energy: take care of your health.',
+        'Your decisions may support you.',
+        'Name and fame may increase in professional life.',
+        'Improve your networking.',
+        'Be alert in matters involving the opposite gender.',
+      ],
+      remedy: ['Sun remedy.', 'Ganesh Ji Puja.'],
+    },
+  },
+  6: {
+    1: {
+      characteristics: [
+        'Name, fame and prosperity may come.',
+        'Respect your spouse.',
+        'Respect others\' feelings.',
+        'Focus on savings.',
+        'Take care of your health.',
+      ],
+      remedy: ['Laxmi Narayan Puja.'],
+    },
+    2: {
+      characteristics: [
+        'Attractive personality.',
+        'Name, fame and prosperity may increase in life.',
+        'Do not become too expensive.',
+        'Maintain good communication with the opposite gender.',
+        'Be patient in your life.',
+        'Do not become overly emotional.',
+      ],
+      remedy: ['Shiv Ji Puja.'],
+    },
+    3: {
+      characteristics: [
+        'Take care of your health.',
+        'Relationship issues may occur.',
+        'Support may come in professional life.',
+        'Use your knowledge fully.',
+        'Do not share your plans.',
+        'Follow discipline.',
+        'Keep communication limited.',
+        'Do your own work on priority.',
+      ],
+      remedy: ['Laxmi Narayan Puja.'],
+    },
+    4: {
+      characteristics: [
+        'Financial status may be satisfying.',
+        'Avoid show-off.',
+        'Maintain good relationships with the opposite gender at the workplace.',
+        'Control your expenses.',
+        'Travelling may increase.',
+        'Support may be available.',
+      ],
+      remedy: ['Laxmi-Ganesh Puja.'],
+    },
+    5: {
+      characteristics: [
+        'Financial condition may be good.',
+        'Control your laziness.',
+        'Professional growth may occur.',
+        'Maintain discipline.',
+        'Travelling may increase.',
+        'Do not share your plans with others.',
+      ],
+      remedy: ['Laxmi-Ganesh Ji Puja.'],
+    },
+    6: {
+      characteristics: [
+        'Do not argue with the opposite gender.',
+        'Your reputation should be a priority.',
+        'Financial growth may occur.',
+        'Control your communication inside the family.',
+        'Family vacation planning may arise.',
+      ],
+      remedy: ['Laxmi Narayan Puja.'],
+    },
+    7: {
+      characteristics: [
+        'Sudden gain may come in professional life.',
+        'Do not become overconfident in life; it may harm you.',
+        'Support may come in professional life.',
+        'Separate personal and professional life.',
+        'Control your emotions in family life.',
+      ],
+      remedy: ['Durga Mata Ji Puja.'],
+    },
+    8: {
+      characteristics: [
+        'Slowness may occur in professional life.',
+        'Do not be lazy in life.',
+        'Travelling may increase.',
+        'Do not criticize family members.',
+        'Hard work may give positive results.',
+      ],
+      remedy: ['Shiv Parbati Puja.'],
+    },
+    9: {
+      characteristics: [
+        'Maintain good communication with the opposite gender.',
+        'Avoid creating unnecessary problems.',
+        'Do social work.',
+        'Do not do wrong with the opposite gender.',
+        'Support may come in professional life.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+  },
+  7: {
+    1: {
+      characteristics: [
+        'Good for relationships.',
+        'Support may come in professional life.',
+        'Take care of your health.',
+        'Control your emotions in professional life.',
+        'Support from family or a noble person may be needed.',
+      ],
+      remedy: ['Sun remedy.'],
+    },
+    2: {
+      characteristics: [
+        'Take care of your health.',
+        'Do not be lazy in personal and professional life.',
+        'Maintain discipline.',
+        'Do not expect too much from others.',
+        'Do not take big financial decisions.',
+        'Do not increase your negativity.',
+      ],
+      remedy: ['Shiv Ji Puja.'],
+    },
+    3: {
+      characteristics: [
+        'Support your professional life.',
+        'Increase your knowledge.',
+        'Do not involve others in personal problems.',
+        'Do not share your knowledge everywhere.',
+      ],
+      remedy: ['Laxmi Narayan Puja.'],
+    },
+    4: {
+      characteristics: [
+        'Do not hurry in life.',
+        'Be patient in life.',
+        'Do not become argumentative.',
+        'Sudden gain may occur.',
+        'Support may come in professional life.',
+        'Maintain healthy relationships.',
+      ],
+      remedy: ['Khatu Shyam Ji Puja.'],
+    },
+    5: {
+      characteristics: [
+        'Have patience in life.',
+        'Respect mentors and well-wishers.',
+        'Think twice before taking any decision.',
+        'Maintain a good relationship with siblings.',
+        'Increase your knowledge.',
+      ],
+      remedy: ['Ganesh Ji Puja.'],
+    },
+    6: {
+      characteristics: [
+        'Maintain relationships with the opposite gender.',
+        'Avoid bad company.',
+        'Do not share your plans.',
+        'Control unnecessary fasting.',
+        'Be alert in professional life.',
+      ],
+      remedy: ['Laxmi Narayan Puja.'],
+    },
+    7: {
+      characteristics: [
+        'Health issues may arise.',
+        'Avoid bad company and bad addictions.',
+        'Do not get involved in controversy.',
+        'Take advice from a mentor.',
+        'Be spiritually active.',
+        'Sudden gain may occur.',
+        'Do not take major financial decisions.',
+        'Maintain a good relationship with your spouse.',
+      ],
+      remedy: ['Sun remedy.', 'Ganesh Ji Puja.', 'Black cow Puja (Kala Gai).'],
+    },
+    8: {
+      characteristics: [
+        'Laziness may be present.',
+        'Learn from past mistakes.',
+        'Take care of your health.',
+        'Do professional work seriously.',
+        'Be spiritual in life.',
+        'Maintain communication within the family.',
+        'Do not argue with juniors.',
+      ],
+      remedy: ['Ganesh Ji Puja.', 'Hanuman Ji Puja.'],
+    },
+    9: {
+      characteristics: [
+        'Be careful while driving or using sharp items.',
+        'Injury may occur.',
+        'Think twice before doing any work.',
+        'False ego may arise.',
+        'Maintain good relationships in professional life.',
+      ],
+      remedy: ['Sun remedy.', 'Hanuman Ji Puja.'],
+    },
+  },
+  8: {
+    1: {
+      characteristics: [
+        'Practical thought process may increase.',
+        'Practical thinking and emotions may become strong.',
+        'Do not behave rudely in life.',
+        'Maintain good relations with everyone.',
+        'Do not behave badly with employees.',
+      ],
+      remedy: ['Sun remedy.'],
+    },
+    2: {
+      characteristics: [
+        'Take care of your health.',
+        'Take care of your mother\'s health as well.',
+        'Avoid unnecessary financial decisions.',
+        'Do not behave rudely.',
+        'Respect your spouse\'s feelings.',
+      ],
+      remedy: ['Shiv Ji Puja.'],
+    },
+    3: {
+      characteristics: [
+        'Support may come from professional life.',
+        'Plan accordingly.',
+        'Do not expect too much from anyone.',
+        'Avoid physical rudeness.',
+        'Do not behave rudely.',
+        'Use your knowledge in the right direction.',
+      ],
+      remedy: ['Narayan Puja.'],
+    },
+    4: {
+      characteristics: [
+        'Struggle may appear in personal and professional life.',
+        'Follow discipline.',
+        'Do not multitask excessively.',
+        'Do not hurt anyone.',
+        'Sudden gain may occur in life.',
+        'Travelling may increase.',
+        'Do not take a big financial decision.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+    5: {
+      characteristics: [
+        'Control your communication.',
+        'Laziness may occur in life.',
+        'Family disputes may arise.',
+        'Success may come if you plan properly.',
+        'Discuss important matters with well-wishers.',
+      ],
+      remedy: ['Hanuman Ji Puja.', 'Khatu Shyam Ji Puja.'],
+    },
+    6: {
+      characteristics: [
+        'A practical approach will help you.',
+        'Do not become overly emotional.',
+        'Maintain a good relationship with the opposite gender.',
+        'Your hard work may pay you.',
+        'Do not keep confusion in mind.',
+      ],
+      remedy: ['Laxmi Narayan Ji Puja.'],
+    },
+    7: {
+      characteristics: [
+        'Do spiritual activities.',
+        'Maintain relationships in the family.',
+        'Follow discipline.',
+        'Control laziness.',
+        'Do not involve yourself with anyone unnecessarily.',
+        'Take care of your health.',
+        'Support may come from professional life.',
+        'If you make plans, implement them.',
+      ],
+      remedy: ['Sun remedy.', 'Durga Mata Puja.'],
+    },
+    8: {
+      characteristics: [
+        'Control your energy and communication.',
+        'Do not go into arguments.',
+        'Take care of your health.',
+        'Emotional detachment may occur.',
+        'Do not take any decision in a hurry.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+    9: {
+      characteristics: [
+        'You may dominate people.',
+        'Take care of your health.',
+        'Do physical exercise.',
+        'Do not get into arguments.',
+        'Do not create enemies with your own words.',
+        'Professional gain may come if you follow discipline.',
+        'Take care of your food habits.',
+        'Do not feel low.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+  },
+  9: {
+    1: {
+      characteristics: [
+        'Do not take decisions in a hurry.',
+        'Do not become dominating in nature.',
+        'Maintain good relationships with family.',
+        'New opportunities may come.',
+        'Your behavior may help maintain good relationships.',
+        'Follow discipline in life.',
+      ],
+      remedy: ['Sun remedy.', 'Hanuman Ji Puja.'],
+    },
+    2: {
+      characteristics: [
+        'Take care of your health.',
+        'Financial condition may be good.',
+        'Maintain good relationships with spouse and the opposite gender.',
+        'Sudden gain may occur.',
+        'Maintain good relationships with employees.',
+        'Mental and physical health need consideration.',
+        'Maintain balance in professional and personal life.',
+        'Do not get into arguments.',
+      ],
+      remedy: ['Sun remedy.', 'Shiv Ji Puja.'],
+    },
+    3: {
+      characteristics: [
+        'Social work may help.',
+        'Help needy persons.',
+        'Give good advice to others.',
+        'This may give you name and fame.',
+        'Be spiritual.',
+        'Short spiritual travel may occur.',
+        'Your work may be completed.',
+      ],
+      remedy: ['Sun remedy.', 'Bishnu Ji Puja.'],
+    },
+    4: {
+      characteristics: [
+        'High energy may arise within you.',
+        'Do not share your plans.',
+        'Be disciplined in life.',
+        'Maintain good relationships.',
+        'Do not become overconfident in life.',
+        'Do not get involved in arguments.',
+        'Do not make big plans.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+    5: {
+      characteristics: [
+        'Strong willpower during this time.',
+        'Your energy may support you.',
+        'Maintain good karma in life.',
+        'Good time to start work in your profession.',
+        'Travelling may increase.',
+        'Spend time with family.',
+        'Maintain good communication.',
+        'Growth may come according to your plans.',
+      ],
+      remedy: ['Ram Ji Puja.'],
+    },
+    6: {
+      characteristics: [
+        'Maintain good relationships with the opposite gender.',
+        'Expenses may be high.',
+        'Spend time with family.',
+        'Use a practical approach.',
+        'Do not trust blindly in professional life.',
+        'Be spiritual and honest in life.',
+        'Do not insult anyone.',
+        'Maintain polite communication.',
+      ],
+      remedy: ['Laxmi Narayan Puja.', 'Offer a rose.'],
+    },
+    7: {
+      characteristics: [
+        'Control your decisions and avoid taking new decisions.',
+        'Take care of your health.',
+        'Be careful with sharp items.',
+        'Maintain discipline in professional life.',
+        'Professional growth may occur.',
+        'Respect your well-wishers and Guru.',
+      ],
+      remedy: ['Maa Durga Puja.'],
+    },
+    8: {
+      characteristics: [
+        'High energy.',
+        'Do not get into arguments.',
+        'Do not waste your time.',
+        'Good for professional life.',
+        'Hard work may give good results.',
+        'Do not expect too much from others.',
+        'Maintain self-motivation.',
+      ],
+      remedy: ['Hanuman Ji Puja.'],
+    },
+    9: {
+      characteristics: [
+        'High energy.',
+        'Do not behave rudely.',
+        'Do not hurt anyone emotionally.',
+        'Name and fame may increase in professional life if you follow discipline.',
+        'Take care of your health.',
+        'Do not become dominating in the family.',
+        'Travelling may increase.',
+        'Maintain a good relationship with employees.',
+      ],
+      remedy: ['Sun remedy.'],
+    },
+  },
+}
+
+/**
+ * Personal Months whose remedies apply for a given Personal Year. The Remedy
+ * section of the Monthly Prediction tab is driven by the Personal Year alone —
+ * it deliberately does not follow the month the user is currently in.
+ */
+export const PERSONAL_YEAR_REMEDY_MONTHS: Record<number, number[]> = {
+  1: [1, 9],
+  2: [2, 6],
+  3: [3],
+  4: [4, 8],
+  5: [5, 1],
+  6: [6, 2],
+  7: [7, 1],
+  8: [8],
+  9: [9],
+}
+
+/**
+ * Personal Year for a DOB ("YYYY-MM-DD") in a given calendar year, matching the
+ * backend's calculation (birth day + birth month + calendar year, reduced).
+ */
+export function getPersonalYearForYear(dob: string, calendarYear: number): number {
+  const [, month, day] = dob.split('-')
+  const total = Number(day) + Number(month) + calendarYear
+  if (!Number.isFinite(total)) return 1
+  return reduceToSingleDigit(total)
+}
+
+/** Personal Month = Personal Year + calendar month (1-12), reduced. */
+export function getPersonalMonth(personalYear: number, calendarMonth: number): number {
+  return reduceToSingleDigit(personalYear + calendarMonth)
+}
