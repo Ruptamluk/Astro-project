@@ -40,6 +40,7 @@ import {
   Coins,
   Unlock,
   Download,
+  PhoneCall,
 } from 'lucide-react'
 import ReportStudio from '@/components/report/ReportStudio'
 
@@ -666,12 +667,37 @@ const letterToNumber: Record<string, number> = {
   f: 8, p: 8,
 }
 
-function calculateNameNumber(name: string): number {
-  const total = name
+function sumNameLetters(text: string): number {
+  return text
     .toLowerCase()
     .split('')
     .reduce((sum, char) => sum + (letterToNumber[char] ?? 0), 0)
-  return reduceToSingleDigit(total)
+}
+
+function calculateNameNumber(name: string): number {
+  return reduceToSingleDigit(sumNameLetters(name))
+}
+
+interface NameNumberBreakdown {
+  firstSum: number
+  lastSum: number
+  hasLastName: boolean
+  total: number
+  nameNumber: number
+}
+
+function getNameNumberBreakdown(name: string): NameNumberBreakdown {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  const firstSum = sumNameLetters(parts[0] ?? '')
+  const lastSum = sumNameLetters(parts.slice(1).join(''))
+  const total = firstSum + lastSum
+  return {
+    firstSum,
+    lastSum,
+    hasLastName: parts.length > 1,
+    total,
+    nameNumber: reduceToSingleDigit(total),
+  }
 }
 
 function getStrengthNumber(dob: string, driverNumber: number): number {
@@ -1098,79 +1124,124 @@ export default function PredictionPage() {
     <>
       <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.18),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.12),_transparent_24%),radial-gradient(circle_at_bottom_right,_rgba(236,72,153,0.10),_transparent_22%),linear-gradient(to_bottom_right,_#fcf7ff,_#f5f3ff,_#eef2ff)] p-4 md:p-8">
         <div className="relative z-10 max-w-5xl mx-auto">
-          <div className="text-center mb-10 md:mb-14">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/60 backdrop-blur-sm border border-violet-200/60 shadow-lg flex items-center justify-center">
-                <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-violet-500" fill="currentColor" />
+          <div className="text-center mb-6 md:mb-8">
+            <div className="flex justify-center mb-3">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/60 backdrop-blur-sm border border-violet-200/60 shadow-lg flex items-center justify-center">
+                <Sparkles className="w-7 h-7 md:w-8 md:h-8 text-violet-500" fill="currentColor" />
               </div>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-indigo-700 bg-clip-text text-transparent mb-3">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-indigo-700 bg-clip-text text-transparent mb-2">
               Your Numerology Insights
             </h1>
-            {prediction.name && (
-              <p className="text-slate-600 text-sm md:text-base">
-                Name: <span className="font-semibold text-slate-800">{prediction.name}</span>
-              </p>
-            )}
-            {prediction.phone && (
-              <p className="text-slate-600 text-sm md:text-base">
-                Phone: <span className="font-semibold text-slate-800">{prediction.phone}</span>
-              </p>
-            )}
-            <p className="text-slate-600 text-sm md:text-base">
-              Date of Birth: <span className="font-semibold text-slate-800">{prediction.dob}</span>
-            </p>
-            {prediction.name && (() => {
-              const nameNumber = calculateNameNumber(prediction.name!)
-              const isCompatible = [1, 3, 5, 6].includes(nameNumber)
-              return (
-                <div className={`mt-3 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full text-base md:text-lg font-bold border-2 shadow-sm ${
-                  isCompatible
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                    : 'bg-rose-50 text-rose-800 border-rose-300'
-                }`}>
-                  {isCompatible
-                    ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 shrink-0" strokeWidth={2.5} />
-                    : <XCircle className="w-5 h-5 md:w-6 md:h-6 shrink-0" strokeWidth={2.5} />}
-                  {isCompatible
-                    ? 'Your name is compatible with dob'
-                    : 'Your name is not compatible with dob'}
-                </div>
-              )
-            })()}
-            {prediction.phone && (() => {
-              const phoneTotal = prediction.phone!
-                .split('')
-                .reduce((sum, ch) => sum + (isNaN(Number(ch)) ? 0 : Number(ch)), 0)
-              const phoneNumber = reduceToSingleDigit(phoneTotal)
-              const isCompatible = [1, 3, 5, 6].includes(phoneNumber)
-              return (
-                <div className={`mt-2 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full text-base md:text-lg font-bold border-2 shadow-sm ${
-                  isCompatible
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                    : 'bg-rose-50 text-rose-800 border-rose-300'
-                }`}>
-                  {isCompatible
-                    ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 shrink-0" strokeWidth={2.5} />
-                    : <XCircle className="w-5 h-5 md:w-6 md:h-6 shrink-0" strokeWidth={2.5} />}
-                  {isCompatible
-                    ? 'Your phone number is compatible with dob'
-                    : 'Your phone number is not compatible with dob'}
-                </div>
-              )
-            })()}
-            {hasPurchasedKnowMore && !isFreeUser && (
-              <div className="mt-4">
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-slate-600 text-sm md:text-base">
+              {prediction.name && (
+                <span>
+                  Name: <span className="font-semibold text-slate-800">{prediction.name}</span>
+                </span>
+              )}
+              {prediction.phone && (
+                <>
+                  <span className="text-violet-300">•</span>
+                  <span>
+                    Phone: <span className="font-semibold text-slate-800">{prediction.phone}</span>
+                  </span>
+                </>
+              )}
+              <span className="text-violet-300">•</span>
+              <span>
+                DOB: <span className="font-semibold text-slate-800">{prediction.dob}</span>
+              </span>
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-2 items-stretch">
+              <div className="flex flex-col gap-3">
+              {prediction.name && (() => {
+                const { firstSum, lastSum, hasLastName, total, nameNumber } = getNameNumberBreakdown(prediction.name!)
+                const isCompatible = [1, 3, 5, 6].includes(nameNumber)
+                const reason = hasLastName
+                  ? `Your first name sum is ${firstSum} and your last name sum is ${lastSum}, and the total is ${total} (which reduces to ${nameNumber})`
+                  : `Your name sum is ${total} (which reduces to ${nameNumber})`
+                return (
+                  <div className={`flex-1 flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-sm text-left ${
+                    isCompatible
+                      ? 'bg-emerald-50/90 border-emerald-200'
+                      : 'bg-rose-50/90 border-rose-200'
+                  }`}>
+                    {isCompatible
+                      ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" strokeWidth={2.5} />
+                      : <XCircle className="w-4 h-4 shrink-0 text-rose-600" strokeWidth={2.5} />}
+                    <span className={`text-sm font-semibold leading-snug ${
+                      isCompatible ? 'text-emerald-900' : 'text-rose-900'
+                    }`}>
+                      {reason}, so your name is {isCompatible ? '' : 'not '}compatible with dob
+                    </span>
+                  </div>
+                )
+              })()}
+              {prediction.phone && (() => {
+                const phoneTotal = prediction.phone!
+                  .split('')
+                  .reduce((sum, ch) => sum + (isNaN(Number(ch)) ? 0 : Number(ch)), 0)
+                const phoneNumber = reduceToSingleDigit(phoneTotal)
+                const isCompatible = [1, 3, 5, 6].includes(phoneNumber)
+                return (
+                  <div className={`flex-1 flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-sm text-left ${
+                    isCompatible
+                      ? 'bg-emerald-50/90 border-emerald-200'
+                      : 'bg-rose-50/90 border-rose-200'
+                  }`}>
+                    {isCompatible
+                      ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" strokeWidth={2.5} />
+                      : <XCircle className="w-4 h-4 shrink-0 text-rose-600" strokeWidth={2.5} />}
+                    <span className={`text-sm font-semibold leading-snug ${
+                      isCompatible ? 'text-emerald-900' : 'text-rose-900'
+                    }`}>
+                      Sum of the digits of your phone number is {phoneTotal} (which reduces to {phoneNumber}), so your phone number is {isCompatible ? '' : 'not '}compatible with dob
+                    </span>
+                  </div>
+                )
+              })()}
+              {hasPurchasedKnowMore && !isFreeUser && (
                 <button
                   type="button"
                   onClick={openArchive}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-violet-300 bg-white/80 text-violet-700 hover:bg-violet-50 transition-colors shadow-sm"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-violet-300 bg-white/80 text-violet-700 hover:bg-violet-50 transition-colors shadow-sm"
                 >
                   <Download className="w-4 h-4 shrink-0" />
                   Report archive
                 </button>
+              )}
               </div>
-            )}
+
+              <div className="rounded-xl p-px bg-gradient-to-br from-violet-400 via-fuchsia-400 to-indigo-400 shadow-md">
+                <div className="h-full flex flex-col rounded-[11px] bg-gradient-to-br from-white via-violet-50/80 to-fuchsia-50/60 px-4 py-3 md:px-5 md:py-4 text-left">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <PhoneCall className="w-4 h-4 text-violet-600 shrink-0" />
+                    <h3 className="text-[0.7rem] font-bold uppercase tracking-[0.2em] text-violet-700">
+                      Personal Consultation
+                    </h3>
+                  </div>
+                  <p className="text-sm font-bold italic text-slate-800 leading-snug">
+                    If you would like a personal consultation for{' '}
+                    <span className="text-fuchsia-700">Name Consultation</span>,{' '}
+                    <span className="text-fuchsia-700">Mobile Consultation</span>,{' '}
+                    <span className="text-fuchsia-700">Astrology Consultation</span>,{' '}
+                    <span className="text-fuchsia-700">Palmistry Reading</span> and{' '}
+                    <span className="text-fuchsia-700">Relationship Reading</span>
+                    {' '}— or if you want to learn <span className="text-indigo-600">Numerology</span>,{' '}
+                    <span className="text-indigo-600">Astrology</span> and{' '}
+                    <span className="text-indigo-600">Palmistry</span> <br></br>— please contact us
+                    at <span className="whitespace-nowrap text-violet-700">9639251155</span>.
+                  </p>
+                  <a
+                    href="tel:9639251155"
+                    className="mt-3 self-start inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:from-violet-700 hover:to-fuchsia-700 transition-colors"
+                  >
+                    <PhoneCall className="w-4 h-4 shrink-0" />
+                    Call now
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
 
           <Card className="border-violet-200/60 bg-white/70 backdrop-blur-md shadow-2xl rounded-3xl mb-8 overflow-hidden">
@@ -1315,44 +1386,62 @@ export default function PredictionPage() {
               <div className="mt-6">
                 {isFreeUser ? (
                   <div className="flex flex-col items-start gap-1">
-                    <Button
-                      variant="link"
-                      className="px-0 text-violet-600 text-base font-semibold hover:text-fuchsia-600 flex items-center gap-1.5"
-                      onClick={() => setShowUpgradeDialog(true)}
-                    >
-                      <Lock className="w-4 h-4" />
-                      Know more
-                    </Button>
-                    <span className="text-xs text-slate-500 pl-0.5">
+                    <p className="flex items-start gap-1.5 text-sm md:text-base text-slate-700 leading-relaxed">
+                      <Lock className="w-4 h-4 mt-1 shrink-0 text-violet-600" />
+                      <span>
+                        This is the general prediction. If you want a detailed analysis of your DOB,{' '}
+                        <button
+                          type="button"
+                          onClick={() => setShowUpgradeDialog(true)}
+                          className="font-semibold text-violet-600 hover:text-fuchsia-600 underline underline-offset-2"
+                        >
+                          click here
+                        </button>
+                        .
+                      </span>
+                    </p>
+                    <span className="text-xs text-slate-500 pl-6">
                       Register to unlock Know More
                     </span>
                   </div>
                 ) : knowMoreTokens > 0 ? (
                   <div className="flex flex-col items-start gap-1">
-                    <Button
-                      variant="link"
-                      className="px-0 text-violet-700 text-base font-semibold hover:text-fuchsia-600 flex items-center gap-1.5"
-                      onClick={() => router.push('/prediction/know-more?tab=driver')}
-                    >
-                      <Unlock className="w-4 h-4" />
-                      Know more
-                    </Button>
-                    <span className="text-xs text-violet-500 pl-0.5 flex items-center gap-1">
+                    <p className="flex items-start gap-1.5 text-sm md:text-base text-slate-700 leading-relaxed">
+                      <Unlock className="w-4 h-4 mt-1 shrink-0 text-violet-700" />
+                      <span>
+                        This is the general prediction. If you want to detailed analysis of your DOB, please{' '}
+                        <button
+                          type="button"
+                          onClick={() => router.push('/prediction/know-more?tab=driver')}
+                          className="font-semibold text-violet-700 hover:text-fuchsia-600 underline underline-offset-2"
+                        >
+                         click here
+                        </button>
+                        .
+                      </span>
+                    </p>
+                    <span className="text-xs text-violet-500 pl-6 flex items-center gap-1">
                       <Coins className="w-3 h-3" />
                       {knowMoreTokens} token{knowMoreTokens !== 1 ? 's' : ''} remaining
                     </span>
                   </div>
                 ) : (
                   <div className="flex flex-col items-start gap-1">
-                    <Button
-                      variant="link"
-                      className="px-0 text-violet-600 text-base font-semibold hover:text-fuchsia-600 flex items-center gap-1.5"
-                      onClick={() => setShowTokenDialog(true)}
-                    >
-                      <Lock className="w-4 h-4" />
-                      Know more
-                    </Button>
-                    <span className="text-xs text-slate-500 pl-0.5">Buy tokens to unlock</span>
+                    <p className="flex items-start gap-1.5 text-sm md:text-base text-slate-700 leading-relaxed">
+                      <Lock className="w-4 h-4 mt-1 shrink-0 text-violet-600" />
+                      <span>
+                        This is the general prediction. If you want a detailed analysis of your DOB,{' '}
+                        <button
+                          type="button"
+                          onClick={() => setShowTokenDialog(true)}
+                          className="font-semibold text-violet-600 hover:text-fuchsia-600 underline underline-offset-2"
+                        >
+                          click here
+                        </button>
+                        .
+                      </span>
+                    </p>
+                    <span className="text-xs text-slate-500 pl-6">Buy tokens to unlock</span>
                   </div>
                 )}
               </div>
