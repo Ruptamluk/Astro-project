@@ -14,7 +14,7 @@ import { format } from 'date-fns'
 import { CalendarIcon, Mail, Phone, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
-const CONTACT_NUMBERS = ['9639251155', '8016624561']
+const CONTACT_NUMBERS = ['9639251155']
 
 function ContactBlock() {
   return (
