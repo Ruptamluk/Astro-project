@@ -1173,6 +1173,19 @@ export default function PredictionPage() {
                       isCompatible ? 'text-emerald-900' : 'text-rose-900'
                     }`}>
                       {reason}, so your name is {isCompatible ? '' : 'not '}compatible with dob
+                      {hasPurchasedKnowMore && !isFreeUser && (
+                        <>
+                          {' '}
+                          <a
+                            href="https://name-numerology-frontend-njbd.vercel.app/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-violet-700 underline underline-offset-2 hover:text-fuchsia-700"
+                          >
+                            for name analysis and correction click here
+                          </a>
+                        </>
+                      )}
                     </span>
                   </div>
                 )
