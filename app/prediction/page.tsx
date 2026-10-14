@@ -727,6 +727,7 @@ export default function PredictionPage() {
   const [isFreeUser, setIsFreeUser] = useState(false)
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [showTokenDialog, setShowTokenDialog] = useState(false)
+  const [showNameAnalysisLock, setShowNameAnalysisLock] = useState(false)
   const [selectedPack, setSelectedPack] = useState<'1' | '5' | '32' | '100' | '500' | '1000'>('5')
   const [isPayingToken, setIsPayingToken] = useState(false)
 
@@ -1173,19 +1174,21 @@ export default function PredictionPage() {
                       isCompatible ? 'text-emerald-900' : 'text-rose-900'
                     }`}>
                       {reason}, so your name is {isCompatible ? '' : 'not '}compatible with dob
-                      {hasPurchasedKnowMore && !isFreeUser && (
-                        <>
-                          {' '}
-                          <a
-                            href="https://name-numerology-frontend-njbd.vercel.app/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-violet-700 underline underline-offset-2 hover:text-fuchsia-700"
-                          >
-                            for name analysis and correction click here
-                          </a>
-                        </>
-                      )}
+                      {' '}
+                      <a
+                        href="https://name-numerology-frontend-njbd.vercel.app/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          if (!hasPurchasedKnowMore || isFreeUser) {
+                            e.preventDefault()
+                            setShowNameAnalysisLock(true)
+                          }
+                        }}
+                        className="text-violet-700 underline underline-offset-2 hover:text-fuchsia-700"
+                      >
+                        for name analysis and correction click here
+                      </a>
                     </span>
                   </div>
                 )
@@ -1909,6 +1912,50 @@ export default function PredictionPage() {
             <Button
               variant="ghost"
               onClick={() => setShowUpgradeDialog(false)}
+              className="w-full text-slate-500 hover:text-slate-800"
+            >
+              Not now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Name analysis link clicked without a token purchase */}
+      <Dialog open={showNameAnalysisLock} onOpenChange={setShowNameAnalysisLock}>
+        <DialogContent className="max-w-md rounded-3xl border-violet-100 bg-white p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl font-bold flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Token required
+              </DialogTitle>
+              <DialogDescription className="text-violet-100 text-sm mt-1">
+                Name analysis &amp; correction is available only to users who have purchased Know More tokens.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="p-5 space-y-4">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 leading-snug">
+              {isFreeUser
+                ? 'You are using free access. Register and buy a token pack to unlock name analysis and correction.'
+                : 'You have not purchased any tokens yet. Buy a token pack to unlock name analysis and correction.'}
+            </div>
+
+            <Button
+              onClick={() => {
+                setShowNameAnalysisLock(false)
+                if (isFreeUser) setShowUpgradeDialog(true)
+                else setShowTokenDialog(true)
+              }}
+              className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40"
+            >
+              <Coins className="w-4 h-4 mr-2" />
+              {isFreeUser ? 'Register now' : 'Buy tokens'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setShowNameAnalysisLock(false)}
               className="w-full text-slate-500 hover:text-slate-800"
             >
               Not now
