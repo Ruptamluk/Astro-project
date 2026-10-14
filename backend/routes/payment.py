@@ -269,6 +269,13 @@ async def consume_name_numerology_token(user_id: str, request: Request):
     if is_free_user(user):
         raise HTTPException(status_code=403, detail=FREE_USER_BLOCKED_DETAIL)
 
+    # Unlimited users always get through without spending a token.
+    if user.get("name_numerology_unlimited") is True:
+        return {
+            "tokens_remaining": user.get("name_numerology_tokens", 0),
+            "unlimited": True,
+        }
+
     # The > 0 filter makes the decrement atomic and prevents negative balances.
     result = await db.users.find_one_and_update(
         {"_id": oid, "name_numerology_tokens": {"$gt": 0}},

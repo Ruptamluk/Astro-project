@@ -45,6 +45,8 @@ class User(BaseModel):
     report_logo_access: bool = False
     # Separate balance for the external name-numerology link; 1 token per click.
     name_numerology_tokens: int = 0
+    # Unlimited access to the name-numerology link; no token is spent.
+    name_numerology_unlimited: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:

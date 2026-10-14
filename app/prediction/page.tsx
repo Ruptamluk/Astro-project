@@ -731,6 +731,7 @@ export default function PredictionPage() {
   const [showTokenDialog, setShowTokenDialog] = useState(false)
   const [showNameAnalysisLock, setShowNameAnalysisLock] = useState(false)
   const [nameNumerologyTokens, setNameNumerologyTokens] = useState(0)
+  const [nameNumerologyUnlimited, setNameNumerologyUnlimited] = useState(false)
   const [selectedPack, setSelectedPack] = useState<'1' | '5' | '32' | '100' | '500' | '1000'>('5')
   const [isPayingToken, setIsPayingToken] = useState(false)
 
@@ -759,6 +760,7 @@ export default function PredictionPage() {
               setKnowMoreTokens(userData.know_more_tokens ?? 0)
               setHasPurchasedKnowMore(userData.has_purchased_know_more === true)
               setNameNumerologyTokens(userData.name_numerology_tokens ?? 0)
+              setNameNumerologyUnlimited(userData.name_numerology_unlimited === true)
               setReportLogoAccess(userData.report_logo_access === true)
             }
           }
@@ -880,7 +882,7 @@ export default function PredictionPage() {
   // Name analysis link: separate Name Numerology token, 1 spent per click.
   const openNameAnalysis = async () => {
     const userId = localStorage.getItem('userId')
-    if (isFreeUser || nameNumerologyTokens <= 0 || !userId) {
+    if (isFreeUser || (!nameNumerologyUnlimited && nameNumerologyTokens <= 0) || !userId) {
       setShowNameAnalysisLock(true)
       return
     }
@@ -903,7 +905,7 @@ export default function PredictionPage() {
         } else {
           window.location.href = NAME_NUMEROLOGY_URL
         }
-        toast.success(`1 Name Numerology token used, ${left} left`)
+        if (!data.unlimited) toast.success(`1 Name Numerology token used, ${left} left`)
       } else {
         tab?.close()
         if (res.status === 402) setNameNumerologyTokens(0)

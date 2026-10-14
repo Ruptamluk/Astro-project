@@ -331,6 +331,7 @@ async def get_user(user_id: str, db=Depends(get_db)):
             "has_purchased_know_more": user.get("has_purchased_know_more", False),
             "report_logo_access": user.get("report_logo_access", False),
             "name_numerology_tokens": user.get("name_numerology_tokens", 0),
+            "name_numerology_unlimited": user.get("name_numerology_unlimited", False),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
