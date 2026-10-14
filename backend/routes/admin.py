@@ -224,6 +224,55 @@ async def grant_tokens(body: GrantTokensRequest, admin=Depends(require_admin), d
     }
 
 
+@router.post("/grant-name-numerology-tokens")
+async def grant_name_numerology_tokens(body: GrantTokensRequest, admin=Depends(require_admin), db=Depends(get_db)):
+    """Set/add the Name Numerology balance only — no Know More side effects."""
+    if body.mode not in ("set", "add"):
+        raise HTTPException(status_code=400, detail="mode must be 'set' or 'add'")
+    if body.amount < 0:
+        raise HTTPException(status_code=400, detail="amount must be >= 0")
+
+    user = await db.users.find_one(email_query(body.email))
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found for that email")
+    if is_free_user(user):
+        raise HTTPException(
+            status_code=400,
+            detail="That email belongs to a free user, who cannot spend tokens. "
+                   "Ask them to register first.",
+        )
+
+    now = datetime.utcnow()
+    prev = user.get("name_numerology_tokens", 0)
+    if body.mode == "set":
+        update = {"$set": {"name_numerology_tokens": body.amount}}
+    else:  # add
+        update = {"$inc": {"name_numerology_tokens": body.amount}}
+
+    await db.users.update_one({"_id": user["_id"]}, update)
+    refreshed = await db.users.find_one({"_id": user["_id"]})
+    new_balance = refreshed.get("name_numerology_tokens", 0)
+
+    await db.admin_audit.insert_one({
+        "type": "grant_name_numerology_tokens",
+        "admin_email": admin["email"],
+        "email": user.get("email"),
+        "user_id": str(user["_id"]),
+        "mode": body.mode,
+        "amount": body.amount,
+        "previous": prev,
+        "new_balance": new_balance,
+        "ts": now,
+    })
+
+    return {
+        "success": True,
+        "email": user.get("email"),
+        "previous": prev,
+        "new_balance": new_balance,
+    }
+
+
 @router.post("/grant-report-logo")
 async def grant_report_logo(body: GrantReportLogoRequest, admin=Depends(require_admin), db=Depends(get_db)):
     user = await db.users.find_one(email_query(body.email))
@@ -312,6 +361,7 @@ async def list_users(
             "know_more_tokens": u.get("know_more_tokens", 0),
             "know_more_view_expires_at": iso_utc(u.get("know_more_view_expires_at")),
             "report_logo_access": bool(u.get("report_logo_access", False)),
+            "name_numerology_tokens": u.get("name_numerology_tokens", 0),
         })
 
     return {"total": total, "page": page, "limit": limit, "users": rows}
@@ -365,6 +415,8 @@ async def user_activity(user_id: str, admin=Depends(require_admin), db=Depends(g
     async for a in audit_cursor:
         if a.get("type") == "grant_tokens":
             detail = f"Admin {a.get('admin_email')} {a.get('mode')} tokens -> {a.get('new_balance')}"
+        elif a.get("type") == "grant_name_numerology_tokens":
+            detail = f"Admin {a.get('admin_email')} {a.get('mode')} name numerology tokens -> {a.get('new_balance')}"
         else:
             detail = f"Admin {a.get('admin_email')} {'granted' if a.get('grant') else 'revoked'} report-logo"
         events.append({"type": f"admin_{a.get('type')}", "ts": iso_utc(a.get("ts")), "detail": detail})
@@ -379,6 +431,7 @@ async def user_activity(user_id: str, admin=Depends(require_admin), db=Depends(g
             "user_type": user.get("user_type", REGISTERED_USER_TYPE),
             "know_more_tokens": user.get("know_more_tokens", 0),
             "report_logo_access": bool(user.get("report_logo_access", False)),
+            "name_numerology_tokens": user.get("name_numerology_tokens", 0),
         },
         "events": events,
     }

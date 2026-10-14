@@ -73,6 +73,7 @@ export interface AdminUser {
   know_more_tokens: number
   know_more_view_expires_at: string | null
   report_logo_access: boolean
+  name_numerology_tokens: number
 }
 
 export interface ActivityEvent {
@@ -186,6 +187,11 @@ export const adminApi = {
   grantTokens: (email: string, amount: number, mode: 'set' | 'add') =>
     request<{ email: string; previous: number; new_balance: number }>(
       '/api/admin/grant-tokens',
+      { method: 'POST', body: JSON.stringify({ email, amount, mode }) },
+    ),
+  grantNameNumerologyTokens: (email: string, amount: number, mode: 'set' | 'add') =>
+    request<{ email: string; previous: number; new_balance: number }>(
+      '/api/admin/grant-name-numerology-tokens',
       { method: 'POST', body: JSON.stringify({ email, amount, mode }) },
     ),
   grantReportLogo: (email: string, grant: boolean) =>

@@ -41,6 +41,12 @@ export default function AdminPage() {
   const [mode, setMode] = useState<'set' | 'add'>('set')
   const [granting, setGranting] = useState(false)
 
+  // name numerology tokens
+  const [nameEmail, setNameEmail] = useState('')
+  const [nameAmount, setNameAmount] = useState('10')
+  const [nameMode, setNameMode] = useState<'set' | 'add'>('add')
+  const [nameGranting, setNameGranting] = useState(false)
+
   // report logo
   const [logoEmail, setLogoEmail] = useState('')
   const [logoBusy, setLogoBusy] = useState(false)
@@ -116,6 +122,24 @@ export default function AdminPage() {
       toast.error(err instanceof Error ? err.message : 'Grant failed')
     } finally {
       setGranting(false)
+    }
+  }
+
+  const handleNameGrant = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const n = parseInt(nameAmount, 10)
+    if (!nameEmail) { toast.error('Enter an email'); return }
+    if (isNaN(n) || n < 0) { toast.error('Enter a valid amount'); return }
+    setNameGranting(true)
+    try {
+      const res = await adminApi.grantNameNumerologyTokens(nameEmail.trim(), n, nameMode)
+      toast.success(`${res.email}: ${res.previous} → ${res.new_balance} name numerology tokens`)
+      setNameEmail('')
+      loadUsers()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Grant failed')
+    } finally {
+      setNameGranting(false)
     }
   }
 
@@ -234,6 +258,41 @@ export default function AdminPage() {
 
               <Card className="border-black/5 bg-white/60 p-6 backdrop-blur-2xl rounded-3xl">
                 <h2 className="mb-4 flex items-center gap-2 font-semibold">
+                  <Coins className="h-4 w-4 text-primary" /> Name Numerology tokens
+                </h2>
+                <form onSubmit={handleNameGrant} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="n-email">User email</Label>
+                    <Input id="n-email" type="email" placeholder="user@example.com"
+                      value={nameEmail} onChange={(e) => setNameEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="n-amount">Amount</Label>
+                    <Input id="n-amount" type="number" min={0}
+                      value={nameAmount} onChange={(e) => setNameAmount(e.target.value)} />
+                  </div>
+                  <RadioGroup value={nameMode} onValueChange={(v) => setNameMode(v as 'set' | 'add')}
+                    className="grid-cols-2">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-sm">
+                      <RadioGroupItem value="set" id="n-set" />
+                      <span><strong>Set</strong> balance to amount</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-sm">
+                      <RadioGroupItem value="add" id="n-add" />
+                      <span><strong>Add</strong> to balance</span>
+                    </label>
+                  </RadioGroup>
+                  <Button type="submit" disabled={nameGranting} className="w-full">
+                    {nameGranting ? 'Granting…' : 'Grant name numerology tokens'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Separate from Know More tokens. 1 token = 1 click on the name analysis link.
+                  </p>
+                </form>
+              </Card>
+
+              <Card className="border-black/5 bg-white/60 p-6 backdrop-blur-2xl rounded-3xl">
+                <h2 className="mb-4 flex items-center gap-2 font-semibold">
                   <FileBadge className="h-4 w-4 text-primary" /> Report-logo access
                 </h2>
                 <div className="space-y-4">
@@ -284,15 +343,16 @@ export default function AdminPage() {
                       <TableHead>Joined</TableHead>
                       <TableHead>Last login</TableHead>
                       <TableHead className="text-right">Tokens</TableHead>
+                      <TableHead className="text-right">Name tokens</TableHead>
                       <TableHead>Last view</TableHead>
                       <TableHead>Logo</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loadingUsers ? (
-                      <TableRow><TableCell colSpan={8} className="py-8 text-center text-muted-foreground">Loading…</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={9} className="py-8 text-center text-muted-foreground">Loading…</TableCell></TableRow>
                     ) : users.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="py-8 text-center text-muted-foreground">No users</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={9} className="py-8 text-center text-muted-foreground">No users</TableCell></TableRow>
                     ) : users.map((u) => (
                       <TableRow key={u.id} className="cursor-pointer" onClick={() => openActivity(u)}>
                         <TableCell className="font-medium">{u.email || '—'}</TableCell>
@@ -305,6 +365,7 @@ export default function AdminPage() {
                         <TableCell>{fmt(u.created_at)}</TableCell>
                         <TableCell>{fmt(u.last_login_at)}</TableCell>
                         <TableCell className="text-right">{u.know_more_tokens}</TableCell>
+                        <TableCell className="text-right">{u.name_numerology_tokens ?? 0}</TableCell>
                         <TableCell>{fmt(u.know_more_view_expires_at)}</TableCell>
                         <TableCell>
                           {u.report_logo_access

@@ -193,6 +193,7 @@ async def verify_otp(request_data: VerifyOTPRequest, db=Depends(get_db)):
             "dob": None,
             "zodiac_sign": None,
             "user_type": REGISTERED_USER_TYPE,
+            "name_numerology_tokens": 0,
             "created_at": datetime.utcnow()
         }
         result = await users_collection.insert_one(user_data)
@@ -280,6 +281,7 @@ async def free_access(request_data: FreeAccessRequest, db=Depends(get_db)):
             "dob": request_data.dob,
             "zodiac_sign": None,
             "user_type": FREE_USER_TYPE,
+            "name_numerology_tokens": 0,
             "created_at": datetime.utcnow(),
         }
         result = await users_collection.insert_one(user_data)
@@ -328,6 +330,7 @@ async def get_user(user_id: str, db=Depends(get_db)):
             "know_more_view_expires_at": _iso_utc(user.get("know_more_view_expires_at")),
             "has_purchased_know_more": user.get("has_purchased_know_more", False),
             "report_logo_access": user.get("report_logo_access", False),
+            "name_numerology_tokens": user.get("name_numerology_tokens", 0),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

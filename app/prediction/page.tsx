@@ -77,6 +77,8 @@ type InsightKey = 'strength' | 'gochor' | 'mahadasha' | 'antardasha' | 'dobChart
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
+const NAME_NUMEROLOGY_URL = 'https://name-numerology-frontend-njbd.vercel.app/'
+
 interface ArchivedReport {
   id: string
   dob: string
@@ -728,6 +730,7 @@ export default function PredictionPage() {
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [showTokenDialog, setShowTokenDialog] = useState(false)
   const [showNameAnalysisLock, setShowNameAnalysisLock] = useState(false)
+  const [nameNumerologyTokens, setNameNumerologyTokens] = useState(0)
   const [selectedPack, setSelectedPack] = useState<'1' | '5' | '32' | '100' | '500' | '1000'>('5')
   const [isPayingToken, setIsPayingToken] = useState(false)
 
@@ -755,6 +758,7 @@ export default function PredictionPage() {
               setKnowMoreAccess(userData.know_more_access === true)
               setKnowMoreTokens(userData.know_more_tokens ?? 0)
               setHasPurchasedKnowMore(userData.has_purchased_know_more === true)
+              setNameNumerologyTokens(userData.name_numerology_tokens ?? 0)
               setReportLogoAccess(userData.report_logo_access === true)
             }
           }
@@ -870,6 +874,44 @@ export default function PredictionPage() {
       console.error('Failed to load report archive:', err)
     } finally {
       setIsLoadingArchive(false)
+    }
+  }
+
+  // Name analysis link: separate Name Numerology token, 1 spent per click.
+  const openNameAnalysis = async () => {
+    const userId = localStorage.getItem('userId')
+    if (isFreeUser || nameNumerologyTokens <= 0 || !userId) {
+      setShowNameAnalysisLock(true)
+      return
+    }
+
+    // Open the tab synchronously (inside the click) so popup blockers allow it,
+    // then point it at the site only after the token is spent.
+    const tab = window.open('', '_blank')
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/payment/consume-name-numerology-token/${userId}`,
+        { method: 'POST' }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        const left = data.tokens_remaining ?? 0
+        setNameNumerologyTokens(left)
+        if (tab) {
+          tab.opener = null
+          tab.location.href = NAME_NUMEROLOGY_URL
+        } else {
+          window.location.href = NAME_NUMEROLOGY_URL
+        }
+        toast.success(`1 Name Numerology token used, ${left} left`)
+      } else {
+        tab?.close()
+        if (res.status === 402) setNameNumerologyTokens(0)
+        setShowNameAnalysisLock(true)
+      }
+    } catch {
+      tab?.close()
+      toast.error('Could not open name analysis. Please try again.')
     }
   }
 
@@ -1176,14 +1218,12 @@ export default function PredictionPage() {
                       {reason}, so your name is {isCompatible ? '' : 'not '}compatible with dob
                       {' '}
                       <a
-                        href="https://name-numerology-frontend-njbd.vercel.app/"
+                        href={NAME_NUMEROLOGY_URL}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => {
-                          if (!hasPurchasedKnowMore || isFreeUser) {
-                            e.preventDefault()
-                            setShowNameAnalysisLock(true)
-                          }
+                          e.preventDefault()
+                          openNameAnalysis()
                         }}
                         className="text-violet-700 underline underline-offset-2 hover:text-fuchsia-700"
                       >
@@ -1927,32 +1967,40 @@ export default function PredictionPage() {
             <DialogHeader>
               <DialogTitle className="text-white text-xl font-bold flex items-center gap-2">
                 <Lock className="w-5 h-5" />
-                Token required
+                Name Numerology token required
               </DialogTitle>
               <DialogDescription className="text-violet-100 text-sm mt-1">
-                Name analysis &amp; correction is available only to users who have purchased Know More tokens.
+                Name analysis &amp; correction needs a Name Numerology token. This is separate from Know More tokens.
               </DialogDescription>
             </DialogHeader>
           </div>
 
           <div className="p-5 space-y-4">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 leading-snug">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900 leading-snug">
               {isFreeUser
-                ? 'You are using free access. Register and buy a token pack to unlock name analysis and correction.'
-                : 'You have not purchased any tokens yet. Buy a token pack to unlock name analysis and correction.'}
+                ? <>You are using free access. Please register first, then contact the admin at <strong>9639251155</strong> to buy Name Numerology tokens.</>
+                : <>You don&apos;t have any Name Numerology tokens. To buy tokens, please contact the admin at <strong>9639251155</strong>.</>}
             </div>
 
-            <Button
-              onClick={() => {
-                setShowNameAnalysisLock(false)
-                if (isFreeUser) setShowUpgradeDialog(true)
-                else setShowTokenDialog(true)
-              }}
-              className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40"
+            <a
+              href="tel:9639251155"
+              className="w-full h-12 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40"
             >
-              <Coins className="w-4 h-4 mr-2" />
-              {isFreeUser ? 'Register now' : 'Buy tokens'}
-            </Button>
+              <PhoneCall className="w-4 h-4 mr-2" />
+              Call 9639251155
+            </a>
+            {isFreeUser && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowNameAnalysisLock(false)
+                  setShowUpgradeDialog(true)
+                }}
+                className="w-full h-11 rounded-2xl border-violet-300 text-violet-700 hover:bg-violet-50 font-semibold"
+              >
+                Register now
+              </Button>
+            )}
             <Button
               variant="ghost"
               onClick={() => setShowNameAnalysisLock(false)}

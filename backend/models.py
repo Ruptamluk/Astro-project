@@ -43,6 +43,8 @@ class User(BaseModel):
     # which tracks the current balance.
     has_purchased_know_more: bool = False
     report_logo_access: bool = False
+    # Separate balance for the external name-numerology link; 1 token per click.
+    name_numerology_tokens: int = 0
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:

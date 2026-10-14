@@ -250,6 +250,37 @@ async def consume_token(user_id: str, request: Request):
     }
 
 
+@router.post("/consume-name-numerology-token/{user_id}")
+async def consume_name_numerology_token(user_id: str, request: Request):
+    """Spend one Name Numerology token (separate from Know More tokens).
+
+    No viewing window: every click on the name-analysis link costs one token.
+    """
+    db = request.app.db
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user id")
+
+    user = await db.users.find_one({"_id": oid})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if is_free_user(user):
+        raise HTTPException(status_code=403, detail=FREE_USER_BLOCKED_DETAIL)
+
+    # The > 0 filter makes the decrement atomic and prevents negative balances.
+    result = await db.users.find_one_and_update(
+        {"_id": oid, "name_numerology_tokens": {"$gt": 0}},
+        {"$inc": {"name_numerology_tokens": -1}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not result:
+        raise HTTPException(status_code=402, detail="No name numerology tokens available")
+
+    return {"tokens_remaining": result.get("name_numerology_tokens", 0)}
+
+
 @router.post("/webhook")
 async def razorpay_webhook(request: Request):
     """Server-to-server confirmation from Razorpay.
