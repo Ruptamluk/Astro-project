@@ -50,6 +50,7 @@ function statusBadge(s: string | null) {
 }
 
 const TYPE_LABELS: Record<string, string> = {
+  combo_token: 'Vedic + Name Numerology',
   know_more_token: 'Know More tokens',
   report_logo: 'Report logo',
   unknown: 'Token',

@@ -17,13 +17,11 @@ router = APIRouter()
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
+# Each token in a pack is credited to both the Know More (Vedic) and the Name
+# Numerology balances.
 TOKEN_PACKS = {
-    "1":    (10900,      1),   # ₹109
-    "5":    (27100,      5),   # ₹271
-    "32":   (81100,     32),   # ₹811
+    "1":    (45100,      1),   # ₹451
     "100":  (180100,   100),   # ₹1801
-    "500":  (630100,   500),   # ₹6301
-    "1000": (810100,  1000),   # ₹8101
 }
 
 # How long a single token unlocks the Know More page for (one visit).
@@ -61,7 +59,16 @@ async def credit_payment(db, payment_id, user_id, payment_type, tokens) -> bool:
     except DuplicateKeyError:
         return False  # already credited by an earlier verify/webhook call
 
-    if payment_type == "know_more_token":
+    if payment_type == "combo_token":
+        granted = max(int(tokens or 0), 1)
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$inc": {"know_more_tokens": granted, "name_numerology_tokens": granted},
+             "$set": {"know_more_access": True, "has_purchased_know_more": True}},
+        )
+    # Kept for orders paid before the combo pack, which verify/webhook may still
+    # deliver; new orders can no longer be created with this type.
+    elif payment_type == "know_more_token":
         await db.users.update_one(
             {"_id": ObjectId(user_id)},
             {"$inc": {"know_more_tokens": max(int(tokens or 0), 1)},
@@ -78,8 +85,8 @@ async def credit_payment(db, payment_id, user_id, payment_type, tokens) -> bool:
 
 class CreateOrderRequest(BaseModel):
     user_id: str
-    payment_type: str  # "know_more_token" | "report_logo"
-    pack: Optional[str] = None  # "1" | "5" | "10" | "20"
+    payment_type: str  # "combo_token" | "report_logo"
+    pack: Optional[str] = None  # key of TOKEN_PACKS
 
 
 class VerifyPaymentRequest(BaseModel):
@@ -107,7 +114,7 @@ async def create_order(body: CreateOrderRequest, request: Request):
 
     client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
-    if body.payment_type == "know_more_token":
+    if body.payment_type == "combo_token":
         if not body.pack or body.pack not in TOKEN_PACKS:
             raise HTTPException(status_code=400, detail="Invalid token pack")
         amount, tokens = TOKEN_PACKS[body.pack]
@@ -179,7 +186,7 @@ async def verify_payment(request: Request, body: VerifyPaymentRequest):
         # client body, but clamp the token count to a known pack so a tampered
         # body can't inflate the grant.
         print(f"[verify] order.fetch failed, falling back to request body: {exc}")
-        if payment_type == "know_more_token":
+        if payment_type in ("combo_token", "know_more_token"):
             valid_counts = {t for _, t in TOKEN_PACKS.values()}
             tokens = tokens if tokens in valid_counts else 1
 
@@ -195,7 +202,13 @@ async def verify_payment(request: Request, body: VerifyPaymentRequest):
 
 
 @router.post("/consume-token/{user_id}")
-async def consume_token(user_id: str, request: Request):
+async def consume_token(user_id: str, request: Request, new_visit: bool = False):
+    """Spend one Know More token per visit.
+
+    `new_visit` is sent when the user enters Know More from the prediction page:
+    it always costs a token. Without it (a refresh inside Know More) an active
+    viewing window is reused for free.
+    """
     db = request.app.db
     user = await db.users.find_one({"_id": ObjectId(user_id)})
 
@@ -215,7 +228,7 @@ async def consume_token(user_id: str, request: Request):
 
     # Still inside an active viewing window: same visit, do not charge again
     # (allows refresh / re-entry without spending another token).
-    if expires_at and expires_at > now:
+    if not new_visit and expires_at and expires_at > now:
         return {
             "tokens_remaining": user.get("know_more_tokens", 0),
             "expires_at": iso_utc(expires_at),

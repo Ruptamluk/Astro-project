@@ -249,12 +249,16 @@ export default function KnowMorePage() {
         if (!consumeStartedRef.current) {
           consumeStartedRef.current = true
 
+          // Set by the prediction page on each entry; absent on a refresh.
+          const newVisit = sessionStorage.getItem('knowMoreNewVisit') === '1'
+          sessionStorage.removeItem('knowMoreNewVisit')
+
           // Spending a token is the authoritative gate. The backend atomically
           // deducts one token (or reuses the active viewing window) and returns
           // when the 15-minute window expires. No token / no window -> 402.
           try {
             const consumeRes = await fetch(
-              `${API_BASE_URL}/api/payment/consume-token/${userId}`,
+              `${API_BASE_URL}/api/payment/consume-token/${userId}${newVisit ? '?new_visit=true' : ''}`,
               { method: 'POST' }
             )
             if (consumeRes.ok) {
@@ -268,9 +272,10 @@ export default function KnowMorePage() {
               return
             } else {
               // 402 (no token) can also happen on a benign race. Only bounce if
-              // the user is genuinely outside an active paid window.
+              // the user is genuinely outside an active paid window. A new visit
+              // must be paid for, so an open window does not let it through.
               let activeWindow = false
-              try {
+              if (!newVisit) try {
                 const checkRes = await fetch(`${API_BASE_URL}/api/auth/user/${userId}`)
                 if (checkRes.ok) {
                   const checkData = await checkRes.json()

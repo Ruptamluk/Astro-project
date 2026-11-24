@@ -732,7 +732,7 @@ export default function PredictionPage() {
   const [showNameAnalysisLock, setShowNameAnalysisLock] = useState(false)
   const [nameNumerologyTokens, setNameNumerologyTokens] = useState(0)
   const [nameNumerologyUnlimited, setNameNumerologyUnlimited] = useState(false)
-  const [selectedPack, setSelectedPack] = useState<'1' | '5' | '32' | '100' | '500' | '1000'>('5')
+  const [selectedPack, setSelectedPack] = useState<'1' | '100'>('1')
   const [isPayingToken, setIsPayingToken] = useState(false)
 
   useEffect(() => {
@@ -847,14 +847,43 @@ export default function PredictionPage() {
     router.push('/')
   }
 
+  // Mirrors TOKEN_PACKS in backend/routes/payment.py. Every token in a pack is
+  // credited as 1 Know More (Vedic) token and 1 Name Numerology token.
   const TOKEN_PACKS = [
-    { id: '1',    tokens: 1,    price: 109,  label: 'Single' },
-    { id: '5',    tokens: 5,    price: 271,  label: 'Starter' },
-    { id: '32',   tokens: 32,   price: 811,  label: 'Basic' },
-    { id: '100',  tokens: 100,  price: 1801, label: 'Standard' },
-    { id: '500',  tokens: 500,  price: 6301, label: 'Value' },
-    { id: '1000', tokens: 1000, price: 8101, label: 'Mega' },
+    { id: '1',   tokens: 1,   price: 451 },
+    { id: '100', tokens: 100, price: 1801 },
   ] as const
+  const selectedTokenPack = TOKEN_PACKS.find(p => p.id === selectedPack) ?? TOKEN_PACKS[0]
+
+  // Shown in both the Know More and the Name Numerology purchase popups.
+  const packPicker = (
+    <div className="grid grid-cols-2 gap-2">
+      {TOKEN_PACKS.map((pack) => (
+        <button
+          key={pack.id}
+          type="button"
+          onClick={() => setSelectedPack(pack.id)}
+          className={`rounded-xl border-2 px-3 py-2 text-left transition-all ${
+            selectedPack === pack.id
+              ? 'border-violet-500 bg-violet-50'
+              : 'border-slate-100 bg-white hover:border-violet-200'
+          }`}
+        >
+          <div className="text-lg font-bold text-slate-800 leading-tight">₹{pack.price}</div>
+          <div className="text-[11px] text-violet-600 font-medium mt-0.5 leading-tight">
+            {pack.tokens} Vedic + {pack.tokens} Name Numerology token{pack.tokens !== 1 ? 's' : ''}
+          </div>
+        </button>
+      ))}
+    </div>
+  )
+
+  // Marks the next Know More load as a new visit, which always spends a token.
+  // Know More removes the mark, so a refresh there reuses the open window.
+  const enterKnowMore = () => {
+    sessionStorage.setItem('knowMoreNewVisit', '1')
+    router.push('/prediction/know-more?tab=driver')
+  }
 
   // The archive lists reports saved at download time, not the current
   // `prediction` — checking a new DOB must not rewrite past reports.
@@ -917,7 +946,9 @@ export default function PredictionPage() {
     }
   }
 
-  const handleTokenPayment = async () => {
+  // Same checkout from both popups. Only the Know More popup redirects: landing
+  // on Know More spends a token, which a name analysis buyer did not ask for.
+  const handleTokenPayment = async (source: 'know_more' | 'name_numerology') => {
     const userId = localStorage.getItem('userId')
     if (!userId) return
 
@@ -932,7 +963,7 @@ export default function PredictionPage() {
       const orderRes = await fetch(`${API_BASE_URL}/api/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, payment_type: 'know_more_token', pack: selectedPack }),
+        body: JSON.stringify({ user_id: userId, payment_type: 'combo_token', pack: selectedTokenPack.id }),
       })
 
       if (!orderRes.ok) {
@@ -948,7 +979,7 @@ export default function PredictionPage() {
         currency: orderData.currency,
         order_id: orderData.order_id,
         name: 'Astrology App',
-        description: `Know More — ${TOKEN_PACKS.find(p => p.id === selectedPack)?.tokens} token(s)`,
+        description: `${selectedTokenPack.tokens} Vedic + ${selectedTokenPack.tokens} Name Numerology token(s)`,
         theme: { color: '#7c3aed' },
         handler: async (response) => {
           try {
@@ -960,15 +991,24 @@ export default function PredictionPage() {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 user_id: userId,
-                payment_type: 'know_more_token',
+                payment_type: 'combo_token',
                 tokens_to_grant: orderData.tokens_to_grant,
               }),
             })
 
             if (verifyRes.ok) {
-              toast.success('Payment successful! Redirecting…')
-              setShowTokenDialog(false)
-              router.push('/prediction/know-more?tab=driver')
+              setKnowMoreTokens((t) => t + orderData.tokens_to_grant)
+              setKnowMoreAccess(true)
+              setHasPurchasedKnowMore(true)
+              setNameNumerologyTokens((t) => t + orderData.tokens_to_grant)
+              if (source === 'name_numerology') {
+                toast.success('Payment successful! Click the name analysis link to continue.')
+                setShowNameAnalysisLock(false)
+              } else {
+                toast.success('Payment successful! Redirecting…')
+                setShowTokenDialog(false)
+                enterKnowMore()
+              }
             } else {
               toast.error('Payment verification failed. Contact support.')
             }
@@ -1470,7 +1510,7 @@ export default function PredictionPage() {
                         This is the general prediction. If you want to detailed analysis of your DOB, please{' '}
                         <button
                           type="button"
-                          onClick={() => router.push('/prediction/know-more?tab=driver')}
+                          onClick={enterKnowMore}
                           className="font-semibold text-violet-700 hover:text-fuchsia-600 underline underline-offset-2"
                         >
                          click here
@@ -1972,7 +2012,7 @@ export default function PredictionPage() {
                 Name Numerology token required
               </DialogTitle>
               <DialogDescription className="text-violet-100 text-sm mt-1">
-                Name analysis &amp; correction needs a Name Numerology token. This is separate from Know More tokens.
+                Name analysis &amp; correction needs a Name Numerology token.
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -1980,18 +2020,13 @@ export default function PredictionPage() {
           <div className="p-5 space-y-4">
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900 leading-snug">
               {isFreeUser
-                ? <>You are using free access. Please register first, then contact the admin at <strong>9639251155</strong> to buy Name Numerology tokens.</>
-                : <>You don&apos;t have any Name Numerology tokens. To buy tokens, please contact the admin at <strong>9639251155</strong>.</>}
+                ? <>You are using free access. Please register first to buy tokens. Each pack gives the same number of Vedic and Name Numerology tokens.</>
+                : <>You don&apos;t have any Name Numerology tokens. Each pack gives the same number of Vedic and Name Numerology tokens.</>}
             </div>
 
-            <a
-              href="tel:9639251155"
-              className="w-full h-12 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40"
-            >
-              <PhoneCall className="w-4 h-4 mr-2" />
-              Call 9639251155
-            </a>
-            {isFreeUser && (
+            {!isFreeUser && packPicker}
+
+            {isFreeUser ? (
               <Button
                 variant="outline"
                 onClick={() => {
@@ -2001,6 +2036,24 @@ export default function PredictionPage() {
                 className="w-full h-11 rounded-2xl border-violet-300 text-violet-700 hover:bg-violet-50 font-semibold"
               >
                 Register now
+              </Button>
+            ) : (
+              <Button
+                onClick={() => handleTokenPayment('name_numerology')}
+                disabled={isPayingToken}
+                className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40 disabled:opacity-60"
+              >
+                {isPayingToken ? (
+                  <>
+                    <Star className="w-4 h-4 mr-2 animate-spin" />
+                    Processing…
+                  </>
+                ) : (
+                  <>
+                    <Coins className="w-4 h-4 mr-2" />
+                    Pay ₹{selectedTokenPack.price}
+                  </>
+                )}
               </Button>
             )}
             <Button
@@ -2024,7 +2077,7 @@ export default function PredictionPage() {
                 Unlock Know More
               </DialogTitle>
               <DialogDescription className="text-violet-100 text-sm mt-1">
-                Buy tokens to access deep numerology insights. Each token = 1 session.
+                Buy tokens to access deep numerology insights. Each pack gives the same number of Vedic and Name Numerology tokens.
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -2051,30 +2104,12 @@ export default function PredictionPage() {
               </ul>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {TOKEN_PACKS.map((pack) => (
-                <button
-                  key={pack.id}
-                  onClick={() => setSelectedPack(pack.id)}
-                  className={`rounded-xl border-2 px-2.5 py-2 text-left transition-all ${
-                    selectedPack === pack.id
-                      ? 'border-violet-500 bg-violet-50'
-                      : 'border-slate-100 bg-white hover:border-violet-200'
-                  }`}
-                >
-                  <div className="text-[11px] font-semibold text-slate-500 truncate">{pack.label}</div>
-                  <div className="text-lg font-bold text-slate-800 leading-tight">₹{pack.price}</div>
-                  <div className="text-[10px] text-violet-600 font-medium mt-0.5 leading-tight">
-                    {pack.tokens} token{pack.tokens !== 1 ? 's' : ''}<br />₹{Math.round(pack.price / pack.tokens)}/session
-                  </div>
-                </button>
-              ))}
-            </div>
+            {packPicker}
           </div>
 
           <div className="shrink-0 border-t border-slate-100 p-6 pt-4">
             <Button
-              onClick={handleTokenPayment}
+              onClick={() => handleTokenPayment('know_more')}
               disabled={isPayingToken}
               className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold text-base shadow-lg shadow-violet-300/40 disabled:opacity-60"
             >
@@ -2086,7 +2121,7 @@ export default function PredictionPage() {
               ) : (
                 <>
                   <Coins className="w-4 h-4 mr-2" />
-                  Pay ₹{TOKEN_PACKS.find(p => p.id === selectedPack)?.price}
+                  Pay ₹{selectedTokenPack.price}
                 </>
               )}
             </Button>
